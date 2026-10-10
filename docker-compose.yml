@@ -1,0 +1,23 @@
+# Local Postgres for development and tests. Production uses Neon (Postgres 17).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: counterdex
+      POSTGRES_PASSWORD: counterdex
+      POSTGRES_DB: counterdex
+    ports:
+      # Localhost only: the credentials above are public, so never expose this on the network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U counterdex -d counterdex"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db-data:

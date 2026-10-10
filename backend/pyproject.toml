@@ -1,14 +1,20 @@
 [project]
 name = "counterdex-api"
 version = "0.1.0"
+description = "Counterdex API: the backend for a Pokémon team builder"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi>=0.143.0",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.4",
 ]
 
 [dependency-groups]
 dev = [
     "httpx2>=2.13.1",
+    "mypy>=2.4.0",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
     "uvicorn>=0.54.0",
@@ -22,4 +28,27 @@ testpaths = ["tests"]
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PT", "FAST", "C4", "PTH", "RET"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.alembic]
+script_location = "app:migrations"
+# Lets env.py import the app package when the CLI runs from backend/.
+prepend_sys_path = ["."]
+# Date-prefixed names keep migration files listed in the order they were created.
+file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s_%%(slug)s"
+# Generated migrations are linted and formatted like hand-written code.
+[[tool.alembic.post_write_hooks]]
+name = "ruff_fix"
+type = "module"
+module = "ruff"
+options = "check --fix REVISION_SCRIPT_FILENAME"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff_format"
+type = "module"
+module = "ruff"
+options = "format REVISION_SCRIPT_FILENAME"
