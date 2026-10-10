@@ -17,6 +17,12 @@ os.environ["DATABASE_URL"] = os.environ.get(
 )
 
 
+@pytest.fixture
+def anyio_backend() -> str:
+    # Async tests run on asyncio only (AnyIO's pytest plugin would also try trio).
+    return "asyncio"
+
+
 @pytest.fixture(scope="session")
 def alembic_config() -> Config:
     config = Config()
