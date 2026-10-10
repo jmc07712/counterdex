@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, SmallInteger, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, SmallInteger, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -49,3 +50,32 @@ class Pokemon(Base):
     last_synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # Set when PokéAPI stops listing the Pokémon. Rows are never deleted, so teams keep working.
     removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Species(Base):
+    """A species, such as Charizard, and its place in its evolution family.
+
+    Reference data refreshed by every sync: unlike the pokemon table, changes aren't tracked.
+    """
+
+    __tablename__ = "species"
+
+    # PokéAPI's id, which is the species' Pokédex number.
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text, unique=True)
+    # e.g. "Flame Pokémon".
+    genus: Mapped[str | None] = mapped_column(Text)
+    # PokéAPI's id for the evolution family: the species that share it are one family.
+    evolution_chain_id: Mapped[int] = mapped_column(index=True)
+    evolves_from_species_id: Mapped[int | None] = mapped_column(ForeignKey("species.id"))
+    # How it evolves from evolves_from_species_id: schemas.EvolutionMethod objects.
+    evolution_methods: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+
+
+class SpeciesVariety(Base):
+    """Which species each Pokémon belongs to, e.g. Mega Charizard X belongs to Charizard."""
+
+    __tablename__ = "species_varieties"
+
+    pokemon_id: Mapped[int] = mapped_column(ForeignKey("pokemon.id"), primary_key=True)
+    species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), index=True)

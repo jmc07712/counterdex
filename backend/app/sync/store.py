@@ -1,4 +1,4 @@
-"""Write a sync's Pokémon to the database and work out what changed."""
+"""Write a sync's Pokémon and species to the database, and work out which Pokémon changed."""
 
 from collections.abc import Sequence
 from datetime import datetime
@@ -8,17 +8,13 @@ from sqlalchemy import RowMapping, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core.db import Base
 from app.pokemon import models, schemas
 from app.sync.constants import MAX_REMOVED_SHARE, MIN_REMOVALS_ALLOWED
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SuspiciousRemovalError
 from app.sync.normalize import content_hash
-from app.sync.types import Change, StoreResult
-
-# Every column except the id, which identifies the row being written.
-WRITABLE_COLUMNS = tuple(
-    column.name for column in models.Pokemon.__table__.columns if column.name != "id"
-)
+from app.sync.types import Change, SpeciesRecord, StoreResult
 
 
 def store_pokemon(
@@ -75,13 +71,7 @@ def store_pokemon(
     )
 
     if to_write:
-        statement = insert(models.Pokemon).values([_row(each, synced_at) for each in to_write])
-        session.execute(
-            statement.on_conflict_do_update(
-                index_elements=[models.Pokemon.id],
-                set_={column: statement.excluded[column] for column in WRITABLE_COLUMNS},
-            )
-        )
+        _upsert(session, models.Pokemon, [_row(each, synced_at) for each in to_write])
     if unchanged_ids:
         session.execute(
             update(models.Pokemon)
@@ -102,6 +92,61 @@ def store_pokemon(
         removed=len(removed_ids),
         restored=restored,
         changes=changes,
+    )
+
+
+def store_species(session: Session, species: Sequence[SpeciesRecord]) -> None:
+    """Bring the species tables in line with PokéAPI.
+
+    Species are reference data, so they're overwritten and their changes aren't recorded. A
+    Pokémon that isn't stored (it failed to sync) joins its species when a later sync stores it.
+    """
+    if not species:
+        return
+    _upsert(
+        session,
+        models.Species,
+        [
+            {
+                "id": each.id,
+                "name": each.name,
+                "genus": each.genus,
+                "evolution_chain_id": each.evolution_chain_id,
+                "evolves_from_species_id": each.evolves_from_species_id,
+                # Only the conditions that apply; the rest read back as their defaults.
+                "evolution_methods": [
+                    method.model_dump(mode="json", exclude_defaults=True)
+                    for method in each.evolution_methods
+                ],
+            }
+            for each in species
+        ],
+    )
+    stored_pokemon = set(session.scalars(select(models.Pokemon.id)))
+    varieties = [
+        {"pokemon_id": pokemon_id, "species_id": each.id}
+        for each in species
+        for pokemon_id in each.pokemon_ids
+        if pokemon_id in stored_pokemon
+    ]
+    if varieties:
+        _upsert(session, models.SpeciesVariety, varieties)
+
+
+def _upsert(session: Session, model: type[Base], rows: list[dict[str, Any]]) -> None:
+    """Insert the rows, overwriting any stored row with the same primary key."""
+    table = model.__table__
+    key = [column.name for column in table.primary_key]
+    statement = insert(model).values(rows)
+    session.execute(
+        statement.on_conflict_do_update(
+            index_elements=key,
+            set_={
+                column.name: statement.excluded[column.name]
+                for column in table.columns
+                if column.name not in key
+            },
+        )
     )
 
 

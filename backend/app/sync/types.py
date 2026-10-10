@@ -5,22 +5,49 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from app.pokemon.schemas import EvolutionMethod
 from app.sync.enums import ChangeKind
-from app.sync.pokeapi import PokeApiPokemon
+from app.sync.pokeapi import PokeApiEvolutionChain, PokeApiPokemon, PokeApiSpecies
 
 Clock = Callable[[], datetime]
 
 
-@dataclass
-class FetchResult:
-    """What one pass over PokéAPI returned. Filled in as concurrent fetches finish."""
+@dataclass(frozen=True)
+class PokemonFetchResult:
+    """What one pass over PokéAPI's Pokémon returned."""
 
-    pokemon: list[PokeApiPokemon] = field(default_factory=list)
+    pokemon: list[PokeApiPokemon]
     # Every id in PokéAPI's listing, fetched or not. Only these count as still existing.
-    listed_ids: set[int] = field(default_factory=set)
+    listed_ids: set[int]
     # URLs that still failed after retrying. A failed fetch says nothing about whether the
     # Pokémon still exists, so it must never be treated as a removal.
-    failed: list[str] = field(default_factory=list)
+    failed: list[str]
+
+
+@dataclass(frozen=True)
+class SpeciesFetchResult:
+    """What one pass over PokéAPI's species and evolution chains returned."""
+
+    species: list[PokeApiSpecies]
+    evolution_chains: list[PokeApiEvolutionChain]
+    # URLs that still failed after retrying.
+    failed: list[str]
+
+
+@dataclass(frozen=True)
+class SpeciesRecord:
+    """A species ready to store: its place in its evolution family and its Pokémon."""
+
+    id: int
+    name: str
+    # e.g. "Flame Pokémon".
+    genus: str | None
+    evolution_chain_id: int
+    evolves_from_species_id: int | None
+    # How it evolves from evolves_from_species_id; none for a family's first stage.
+    evolution_methods: tuple[EvolutionMethod, ...]
+    # Its default form and any alternate forms.
+    pokemon_ids: tuple[int, ...]
 
 
 @dataclass(frozen=True)

@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -5,13 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
-from app.pokemon.enums import PokemonType
+from app.pokemon.enums import EvolutionTrigger, PokemonType
+from app.pokemon.schemas import EvolutionMethod
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SuspiciousRemovalError
 from app.sync.normalize import content_hash
-from app.sync.store import store_pokemon
-from app.sync.types import Change, StoreResult
-from tests.support.pokemon import with_columns
+from app.sync.store import store_pokemon, store_species
+from app.sync.types import Change, SpeciesRecord, StoreResult
+from tests.support.pokemon import add_pokemon, with_columns
 
 FIRST_SYNC = datetime(2026, 10, 10, 9, tzinfo=UTC)
 SECOND_SYNC = datetime(2026, 10, 11, 9, tzinfo=UTC)
@@ -147,3 +149,89 @@ def test_does_nothing_without_pokemon(db_session: Session) -> None:
     result = store_pokemon(db_session, [], listed_ids=set(), synced_at=FIRST_SYNC)
 
     assert result == StoreResult(inserted=0, updated=0, unchanged=0, removed=0, restored=0)
+
+
+# --- Species ---
+
+LEVEL_16 = EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=16)
+LEVEL_36 = EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=36)
+CHARMANDER = SpeciesRecord(
+    id=4,
+    name="charmander",
+    genus="Lizard Pokémon",
+    evolution_chain_id=2,
+    evolves_from_species_id=None,
+    evolution_methods=(),
+    pokemon_ids=(4,),
+)
+CHARMELEON = replace(
+    CHARMANDER,
+    id=5,
+    name="charmeleon",
+    genus="Flame Pokémon",
+    evolves_from_species_id=4,
+    evolution_methods=(LEVEL_16,),
+    pokemon_ids=(5,),
+)
+CHARIZARD_SPECIES = replace(
+    CHARMELEON,
+    id=6,
+    name="charizard",
+    evolves_from_species_id=5,
+    evolution_methods=(LEVEL_36,),
+    pokemon_ids=(6, 10034),
+)
+CHARMANDER_FAMILY = [CHARMANDER, CHARMELEON, CHARIZARD_SPECIES]
+
+
+def stored_species(session: Session, species_id: int) -> models.Species:
+    species = session.get(models.Species, species_id)
+    assert species is not None
+    session.refresh(species)
+    return species
+
+
+def stored_varieties(session: Session) -> dict[int, int]:
+    """Each stored Pokémon's species."""
+    rows = session.execute(
+        select(models.SpeciesVariety.pokemon_id, models.SpeciesVariety.species_id)
+    )
+    return dict(rows.all())
+
+
+def test_stores_species_and_their_place_in_their_family(db_session: Session) -> None:
+    add_pokemon(db_session, 4, 5, 6, 10034)
+
+    store_species(db_session, CHARMANDER_FAMILY)
+
+    charizard = stored_species(db_session, 6)
+    assert (charizard.name, charizard.genus) == ("charizard", "Flame Pokémon")
+    assert (charizard.evolution_chain_id, charizard.evolves_from_species_id) == (2, 5)
+    methods = [EvolutionMethod.model_validate(method) for method in charizard.evolution_methods]
+    assert methods == [LEVEL_36]
+
+
+def test_stores_which_species_each_pokemon_belongs_to(db_session: Session) -> None:
+    add_pokemon(db_session, 4, 5, 6, 10034)
+
+    store_species(db_session, CHARMANDER_FAMILY)
+
+    assert stored_varieties(db_session) == {4: 4, 5: 5, 6: 6, 10034: 6}
+
+
+def test_leaves_out_pokemon_that_are_not_stored(db_session: Session) -> None:
+    # Mega Charizard X (10034) failed to sync; a later sync adds it to its species.
+    add_pokemon(db_session, 4, 5, 6)
+
+    store_species(db_session, CHARMANDER_FAMILY)
+
+    assert stored_varieties(db_session) == {4: 4, 5: 5, 6: 6}
+
+
+def test_overwrites_species_already_stored(db_session: Session) -> None:
+    add_pokemon(db_session, 4, 5, 6, 10034)
+    store_species(db_session, CHARMANDER_FAMILY)
+
+    store_species(db_session, [replace(CHARIZARD_SPECIES, genus="Blaze Pokémon")])
+
+    assert stored_species(db_session, 6).genus == "Blaze Pokémon"

@@ -1,5 +1,7 @@
 """Tunables for syncing with PokéAPI."""
 
+from app.pokemon.enums import Gender, RelativePhysicalStats
+
 # --- PokéAPI client ---
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
@@ -26,6 +28,16 @@ POKEAPI_STAT_NAMES = {
     "sp_defense": "special-defense",
     "speed": "speed",
 }
+
+# What PokéAPI's ids in evolution details stand for.
+POKEAPI_GENDERS = {1: Gender.FEMALE, 2: Gender.MALE}
+POKEAPI_RELATIVE_PHYSICAL_STATS = {
+    1: RelativePhysicalStats.ATTACK_HIGHER,
+    0: RelativePhysicalStats.EQUAL,
+    -1: RelativePhysicalStats.DEFENSE_HIGHER,
+}
+# The language of the species descriptions we keep, such as "Flame Pokémon".
+GENUS_LANGUAGE = "en"
 
 # --- Storing a sync ---
 

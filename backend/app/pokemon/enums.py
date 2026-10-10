@@ -44,3 +44,46 @@ class FormFilter(StrEnum):
     ALL = "all"
     DEFAULT = "default"
     ALTERNATE = "alternate"
+
+
+class EvolutionTrigger(StrEnum):
+    """What sets an evolution off, as PokéAPI names it."""
+
+    LEVEL_UP = "level-up"
+    IN_BATTLE_LEVEL_UP = "in-battle-level-up"
+    USE_ITEM = "use-item"
+    TRADE = "trade"
+    SHED = "shed"
+    SPIN = "spin"
+    USE_MOVE = "use-move"
+    AGILE_STYLE_MOVE = "agile-style-move"
+    STRONG_STYLE_MOVE = "strong-style-move"
+    TAKE_DAMAGE = "take-damage"
+    RECOIL_DAMAGE = "recoil-damage"
+    THREE_CRITICAL_HITS = "three-critical-hits"
+    THREE_DEFEATED_BISHARP = "three-defeated-bisharp"
+    TOWER_OF_DARKNESS = "tower-of-darkness"
+    TOWER_OF_WATERS = "tower-of-waters"
+    GIMMIGHOUL_COINS = "gimmighoul-coins"
+    MELTAN_CANDIES = "meltan-candies"
+    UNCLASSIFIED = "unclassified"
+
+
+class TimeOfDay(StrEnum):
+    DAY = "day"
+    NIGHT = "night"
+    DUSK = "dusk"
+    FULL_MOON = "full-moon"
+
+
+class Gender(StrEnum):
+    FEMALE = "female"
+    MALE = "male"
+
+
+class RelativePhysicalStats(StrEnum):
+    """How a Pokémon's Attack compares to its Defense."""
+
+    ATTACK_HIGHER = "attack-higher"
+    EQUAL = "equal"
+    DEFENSE_HIGHER = "defense-higher"

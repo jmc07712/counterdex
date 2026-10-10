@@ -11,33 +11,46 @@ from typing import Any
 import httpx2
 
 from app.sync.client import PokeApiClient
+from app.sync.constants import POKEAPI_BASE_URL
 
 BASE_URL = "https://pokeapi.test/api/v2/"
 RECORDED_RESPONSES = Path(__file__).parent / "pokeapi_responses"
+# Charmander's and Pichu's evolution families, whole.
+SPECIES_IDS = (4, 5, 6, 172, 25, 26)
 
 Handler = Callable[[httpx2.Request], Coroutine[None, None, httpx2.Response]]
 
 
-def pokemon_response(pokemon_id: int) -> dict[str, Any]:
-    """A recorded GET /pokemon/{id} response; a fresh copy, so tests may modify it."""
-    path = RECORDED_RESPONSES / f"pokemon-{pokemon_id}.json"
-    data: dict[str, Any] = json.loads(path.read_text())
+def recorded_response(name: str) -> dict[str, Any]:
+    """A recorded response, e.g. "pokemon-25", linking to the fake PokéAPI instead of the real
+    one. A fresh copy, so tests may modify it.
+    """
+    text = (RECORDED_RESPONSES / f"{name}.json").read_text()
+    data: dict[str, Any] = json.loads(text.replace(POKEAPI_BASE_URL, BASE_URL))
     return data
 
 
-def pokemon_url(pokemon_id: int) -> str:
-    return f"{BASE_URL}pokemon/{pokemon_id}/"
+def pokemon_response(pokemon_id: int) -> dict[str, Any]:
+    return recorded_response(f"pokemon-{pokemon_id}")
 
 
-def listing_response(*pokemon_ids: int, next_page: str | None = None) -> dict[str, Any]:
-    """A GET /pokemon page listing the given Pokémon."""
-    results = [
-        {"name": str(pokemon_id), "url": pokemon_url(pokemon_id)} for pokemon_id in pokemon_ids
-    ]
-    return {"count": len(pokemon_ids), "next": next_page, "results": results}
+def species_response(species_id: int) -> dict[str, Any]:
+    return recorded_response(f"pokemon-species-{species_id}")
 
 
-def requested_pokemon_id(request: httpx2.Request) -> int:
+def evolution_chain_response(chain_id: int) -> dict[str, Any]:
+    return recorded_response(f"evolution-chain-{chain_id}")
+
+
+def listing_response(
+    *ids: int, next_page: str | None = None, resource: str = "pokemon"
+) -> dict[str, Any]:
+    """A GET /pokemon (or other resource) page listing the given ids."""
+    results = [{"name": str(id_), "url": f"{BASE_URL}{resource}/{id_}/"} for id_ in ids]
+    return {"count": len(ids), "next": next_page, "results": results}
+
+
+def requested_id(request: httpx2.Request) -> int:
     return int(request.url.path.rstrip("/").rsplit("/", 1)[1])
 
 
@@ -51,23 +64,40 @@ def fake_pokeapi(
     *,
     listing_status: int = 200,
     broken_id: int | None = None,
+    broken_species_id: int | None = None,
     speeds: dict[int, int] | None = None,
     extra_urls: tuple[str, ...] = (),
 ) -> PokeApiClient:
-    """PokéAPI listing Charizard (6) and Pikachu (25), with optional failures and changes."""
+    """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species,
+    with optional failures and changes.
+    """
 
     async def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.path.endswith("/pokemon"):
-            listing = listing_response(6, 25)
-            listing["results"] += [{"name": url, "url": url} for url in extra_urls]
-            return httpx2.Response(listing_status, json=listing)
-        pokemon_id = requested_pokemon_id(request)
-        if pokemon_id == broken_id:
-            return httpx2.Response(500)
-        data = pokemon_response(pokemon_id)
-        if speeds and pokemon_id in speeds:
-            speed = next(s for s in data["stats"] if s["stat"]["name"] == "speed")
-            speed["base_stat"] = speeds[pokemon_id]
-        return httpx2.Response(200, json=data)
+        path = request.url.path.removeprefix(httpx2.URL(BASE_URL).path).strip("/")
+        match path.split("/"):
+            case ["pokemon"]:
+                listing = listing_response(6, 25)
+                listing["results"] += [{"name": url, "url": url} for url in extra_urls]
+                return httpx2.Response(listing_status, json=listing)
+            case ["pokemon", pokemon_id] if int(pokemon_id) == broken_id:
+                return httpx2.Response(500)
+            case ["pokemon", pokemon_id]:
+                data = pokemon_response(int(pokemon_id))
+                if speeds and int(pokemon_id) in speeds:
+                    speed = next(s for s in data["stats"] if s["stat"]["name"] == "speed")
+                    speed["base_stat"] = speeds[int(pokemon_id)]
+                return httpx2.Response(200, json=data)
+            case ["pokemon-species"]:
+                return httpx2.Response(
+                    200, json=listing_response(*SPECIES_IDS, resource="pokemon-species")
+                )
+            case ["pokemon-species", species_id] if int(species_id) == broken_species_id:
+                return httpx2.Response(500)
+            case ["pokemon-species", species_id]:
+                return httpx2.Response(200, json=species_response(int(species_id)))
+            case ["evolution-chain", chain_id]:
+                return httpx2.Response(200, json=evolution_chain_response(int(chain_id)))
+            case _:
+                return httpx2.Response(404)
 
     return client_for(handler)

@@ -1,9 +1,11 @@
 """HTTP client for PokéAPI. Knows nothing about our database."""
 
 import logging
+from collections.abc import Iterable
 
 import anyio
 import httpx2
+from pydantic import BaseModel
 
 from app.sync.constants import (
     CONCURRENT_REQUESTS,
@@ -14,13 +16,34 @@ from app.sync.constants import (
     RETRYABLE_STATUS_CODES,
 )
 from app.sync.exceptions import PokeApiError
-from app.sync.pokeapi import PokeApiListing, PokeApiPokemon
-from app.sync.types import FetchResult
+from app.sync.pokeapi import (
+    NamedApiResource,
+    PokeApiEvolutionChain,
+    PokeApiListing,
+    PokeApiPokemon,
+    PokeApiSpecies,
+)
+from app.sync.types import PokemonFetchResult, SpeciesFetchResult
 
 logger = logging.getLogger(__name__)
 
 
 class PokeApiClient:
+    """Reads everything the sync needs from PokéAPI: every Pokémon, every species, and the
+    evolution chains that link species into families.
+
+    Each fetch lists a resource page by page, then fetches each entry's details concurrently,
+    at most `concurrency` requests at a time. A request that hits rate limiting, a server error
+    or a network failure is tried up to `attempts` times in all, waiting `retry_delay` seconds
+    before the first retry and twice as long before each one after.
+
+    One entry that keeps failing doesn't fail the fetch: its URL is reported in the result's
+    `failed`, and the caller decides what that means. A listing that can't be trusted (it
+    loops, never ends or points anywhere but PokéAPI) raises instead, because callers treat
+    whatever is missing from a listing as removed. The client only ever requests URLs on
+    PokéAPI itself, and it knows nothing about the database.
+    """
+
     def __init__(
         self,
         http: httpx2.AsyncClient,
@@ -34,32 +57,43 @@ class PokeApiClient:
         self._attempts = attempts
         self._retry_delay = retry_delay
 
-    async def fetch_all(self) -> FetchResult:
-        """List every Pokémon, then fetch their details concurrently (within the limit)."""
-        urls = await self._list_pokemon_urls()
-        result = FetchResult(listed_ids={_pokemon_id(url) for url in urls})
-        async with anyio.create_task_group() as tasks:
-            for url in urls:
-                tasks.start_soon(self._fetch_into, url, result)
-        return result
+    async def fetch_pokemon(self) -> PokemonFetchResult:
+        """Every Pokémon in PokéAPI's listing."""
+        entries = await self._list_entries("pokemon")
+        pokemon, failed = await self._fetch_details([e.url for e in entries], PokeApiPokemon)
+        return PokemonFetchResult(pokemon, listed_ids={e.id for e in entries}, failed=failed)
 
-    async def _list_pokemon_urls(self) -> list[str]:
-        """Every Pokémon URL in the listing, or an error; never a partial or untrusted list.
+    async def fetch_species(self) -> SpeciesFetchResult:
+        """Every species in PokéAPI's listing, and the evolution chains they belong to."""
+        entries = await self._list_entries("pokemon-species")
+        species, failed_species = await self._fetch_details(
+            [e.url for e in entries], PokeApiSpecies
+        )
+        # Every species in a family links to the same chain, so each chain is fetched once.
+        chain_urls = dict.fromkeys(
+            self._require_pokeapi_url(each.evolution_chain.url) for each in species
+        )
+        chains, failed_chains = await self._fetch_details(chain_urls, PokeApiEvolutionChain)
+        return SpeciesFetchResult(species, chains, failed=failed_species + failed_chains)
+
+    async def _list_entries(self, resource: str) -> list[NamedApiResource]:
+        """Every entry in a resource's listing, e.g. "pokemon", read page by page. Raises rather
+        than return a partial or untrusted list.
 
         Callers treat Pokémon missing from the listing as removed, so a listing that points
         outside PokéAPI, loops or never ends must fail the sync instead of being trusted.
         """
-        # A dict keeps listing order and drops repeats (offset paging can repeat an entry
-        # if PokéAPI changes while we read it).
-        urls: dict[str, None] = {}
+        # Keyed by URL, which keeps listing order and drops repeats (offset paging can repeat
+        # an entry if PokéAPI changes while we read it).
+        entries: dict[str, NamedApiResource] = {}
         seen_pages: set[str] = set()
-        page_url = "pokemon"
+        page_url = resource
         params: dict[str, int] | None = {"limit": PAGE_SIZE}
         for _ in range(MAX_PAGES):
             page = PokeApiListing.model_validate(await self._get_json(page_url, params=params))
-            urls.update(dict.fromkeys(self._require_pokeapi_url(e.url) for e in page.results))
+            entries.update((self._require_pokeapi_url(e.url), e) for e in page.results)
             if page.next is None:
-                return list(urls)
+                return list(entries.values())
             if page.next in seen_pages:
                 raise PokeApiError(f"PokéAPI's listing loops back to {page.next}")
             seen_pages.add(page.next)
@@ -67,14 +101,28 @@ class PokeApiClient:
             page_url, params = self._require_pokeapi_url(page.next), None
         raise PokeApiError(f"PokéAPI's listing ran past {MAX_PAGES} pages")
 
-    async def _fetch_into(self, url: str, result: FetchResult) -> None:
-        async with self._limiter:
-            try:
-                result.pokemon.append(PokeApiPokemon.model_validate(await self._get_json(url)))
-            # ValueError covers malformed JSON and failed validation.
-            except (httpx2.HTTPError, ValueError) as error:
-                logger.warning("Giving up on %s: %s", url, error)
-                result.failed.append(url)
+    async def _fetch_details[T: BaseModel](
+        self, urls: Iterable[str], shape: type[T]
+    ) -> tuple[list[T], list[str]]:
+        """Fetch every URL concurrently (within the limit) as a `shape`. Returns what was
+        fetched, and the URLs that still failed after retrying.
+        """
+        fetched: list[T] = []
+        failed: list[str] = []
+
+        async def fetch(url: str) -> None:
+            async with self._limiter:
+                try:
+                    fetched.append(shape.model_validate(await self._get_json(url)))
+                # ValueError covers malformed JSON and failed validation.
+                except (httpx2.HTTPError, ValueError) as error:
+                    logger.warning("Giving up on %s: %s", url, error)
+                    failed.append(url)
+
+        async with anyio.create_task_group() as tasks:
+            for url in urls:
+                tasks.start_soon(fetch, url)
+        return fetched, failed
 
     def _require_pokeapi_url(self, url: str) -> str:
         """Reject URLs from PokéAPI's responses that point anywhere but PokéAPI itself."""
@@ -89,6 +137,7 @@ class PokeApiClient:
         return url
 
     async def _get_json(self, url: str, params: dict[str, int] | None = None) -> object:
+        """GET a URL's JSON, retrying the failures worth retrying (see the class docstring)."""
         attempt = 1
         while True:
             try:
@@ -100,14 +149,6 @@ class PokeApiClient:
                     raise
             await anyio.sleep(self._retry_delay * 2 ** (attempt - 1))
             attempt += 1
-
-
-def _pokemon_id(url: str) -> int:
-    """The id at the end of a listing URL, e.g. https://pokeapi.co/api/v2/pokemon/25/ -> 25."""
-    last_segment = httpx2.URL(url).path.rstrip("/").rsplit("/", 1)[-1]
-    if not last_segment.isdigit():
-        raise PokeApiError(f"listing entry has no Pokémon id: {url}")
-    return int(last_segment)
 
 
 def _is_retryable(error: httpx2.HTTPError) -> bool:

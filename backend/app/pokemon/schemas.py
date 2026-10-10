@@ -25,7 +25,15 @@ from app.pokemon.constants import (
     MIN_BASE_STAT,
     MIN_TYPES,
 )
-from app.pokemon.enums import FormFilter, PokemonForm, PokemonType
+from app.pokemon.enums import (
+    EvolutionTrigger,
+    FormFilter,
+    Gender,
+    PokemonForm,
+    PokemonType,
+    RelativePhysicalStats,
+    TimeOfDay,
+)
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
 
@@ -110,6 +118,62 @@ class Pokemon(BaseModel):
         # The form kind is worked out from the name, so it isn't stored (or hashed).
         fields = self.model_dump(mode="json", exclude={"stats", "form"})
         return fields | self.stats.model_dump(mode="json")
+
+
+class EvolutionMethod(BaseModel):
+    """One way a species evolves from the one before it in the latest games: what sets it off,
+    and any conditions on top. Conditions that don't apply are `null` or `false`. Items, moves,
+    species and places are named as in PokéAPI, e.g. `thunder-stone`.
+    """
+
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
+
+    trigger: EvolutionTrigger
+    """What sets the evolution off."""
+    min_level: int | None = None
+    """The level it must reach."""
+    item: str | None = None
+    """The item to use on it."""
+    held_item: str | None = None
+    """The item it must hold."""
+    known_move: str | None = None
+    """A move it must know."""
+    known_move_type: PokemonType | None = None
+    """It must know a move of this type."""
+    used_move: str | None = None
+    """The move it must use."""
+    min_move_count: int | None = None
+    """How many times it must use `used_move`."""
+    trade_species: str | None = None
+    """The species it must be traded for."""
+    party_species: str | None = None
+    """A species that must be in the party."""
+    party_type: PokemonType | None = None
+    """A Pokémon of this type must be in the party."""
+    min_happiness: int | None = None
+    """The friendship it must have, at least."""
+    min_steps: int | None = None
+    """How many steps it must walk, at least."""
+    min_damage_taken: int | None = None
+    """How much damage it must take, at least."""
+    relative_physical_stats: RelativePhysicalStats | None = None
+    """How its Attack must compare to its Defense."""
+    location: str | None = None
+    """Where it must be."""
+    region: str | None = None
+    """The region it must be in."""
+    time_of_day: TimeOfDay | None = None
+    """When it must be."""
+    gender: Gender | None = None
+    """Only Pokémon of this gender evolve this way."""
+    needs_overworld_rain: bool = False
+    """It must be raining."""
+    needs_multiplayer: bool = False
+    """It must be with another player."""
+    turn_upside_down: bool = False
+    """The console must be held upside down."""
+    chance: int | None = None
+    """The percent chance of evolving this way, when it's left to chance."""
 
 
 class PokemonPage(BaseModel):

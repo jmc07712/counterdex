@@ -1,0 +1,53 @@
+{
+  "id": 26,
+  "name": "raichu",
+  "genera": [
+    {
+      "genus": "Mouse Pokémon",
+      "language": {
+        "name": "en",
+        "url": "https://pokeapi.co/api/v2/language/9/"
+      }
+    },
+    {
+      "genus": "ねずみポケモン",
+      "language": {
+        "name": "ja",
+        "url": "https://pokeapi.co/api/v2/language/11/"
+      }
+    }
+  ],
+  "evolution_chain": {
+    "url": "https://pokeapi.co/api/v2/evolution-chain/10/"
+  },
+  "varieties": [
+    {
+      "is_default": true,
+      "pokemon": {
+        "name": "raichu",
+        "url": "https://pokeapi.co/api/v2/pokemon/26/"
+      }
+    },
+    {
+      "is_default": false,
+      "pokemon": {
+        "name": "raichu-alola",
+        "url": "https://pokeapi.co/api/v2/pokemon/10100/"
+      }
+    },
+    {
+      "is_default": false,
+      "pokemon": {
+        "name": "raichu-mega-x",
+        "url": "https://pokeapi.co/api/v2/pokemon/10304/"
+      }
+    },
+    {
+      "is_default": false,
+      "pokemon": {
+        "name": "raichu-mega-y",
+        "url": "https://pokeapi.co/api/v2/pokemon/10305/"
+      }
+    }
+  ]
+}

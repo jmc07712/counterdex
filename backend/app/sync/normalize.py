@@ -1,13 +1,15 @@
-"""Turn PokéAPI responses into the Pokémon the app stores."""
+"""Turn PokéAPI responses into the Pokémon and species the app stores."""
 
 import hashlib
 import json
+from collections.abc import Iterable, Iterator
 
 from pydantic import ValidationError
 
 from app.pokemon.schemas import Pokemon
-from app.sync.constants import POKEAPI_STAT_NAMES
-from app.sync.pokeapi import PokeApiPokemon
+from app.sync.constants import GENUS_LANGUAGE, POKEAPI_STAT_NAMES
+from app.sync.pokeapi import ChainLink, PokeApiEvolutionChain, PokeApiPokemon, PokeApiSpecies
+from app.sync.types import SpeciesRecord
 
 
 def normalize(raw: PokeApiPokemon) -> Pokemon:
@@ -44,3 +46,51 @@ def content_hash(pokemon: Pokemon) -> str:
     # identical bytes, the same bytes the hashes already stored were computed from.
     payload = json.dumps(pokemon.to_columns(), sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def normalize_species(
+    species: Iterable[PokeApiSpecies], chains: Iterable[PokeApiEvolutionChain]
+) -> list[SpeciesRecord]:
+    """The species of every evolution family that was fetched whole, ready to store.
+
+    A family is stored whole or not at all, so a species never evolves from one that isn't
+    stored. The species of a family left out keep what was stored before.
+    """
+    fetched = {each.id: each for each in species}
+    # Keyed by id, so a species PokéAPI puts in two chains is still stored once.
+    records: dict[int, SpeciesRecord] = {}
+    for chain in chains:
+        family = list(_family(chain.chain, evolves_from=None))
+        if all(link.species.id in fetched for link, _ in family):
+            records.update(
+                (link.species.id, _species_record(fetched[link.species.id], chain.id, link, parent))
+                for link, parent in family
+            )
+    return list(records.values())
+
+
+def _family(link: ChainLink, evolves_from: int | None) -> Iterator[tuple[ChainLink, int | None]]:
+    """Every species in a chain, from `link` down, with the id of the species it evolves from."""
+    yield link, evolves_from
+    for evolution in link.evolves_to:
+        yield from _family(evolution, link.species.id)
+
+
+def _species_record(
+    species: PokeApiSpecies, chain_id: int, link: ChainLink, evolves_from: int | None
+) -> SpeciesRecord:
+    # PokéAPI lists older games' ways to evolve too, and marks the latest ones as defaults.
+    latest = [detail for detail in link.evolution_details if detail.is_default]
+    return SpeciesRecord(
+        id=species.id,
+        name=species.name,
+        genus=next(
+            (each.genus for each in species.genera if each.language.name == GENUS_LANGUAGE), None
+        ),
+        evolution_chain_id=chain_id,
+        evolves_from_species_id=evolves_from,
+        evolution_methods=tuple(
+            dict.fromkeys(detail.method for detail in latest or link.evolution_details)
+        ),
+        pokemon_ids=tuple(variety.pokemon.id for variety in species.varieties),
+    )

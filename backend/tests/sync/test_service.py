@@ -4,13 +4,13 @@ import pytest
 from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
-from app.pokemon.models import Pokemon
+from app.pokemon.models import Pokemon, Species, SpeciesVariety
 from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.service import record_failed_sync, run_sync
-from tests.support.pokeapi import BASE_URL, fake_pokeapi
+from tests.support.pokeapi import BASE_URL, SPECIES_IDS, fake_pokeapi
 
 pytestmark = pytest.mark.anyio
 
@@ -106,6 +106,30 @@ async def test_stores_a_pokemon_once_even_if_two_listing_urls_resolve_to_it(
 
     assert report.inserted == 2
     assert count(db_session, Pokemon) == 2
+
+
+async def test_syncs_species_and_their_evolution_families(db_session: Session) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    assert sorted(db_session.scalars(select(Species.id))) == sorted(SPECIES_IDS)
+    raichu = db_session.get(Species, 26)
+    assert raichu is not None
+    assert (raichu.evolution_chain_id, raichu.evolves_from_species_id) == (10, 25)
+
+
+async def test_links_each_synced_pokemon_to_its_species(db_session: Session) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    rows = db_session.execute(select(SpeciesVariety.pokemon_id, SpeciesVariety.species_id))
+    assert dict(rows.all()) == {6: 6, 25: 25}
+
+
+async def test_reports_species_it_could_not_sync(db_session: Session) -> None:
+    # Charmeleon failed to fetch, so none of its family is updated until the next sync.
+    report = await run_sync(fake_pokeapi(broken_species_id=5), db_session, clock=clock)
+
+    assert report.failed == ["charizard", "charmander", f"{BASE_URL}pokemon-species/5/"]
+    assert sorted(db_session.scalars(select(Species.id))) == [25, 26, 172]
 
 
 def test_records_a_failed_sync(db_session: Session) -> None:
