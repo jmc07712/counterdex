@@ -7,6 +7,8 @@ from app.api.dependencies import SessionDep
 from app.pokemon import queries
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.schemas import PokemonDetails, PokemonPage, PokemonQuery
+from app.sync import queries as sync_queries
+from app.sync.schemas import PokemonChange
 
 router = APIRouter()
 
@@ -25,18 +27,18 @@ def list_pokemon(
     return queries.list_pokemon(session, query)
 
 
+PokemonId = Annotated[
+    int, Path(ge=1, le=MAX_POKEMON_ID, description="The Pokémon's `id`, e.g. 6 or 10034.")
+]
+NOT_FOUND = "No Pokémon has this id."
+
+
 @router.get(
     "/pokemon/{pokemon_id}",
     summary="Get a Pokémon",
-    responses={status.HTTP_404_NOT_FOUND: {"description": "No Pokémon has this id."}},
+    responses={status.HTTP_404_NOT_FOUND: {"description": NOT_FOUND}},
 )
-def get_pokemon(
-    session: SessionDep,
-    response: Response,
-    pokemon_id: Annotated[
-        int, Path(ge=1, le=MAX_POKEMON_ID, description="The Pokémon's `id`, e.g. 6 or 10034.")
-    ],
-) -> PokemonDetails:
+def get_pokemon(session: SessionDep, response: Response, pokemon_id: PokemonId) -> PokemonDetails:
     """A Pokémon with its species, the species' other forms, and its evolution family.
 
     Pokémon that PokéAPI no longer lists can still be fetched: `removed_at` says when they were
@@ -44,6 +46,23 @@ def get_pokemon(
     """
     details = queries.get_pokemon_details(session, pokemon_id)
     if details is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No Pokémon has this id.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
     response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
     return details
+
+
+@router.get(
+    "/pokemon/{pokemon_id}/changes",
+    summary="List a Pokémon's changes",
+    responses={status.HTTP_404_NOT_FOUND: {"description": NOT_FOUND}},
+)
+def list_pokemon_changes(
+    session: SessionDep, response: Response, pokemon_id: PokemonId
+) -> list[PokemonChange]:
+    """Every change a sync has found to the Pokémon, newest first: updates to its data, and
+    PokéAPI removing it or listing it again. A Pokémon is new to the Pokédex without a change.
+    """
+    if not queries.pokemon_exists(session, pokemon_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
+    response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
+    return sync_queries.list_pokemon_changes(session, pokemon_id)

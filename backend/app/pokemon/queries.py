@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
@@ -32,9 +32,14 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
     # One extra row shows whether another page follows, without counting the rest.
     rows = session.execute(statement.limit(query.limit + 1)).mappings().all()
 
-    items = [_pokemon(row) for row in rows[: query.limit]]
+    items = [pokemon_from_columns(row) for row in rows[: query.limit]]
     next_cursor = items[-1].id if len(rows) > query.limit else None
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
+
+
+def pokemon_exists(session: Session, pokemon_id: int) -> bool:
+    """Whether a Pokémon has the id, listed or not."""
+    return bool(session.scalar(select(exists().where(models.Pokemon.id == pokemon_id))))
 
 
 def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDetails | None:
@@ -56,14 +61,14 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     if species is None:
         # A sync stores a Pokémon before its species, so this lasts until a sync stores both.
         return schemas.PokemonDetails(
-            pokemon=_pokemon(row),
+            pokemon=pokemon_from_columns(row),
             removed_at=row["removed_at"],
             species=None,
             forms=[],
             evolution=None,
         )
     return schemas.PokemonDetails(
-        pokemon=_pokemon(row),
+        pokemon=pokemon_from_columns(row),
         removed_at=row["removed_at"],
         species=_species(species),
         forms=[form for _, form in _listed_forms(session, [species.id])],
@@ -119,12 +124,14 @@ def _listed_forms(
         )
         .order_by(models.Pokemon.id)
     ).mappings()
-    return [(row["species_id"], _pokemon(row)) for row in rows]
+    return [(row["species_id"], pokemon_from_columns(row)) for row in rows]
 
 
-def _pokemon(row: Mapping[Any, Any]) -> schemas.Pokemon:
-    """A Pokémon from its pokemon table row, with its sprite served from the CDN."""
-    return schemas.Pokemon.from_columns({**row, "sprite_url": cdn_sprite_url(row["sprite_url"])})
+def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
+    """A Pokémon as the API serves it, from the pokemon table's columns: sprite from the CDN."""
+    return schemas.Pokemon.from_columns(
+        {**columns, "sprite_url": cdn_sprite_url(columns["sprite_url"])}
+    )
 
 
 def _species(species: models.Species) -> schemas.Species:

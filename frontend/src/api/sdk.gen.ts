@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -43,6 +43,14 @@ export const listPokemon = <ThrowOnError extends boolean = false>(options?: Opti
  * removed.
  */
 export const getPokemon = <ThrowOnError extends boolean = false>(options: Options<GetPokemonData, ThrowOnError>): RequestResult<GetPokemonResponses, GetPokemonErrors, ThrowOnError> => (options.client ?? client).get<GetPokemonResponses, GetPokemonErrors, ThrowOnError>({ url: '/api/pokemon/{pokemon_id}', ...options });
+
+/**
+ * List a Pokémon's changes
+ *
+ * Every change a sync has found to the Pokémon, newest first: updates to its data, and
+ * PokéAPI removing it or listing it again. A Pokémon is new to the Pokédex without a change.
+ */
+export const listPokemonChanges = <ThrowOnError extends boolean = false>(options: Options<ListPokemonChangesData, ThrowOnError>): RequestResult<ListPokemonChangesResponses, ListPokemonChangesErrors, ThrowOnError> => (options.client ?? client).get<ListPokemonChangesResponses, ListPokemonChangesErrors, ThrowOnError>({ url: '/api/pokemon/{pokemon_id}/changes', ...options });
 
 /**
  * Sync status

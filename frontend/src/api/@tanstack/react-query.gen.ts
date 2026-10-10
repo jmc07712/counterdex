@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getPokemon, health, listPokemon, type Options, syncStatus } from '../sdk.gen';
-import type { GetPokemonData, GetPokemonError, GetPokemonResponse, HealthData, HealthResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { getPokemon, health, listPokemon, listPokemonChanges, type Options, syncStatus } from '../sdk.gen';
+import type { GetPokemonData, GetPokemonError, GetPokemonResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -167,6 +167,27 @@ export const getPokemonOptions = (options: Options<GetPokemonData>) => queryOpti
         return data;
     },
     queryKey: getPokemonQueryKey(options)
+});
+
+export const listPokemonChangesQueryKey = (options: Options<ListPokemonChangesData>) => createQueryKey('listPokemonChanges', options);
+
+/**
+ * List a Pokémon's changes
+ *
+ * Every change a sync has found to the Pokémon, newest first: updates to its data, and
+ * PokéAPI removing it or listing it again. A Pokémon is new to the Pokédex without a change.
+ */
+export const listPokemonChangesOptions = (options: Options<ListPokemonChangesData>) => queryOptions<ListPokemonChangesResponse, ListPokemonChangesError, ListPokemonChangesResponse, ReturnType<typeof listPokemonChangesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPokemonChanges({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPokemonChangesQueryKey(options)
 });
 
 export const syncStatusQueryKey = (options?: Options<SyncStatusData>) => createQueryKey('syncStatus', options);

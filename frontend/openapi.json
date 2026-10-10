@@ -186,6 +186,57 @@
         }
       }
     },
+    "/api/pokemon/{pokemon_id}/changes": {
+      "get": {
+        "summary": "List a Pokémon's changes",
+        "description": "Every change a sync has found to the Pokémon, newest first: updates to its data, and\nPokéAPI removing it or listing it again. A Pokémon is new to the Pokédex without a change.",
+        "operationId": "list_pokemon_changes",
+        "parameters": [
+          {
+            "name": "pokemon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "description": "The Pokémon's `id`, e.g. 6 or 10034.",
+              "title": "Pokemon Id"
+            },
+            "description": "The Pokémon's `id`, e.g. 6 or 10034."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PokemonChange"
+                  },
+                  "title": "Response List Pokemon Changes"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No Pokémon has this id."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sync/status": {
       "get": {
         "summary": "Sync status",
@@ -208,6 +259,15 @@
   },
   "components": {
     "schemas": {
+      "ChangeKind": {
+        "type": "string",
+        "enum": [
+          "updated",
+          "removed",
+          "restored"
+        ],
+        "title": "ChangeKind"
+      },
       "EvolutionMethod": {
         "properties": {
           "trigger": {
@@ -627,6 +687,50 @@
         ],
         "title": "Pokemon",
         "description": "A Pokémon: its Pokédex number, name, types, base stats and sprite."
+      },
+      "PokemonChange": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "detected_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Detected At",
+            "description": "When the sync that found it started."
+          },
+          "before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pokemon"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Pokémon before the change."
+          },
+          "after": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pokemon"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Pokémon after the change, or `null` if it was removed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "detected_at",
+          "before",
+          "after"
+        ],
+        "title": "PokemonChange",
+        "description": "A change a sync found to a Pokémon, with the Pokémon as it was before and after."
       },
       "PokemonDetails": {
         "properties": {

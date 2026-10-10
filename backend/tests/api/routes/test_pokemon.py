@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -5,7 +6,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.constants import POKEMON_CACHE_CONTROL
+from app.sync.enums import ChangeKind
 from tests.support.pokemon import GYARADOS_CDN_SPRITE, LEVEL_16, add_pokemon, make_pokemon
+from tests.support.sync import add_change, gyarados_snapshot
 
 # Pokémon ids are 32-bit Postgres integers, so 2**31 can't be one.
 NOT_POKEMON_IDS = ["0", str(2**31), "pikachu"]
@@ -138,26 +141,64 @@ def test_serves_a_pokemons_details(client: TestClient) -> None:
     ]
 
 
-def test_says_when_no_pokemon_has_the_id(client: TestClient) -> None:
-    response = client.get("/api/pokemon/999")
+@pytest.mark.parametrize("path", ["/api/pokemon/999", "/api/pokemon/999/changes"])
+def test_says_when_no_pokemon_has_the_id(client: TestClient, path: str) -> None:
+    response = client.get(path)
 
     assert (response.status_code, response.json()) == (404, {"detail": "No Pokémon has this id."})
 
 
+@pytest.mark.parametrize("path", ["/api/pokemon/{}", "/api/pokemon/{}/changes"])
 @pytest.mark.parametrize("pokemon_id", NOT_POKEMON_IDS)
-def test_rejects_ids_that_cannot_be_a_pokemons(client: TestClient, pokemon_id: str) -> None:
-    assert client.get(f"/api/pokemon/{pokemon_id}").status_code == 422
+def test_rejects_ids_that_cannot_be_a_pokemons(
+    client: TestClient, path: str, pokemon_id: str
+) -> None:
+    assert client.get(path.format(pokemon_id)).status_code == 422
+
+
+# --- GET /api/pokemon/{id}/changes ---
+
+
+@pytest.mark.usefixtures("gyarados")
+def test_serves_a_pokemons_changes(client: TestClient, db_session: Session) -> None:
+    add_change(
+        db_session,
+        130,
+        ChangeKind.REMOVED,
+        before=gyarados_snapshot(),
+        after=None,
+        detected_at=datetime(2026, 10, 10, 9, tzinfo=UTC),
+    )
+
+    response = client.get("/api/pokemon/130/changes")
+
+    assert response.status_code == 200
+    (removal,) = response.json()
+    assert (removal["kind"], removal["detected_at"], removal["after"]) == (
+        "removed",
+        "2026-10-10T09:00:00Z",
+        None,
+    )
+    # The snapshot reads as the Pokémon it was, in the same shape as everywhere else.
+    assert removal["before"] == client.get("/api/pokemon/130").json()["pokemon"]
+
+
+@pytest.mark.usefixtures("gyarados")
+def test_serves_no_changes_for_a_pokemon_no_sync_has_changed(client: TestClient) -> None:
+    assert client.get("/api/pokemon/130/changes").json() == []
 
 
 # --- Caching ---
 
 
-@pytest.mark.parametrize("path", ["/api/pokemon", "/api/pokemon/130"])
+@pytest.mark.parametrize("path", ["/api/pokemon", "/api/pokemon/130", "/api/pokemon/130/changes"])
 @pytest.mark.usefixtures("gyarados")
 def test_lets_browsers_and_the_cdn_cache_pokemon(client: TestClient, path: str) -> None:
     assert client.get(path).headers["cache-control"] == POKEMON_CACHE_CONTROL
 
 
-@pytest.mark.parametrize("path", ["/api/pokemon?limit=0", "/api/pokemon/999"])
+@pytest.mark.parametrize(
+    "path", ["/api/pokemon?limit=0", "/api/pokemon/999", "/api/pokemon/999/changes"]
+)
 def test_errors_are_not_cached(client: TestClient, path: str) -> None:
     assert "cache-control" not in client.get(path).headers

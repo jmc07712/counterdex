@@ -5,6 +5,20 @@ export type ClientOptions = {
 };
 
 /**
+ * ChangeKind
+ */
+export const ChangeKind = {
+    UPDATED: 'updated',
+    REMOVED: 'removed',
+    RESTORED: 'restored'
+} as const;
+
+/**
+ * ChangeKind
+ */
+export type ChangeKind = typeof ChangeKind[keyof typeof ChangeKind];
+
+/**
  * EvolutionMethod
  *
  * One way a species evolves from the one before it in the latest games: what sets it off,
@@ -278,6 +292,29 @@ export type Pokemon = {
      * The kind of alternate form, such as `mega` or `alolan`; `null` for a default form.
      */
     form?: PokemonForm | null;
+};
+
+/**
+ * PokemonChange
+ *
+ * A change a sync found to a Pokémon, with the Pokémon as it was before and after.
+ */
+export type PokemonChange = {
+    kind: ChangeKind;
+    /**
+     * Detected At
+     *
+     * When the sync that found it started.
+     */
+    detected_at: string;
+    /**
+     * The Pokémon before the change.
+     */
+    before: Pokemon | null;
+    /**
+     * The Pokémon after the change, or `null` if it was removed.
+     */
+    after: Pokemon | null;
 };
 
 /**
@@ -687,6 +724,44 @@ export type GetPokemonResponses = {
 };
 
 export type GetPokemonResponse = GetPokemonResponses[keyof GetPokemonResponses];
+
+export type ListPokemonChangesData = {
+    body?: never;
+    path: {
+        /**
+         * Pokemon Id
+         *
+         * The Pokémon's `id`, e.g. 6 or 10034.
+         */
+        pokemon_id: number;
+    };
+    query?: never;
+    url: '/api/pokemon/{pokemon_id}/changes';
+};
+
+export type ListPokemonChangesErrors = {
+    /**
+     * No Pokémon has this id.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPokemonChangesError = ListPokemonChangesErrors[keyof ListPokemonChangesErrors];
+
+export type ListPokemonChangesResponses = {
+    /**
+     * Response List Pokemon Changes
+     *
+     * Successful Response
+     */
+    200: Array<PokemonChange>;
+};
+
+export type ListPokemonChangesResponse = ListPokemonChangesResponses[keyof ListPokemonChangesResponses];
 
 export type SyncStatusData = {
     body?: never;

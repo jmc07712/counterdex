@@ -3,8 +3,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.sync.enums import SyncStatus
-from app.sync.models import SyncRun
+from app.sync.enums import ChangeKind, SyncStatus
+from app.sync.models import PokemonChange, SyncRun
+from tests.support.pokemon import gyarados_columns
 
 
 def make_sync_run(**overrides: Any) -> SyncRun:
@@ -33,3 +34,36 @@ def add_sync_run(session: Session, **overrides: Any) -> SyncRun:
     session.add(run)
     session.flush()
     return run
+
+
+def gyarados_snapshot(**columns: Any) -> dict[str, Any]:
+    """Gyarados as a change's snapshot stores it: its columns without the id, some changed."""
+    snapshot = gyarados_columns() | columns
+    del snapshot["id"]
+    return snapshot
+
+
+def add_change(
+    session: Session,
+    pokemon_id: int,
+    kind: ChangeKind,
+    *,
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+    detected_at: datetime,
+) -> PokemonChange:
+    """Saves a change to a Pokémon, found by a sync run of its own that finished at
+    `detected_at`.
+    """
+    run = add_sync_run(session, finished_at=detected_at)
+    change = PokemonChange(
+        pokemon_id=pokemon_id,
+        sync_run_id=run.id,
+        detected_at=detected_at,
+        kind=kind,
+        before=before,
+        after=after,
+    )
+    session.add(change)
+    session.flush()
+    return change

@@ -1,11 +1,12 @@
-"""The sync's shapes clients see: how up to date the Pokédex is."""
+"""The sync's shapes clients see: how up to date the Pokédex is, and what changed."""
 
 from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from app.sync.enums import SyncStatus
+from app.pokemon.schemas import Pokemon
+from app.sync.enums import ChangeKind, SyncStatus
 
 
 class SyncRunSummary(BaseModel):
@@ -33,4 +34,16 @@ class SyncOverview(BaseModel):
     ]
     latest_run: Annotated[
         SyncRunSummary | None, Field(description="The most recent sync, successful or not.")
+    ]
+
+
+class PokemonChange(BaseModel):
+    """A change a sync found to a Pokémon, with the Pokémon as it was before and after."""
+
+    kind: ChangeKind
+    detected_at: Annotated[datetime, Field(description="When the sync that found it started.")]
+    before: Annotated[Pokemon | None, Field(description="The Pokémon before the change.")]
+    after: Annotated[
+        Pokemon | None,
+        Field(description="The Pokémon after the change, or `null` if it was removed."),
     ]
