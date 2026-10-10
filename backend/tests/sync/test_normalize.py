@@ -10,7 +10,7 @@ from app.pokemon.enums import (
     RelativePhysicalStats,
     TimeOfDay,
 )
-from app.pokemon.schemas import EvolutionMethod, Pokemon
+from app.pokemon.schemas import EvolutionMethod, Pokemon, Stats
 from app.sync.normalize import content_hash, normalize, normalize_species
 from app.sync.pokeapi import (
     ChainLink,
@@ -36,6 +36,26 @@ def normalized(raw: dict[str, Any]) -> Pokemon:
 
 def test_normalizes_a_pokeapi_response() -> None:
     assert normalized(pokemon_response(25)) == PIKACHU
+
+
+def test_reads_each_base_stat_from_the_pokeapi_stat_of_the_same_name() -> None:
+    # Pikachu's Sp. Atk and Sp. Def are both 50, so give every stat its own value: a mix-up
+    # between any two would then change the result.
+    raw = pokemon_response(25)
+    stat_values = {
+        "hp": 1,
+        "attack": 2,
+        "defense": 3,
+        "special-attack": 4,
+        "special-defense": 5,
+        "speed": 6,
+    }
+    for entry in raw["stats"]:
+        entry["base_stat"] = stat_values[entry["stat"]["name"]]
+
+    assert normalized(raw).stats == Stats(
+        hp=1, attack=2, defense=3, sp_attack=4, sp_defense=5, speed=6
+    )
 
 
 def test_orders_types_by_slot_not_list_position() -> None:
