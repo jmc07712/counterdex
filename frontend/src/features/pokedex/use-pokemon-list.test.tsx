@@ -4,11 +4,10 @@ import { http, HttpResponse } from 'msw'
 import type { ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 
-import { type PokedexFilters, usePokemonList } from '@/features/pokedex/use-pokemon-list'
+import { NO_FILTERS, type PokedexFilters } from '@/features/pokedex/use-pokedex-filters'
+import { usePokemonList } from '@/features/pokedex/use-pokemon-list'
 import { makePage } from '@/test/pokemon'
 import { server } from '@/test/server'
-
-const NO_FILTERS: PokedexFilters = { search: '', types: [], includeForms: true }
 
 function renderPokemonList(filters: PokedexFilters = NO_FILTERS) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })

@@ -9,6 +9,7 @@ export function makePokemon(overrides: Partial<Pokemon> = {}): Pokemon {
     stats: { hp: 95, attack: 125, defense: 79, sp_attack: 60, sp_defense: 100, speed: 81 },
     sprite_url: 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/130.png',
     is_default: true,
+    form: null,
     ...overrides,
   }
 }

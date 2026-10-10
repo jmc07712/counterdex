@@ -1,13 +1,9 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 
-import type { ListPokemonData, PokemonType } from '@/api'
+import type { ListPokemonData } from '@/api'
 import { listPokemonInfiniteOptions } from '@/api/@tanstack/react-query.gen'
 
-export type PokedexFilters = {
-  search: string
-  types: PokemonType[]
-  includeForms: boolean
-}
+import type { PokedexFilters } from './use-pokedex-filters'
 
 type PokemonQuery = NonNullable<ListPokemonData['query']>
 
@@ -28,5 +24,7 @@ export function usePokemonList(filters: PokedexFilters) {
     // The first page has no cursor; each later page continues from the one before.
     initialPageParam: {},
     getNextPageParam: (page) => page.next_cursor ?? undefined,
+    // Keep showing the current results while a changed filter loads, instead of a skeleton.
+    placeholderData: keepPreviousData,
   })
 }
