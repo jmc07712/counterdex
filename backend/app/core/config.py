@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Lets browsers and the CDN keep public responses. Off locally, where data changes by hand
     # and a kept response would hide the change.
     cache_responses: bool = Field(default=True, init=False)
+    # Marks the session cookie Secure. Off locally: over plain http://localhost, Chrome and Safari
+    # refuse a Secure cookie with a __Host- name.
+    secure_cookies: bool = Field(default=True, init=False)
 
     @field_validator("database_url", "database_url_unpooled")
     @classmethod

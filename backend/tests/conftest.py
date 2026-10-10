@@ -84,8 +84,9 @@ def client(db_session: Session) -> Iterator[TestClient]:
     from app.api.main import app
 
     app.dependency_overrides[get_session] = lambda: db_session
-    # The context manager runs the app's startup and shutdown, as a real server would.
-    with TestClient(app) as test_client:
+    # The context manager runs the app's startup and shutdown, as a real server would. Over
+    # https, as in production, or the client wouldn't send back Secure cookies.
+    with TestClient(app, base_url="https://testserver") as test_client:
         yield test_client
     app.dependency_overrides.pop(get_session)
 

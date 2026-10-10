@@ -278,6 +278,120 @@
           }
         }
       }
+    },
+    "/api/users": {
+      "post": {
+        "summary": "Sign up",
+        "description": "Creates an account and signs in to it: the response sets the session cookie.",
+        "operationId": "sign_up",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Someone already has this username."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "get": {
+        "summary": "Get the signed-in user",
+        "description": "Who the session cookie signs in.",
+        "operationId": "get_current_user",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          }
+        }
+      },
+      "post": {
+        "summary": "Sign in",
+        "description": "Starts a session: the response sets the session cookie, which later requests send back.\n\nSessions last 30 days, and using one in its last 15 renews it for another 30.",
+        "operationId": "sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong username or password."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Sign out",
+        "description": "Ends the session and clears its cookie. Signing out when signed out does nothing.",
+        "operationId": "sign_out",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -290,6 +404,32 @@
           "restored"
         ],
         "title": "ChangeKind"
+      },
+      "Credentials": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{3,32}$",
+            "title": "Username",
+            "description": "3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:\n\"Ash\" and \"ash\" are the same user."
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "format": "password",
+            "title": "Password",
+            "description": "8 to 128 characters.",
+            "writeOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Credentials",
+        "description": "A username and password, for signing up or signing in."
       },
       "EvolutionMethod": {
         "properties": {
@@ -1102,6 +1242,31 @@
           "full-moon"
         ],
         "title": "TimeOfDay"
+      },
+      "User": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin",
+            "description": "Whether they can use the admin view."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "is_admin"
+        ],
+        "title": "User",
+        "description": "Someone who has signed up."
       },
       "ValidationError": {
         "properties": {

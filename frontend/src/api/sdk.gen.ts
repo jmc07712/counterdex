@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -59,3 +59,47 @@ export const listPokemonChanges = <ThrowOnError extends boolean = false>(options
  * When the Pokédex data last came from PokéAPI, and how the most recent sync went.
  */
 export const syncStatus = <ThrowOnError extends boolean = false>(options?: Options<SyncStatusData, ThrowOnError>): RequestResult<SyncStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SyncStatusResponses, unknown, ThrowOnError>({ url: '/api/sync/status', ...options });
+
+/**
+ * Sign up
+ *
+ * Creates an account and signs in to it: the response sets the session cookie.
+ */
+export const signUp = <ThrowOnError extends boolean = false>(options: Options<SignUpData, ThrowOnError>): RequestResult<SignUpResponses, SignUpErrors, ThrowOnError> => (options.client ?? client).post<SignUpResponses, SignUpErrors, ThrowOnError>({
+    url: '/api/users',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Sign out
+ *
+ * Ends the session and clears its cookie. Signing out when signed out does nothing.
+ */
+export const signOut = <ThrowOnError extends boolean = false>(options?: Options<SignOutData, ThrowOnError>): RequestResult<SignOutResponses, unknown, ThrowOnError> => (options?.client ?? client).delete<SignOutResponses, unknown, ThrowOnError>({ url: '/api/session', ...options });
+
+/**
+ * Get the signed-in user
+ *
+ * Who the session cookie signs in.
+ */
+export const getCurrentUser = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentUserData, ThrowOnError>): RequestResult<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError> => (options?.client ?? client).get<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError>({ url: '/api/session', ...options });
+
+/**
+ * Sign in
+ *
+ * Starts a session: the response sets the session cookie, which later requests send back.
+ *
+ * Sessions last 30 days, and using one in its last 15 renews it for another 30.
+ */
+export const signIn = <ThrowOnError extends boolean = false>(options: Options<SignInData, ThrowOnError>): RequestResult<SignInResponses, SignInErrors, ThrowOnError> => (options.client ?? client).post<SignInResponses, SignInErrors, ThrowOnError>({
+    url: '/api/session',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

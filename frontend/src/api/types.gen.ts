@@ -19,6 +19,21 @@ export const ChangeKind = {
 export type ChangeKind = typeof ChangeKind[keyof typeof ChangeKind];
 
 /**
+ * Credentials
+ *
+ * A username and password, for signing up or signing in.
+ */
+export type Credentials = {
+    /**
+     * Username
+     *
+     * 3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:
+     * "Ash" and "ash" are the same user.
+     */
+    username: string;
+};
+
+/**
  * EvolutionMethod
  *
  * One way a species evolves from the one before it in the latest games: what sets it off,
@@ -608,6 +623,28 @@ export const TimeOfDay = {
 export type TimeOfDay = typeof TimeOfDay[keyof typeof TimeOfDay];
 
 /**
+ * User
+ *
+ * Someone who has signed up.
+ */
+export type User = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Is Admin
+     *
+     * Whether they can use the admin view.
+     */
+    is_admin: boolean;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -633,6 +670,27 @@ export type ValidationError = {
     ctx?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * Credentials
+ *
+ * A username and password, for signing up or signing in.
+ */
+export type CredentialsWritable = {
+    /**
+     * Username
+     *
+     * 3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:
+     * "Ash" and "ash" are the same user.
+     */
+    username: string;
+    /**
+     * Password
+     *
+     * 8 to 128 characters.
+     */
+    password: string;
 };
 
 export type HealthData = {
@@ -808,3 +866,100 @@ export type SyncStatusResponses = {
 };
 
 export type SyncStatusResponse = SyncStatusResponses[keyof SyncStatusResponses];
+
+export type SignUpData = {
+    body: CredentialsWritable;
+    path?: never;
+    query?: never;
+    url: '/api/users';
+};
+
+export type SignUpErrors = {
+    /**
+     * Someone already has this username.
+     */
+    409: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SignUpError = SignUpErrors[keyof SignUpErrors];
+
+export type SignUpResponses = {
+    /**
+     * Successful Response
+     */
+    201: User;
+};
+
+export type SignUpResponse = SignUpResponses[keyof SignUpResponses];
+
+export type SignOutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/session';
+};
+
+export type SignOutResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SignOutResponse = SignOutResponses[keyof SignOutResponses];
+
+export type GetCurrentUserData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/session';
+};
+
+export type GetCurrentUserErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+};
+
+export type GetCurrentUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: User;
+};
+
+export type GetCurrentUserResponse = GetCurrentUserResponses[keyof GetCurrentUserResponses];
+
+export type SignInData = {
+    body: CredentialsWritable;
+    path?: never;
+    query?: never;
+    url: '/api/session';
+};
+
+export type SignInErrors = {
+    /**
+     * Wrong username or password.
+     */
+    401: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SignInError = SignInErrors[keyof SignInErrors];
+
+export type SignInResponses = {
+    /**
+     * Successful Response
+     */
+    200: User;
+};
+
+export type SignInResponse = SignInResponses[keyof SignInResponses];
