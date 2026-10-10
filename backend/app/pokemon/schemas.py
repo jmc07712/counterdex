@@ -5,10 +5,18 @@ API serves it. Descriptions are written for API users; they appear in the docs.
 from collections.abc import Mapping
 from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 
 from app.pokemon.constants import (
     DEFAULT_PAGE_SIZE,
+    FORM_MARKERS,
     MAX_BASE_STAT,
     MAX_CURSOR,
     MAX_PAGE_SIZE,
@@ -17,7 +25,7 @@ from app.pokemon.constants import (
     MIN_BASE_STAT,
     MIN_TYPES,
 )
-from app.pokemon.enums import PokemonType
+from app.pokemon.enums import PokemonForm, PokemonType
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
 
@@ -69,16 +77,39 @@ class Pokemon(BaseModel):
         ),
     ]
 
+    # Worked out from the name by the validator below, so it's never stored or taken as input.
+    form: Annotated[
+        PokemonForm | None,
+        Field(
+            validate_default=True,
+            description="The kind of alternate form, such as `mega` or `alolan`; `null` for a "
+            "default form.",
+        ),
+    ] = None
+
+    @field_validator("form", mode="before")
+    @classmethod
+    def classify_form(cls, _form: object, info: ValidationInfo) -> PokemonForm | None:
+        # name and is_default are declared above, so they're already validated here.
+        if info.data.get("is_default", True):
+            return None
+        words = str(info.data.get("name", "")).split("-")
+        return next(
+            (form for marker, form in FORM_MARKERS.items() if marker in words), PokemonForm.OTHER
+        )
+
     @classmethod
     def from_columns(cls, columns: Mapping[Any, Any]) -> Self:
         """Read a Pokémon from the pokemon table's columns, ignoring the sync's bookkeeping."""
-        fields = {name: columns[name] for name in cls.model_fields if name != "stats"}
+        fields = {name: columns[name] for name in cls.model_fields if name not in {"stats", "form"}}
         stats = {name: columns[name] for name in STAT_NAMES}
         return cls.model_validate(fields | {"stats": stats})
 
     def to_columns(self) -> dict[str, Any]:
         """The Pokémon as the pokemon table's columns, as plain JSON-ready values."""
-        return self.model_dump(mode="json", exclude={"stats"}) | self.stats.model_dump(mode="json")
+        # The form kind is worked out from the name, so it isn't stored (or hashed).
+        fields = self.model_dump(mode="json", exclude={"stats", "form"})
+        return fields | self.stats.model_dump(mode="json")
 
 
 class PokemonPage(BaseModel):

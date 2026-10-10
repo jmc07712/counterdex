@@ -51,7 +51,33 @@ export type Pokemon = {
      * `false` for alternate forms, such as Mega Evolutions and regional forms.
      */
     is_default: boolean;
+    /**
+     * The kind of alternate form, such as `mega` or `alolan`; `null` for a default form.
+     */
+    form?: PokemonForm | null;
 };
+
+/**
+ * PokemonForm
+ *
+ * Which kind of alternate form a Pokémon is, such as a Mega Evolution or a regional form.
+ */
+export const PokemonForm = {
+    MEGA: 'mega',
+    GIGANTAMAX: 'gigantamax',
+    ALOLAN: 'alolan',
+    GALARIAN: 'galarian',
+    HISUIAN: 'hisuian',
+    PALDEAN: 'paldean',
+    OTHER: 'other'
+} as const;
+
+/**
+ * PokemonForm
+ *
+ * Which kind of alternate form a Pokémon is, such as a Mega Evolution or a regional form.
+ */
+export type PokemonForm = typeof PokemonForm[keyof typeof PokemonForm];
 
 /**
  * PokemonPage
@@ -78,7 +104,33 @@ export type PokemonPage = {
  *
  * Every type a Pokémon can have, in the games' order.
  */
-export type PokemonType = 'normal' | 'fighting' | 'flying' | 'poison' | 'ground' | 'rock' | 'bug' | 'ghost' | 'steel' | 'fire' | 'water' | 'grass' | 'electric' | 'psychic' | 'ice' | 'dragon' | 'dark' | 'fairy';
+export const PokemonType = {
+    NORMAL: 'normal',
+    FIGHTING: 'fighting',
+    FLYING: 'flying',
+    POISON: 'poison',
+    GROUND: 'ground',
+    ROCK: 'rock',
+    BUG: 'bug',
+    GHOST: 'ghost',
+    STEEL: 'steel',
+    FIRE: 'fire',
+    WATER: 'water',
+    GRASS: 'grass',
+    ELECTRIC: 'electric',
+    PSYCHIC: 'psychic',
+    ICE: 'ice',
+    DRAGON: 'dragon',
+    DARK: 'dark',
+    FAIRY: 'fairy'
+} as const;
+
+/**
+ * PokemonType
+ *
+ * Every type a Pokémon can have, in the games' order.
+ */
+export type PokemonType = typeof PokemonType[keyof typeof PokemonType];
 
 /**
  * Stats

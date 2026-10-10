@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from app.pokemon.enums import PokemonType
+from app.pokemon.enums import PokemonForm, PokemonType
 from app.pokemon.schemas import Pokemon, PokemonQuery, Stats
 
 GYARADOS = Pokemon(
@@ -73,3 +73,36 @@ def test_rejects_searches_that_are_empty_or_too_long(q: str) -> None:
 def test_rejects_more_types_than_a_pokemon_can_have() -> None:
     with pytest.raises(ValidationError, match="type"):
         PokemonQuery(types=(PokemonType.FIRE, PokemonType.WATER, PokemonType.GRASS))
+
+
+@pytest.mark.parametrize(
+    ("name", "form"),
+    [
+        ("charizard-mega-x", PokemonForm.MEGA),
+        ("charizard-gmax", PokemonForm.GIGANTAMAX),
+        ("raichu-alola", PokemonForm.ALOLAN),
+        ("zigzagoon-galar", PokemonForm.GALARIAN),
+        ("growlithe-hisui", PokemonForm.HISUIAN),
+        ("tauros-paldea-combat-breed", PokemonForm.PALDEAN),
+        ("pikachu-rock-star", PokemonForm.OTHER),
+    ],
+)
+def test_says_which_kind_of_alternate_form_it_is(name: str, form: PokemonForm) -> None:
+    pokemon = Pokemon.from_columns(GYARADOS_COLUMNS | {"name": name, "is_default": False})
+
+    assert pokemon.form is form
+
+
+def test_a_default_form_has_no_form_kind() -> None:
+    assert GYARADOS.form is None
+
+
+def test_the_form_kind_is_not_stored() -> None:
+    # It's worked out from the name, so it stays out of the columns (and the content hash).
+    assert "form" not in Pokemon.from_columns(GYARADOS_COLUMNS | {"is_default": False}).to_columns()
+
+
+def test_the_form_kind_always_comes_from_the_name() -> None:
+    pokemon = GYARADOS.model_validate(GYARADOS.model_dump() | {"form": PokemonForm.MEGA})
+
+    assert pokemon.form is None

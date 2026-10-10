@@ -24,3 +24,15 @@ class PokemonType(StrEnum):
     DRAGON = "dragon"
     DARK = "dark"
     FAIRY = "fairy"
+
+
+class PokemonForm(StrEnum):
+    """Which kind of alternate form a Pokémon is, such as a Mega Evolution or a regional form."""
+
+    MEGA = "mega"
+    GIGANTAMAX = "gigantamax"
+    ALOLAN = "alolan"
+    GALARIAN = "galarian"
+    HISUIAN = "hisuian"
+    PALDEAN = "paldean"
+    OTHER = "other"

@@ -30,6 +30,7 @@ def test_serves_a_page_of_pokemon_with_their_public_fields(
                 },
                 "sprite_url": "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/130.png",
                 "is_default": True,
+                "form": None,
             }
         ],
         "next_cursor": None,

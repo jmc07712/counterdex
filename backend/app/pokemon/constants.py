@@ -1,5 +1,7 @@
 """Constants for the Pokémon domain."""
 
+from app.pokemon.enums import PokemonForm
+
 # --- Rules every stored Pokémon follows ---
 # The pokemon table enforces them, and so does the Pokemon schema: the sync skips one bad upstream
 # record instead of failing the whole sync.
@@ -8,6 +10,19 @@ MIN_BASE_STAT = 1
 MAX_BASE_STAT = 255
 MIN_TYPES = 1
 MAX_TYPES = 2
+
+# --- Alternate forms ---
+# PokéAPI names a form after its kind (charizard-mega-x, raichu-alola); the first marker found
+# in an alternate form's name decides it, and anything else is PokemonForm.OTHER.
+
+FORM_MARKERS = {
+    "mega": PokemonForm.MEGA,
+    "gmax": PokemonForm.GIGANTAMAX,
+    "alola": PokemonForm.ALOLAN,
+    "galar": PokemonForm.GALARIAN,
+    "hisui": PokemonForm.HISUIAN,
+    "paldea": PokemonForm.PALDEAN,
+}
 
 # --- Listing ---
 

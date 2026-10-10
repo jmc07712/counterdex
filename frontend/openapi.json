@@ -197,6 +197,17 @@
             "type": "boolean",
             "title": "Is Default",
             "description": "`false` for alternate forms, such as Mega Evolutions and regional forms."
+          },
+          "form": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PokemonForm"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The kind of alternate form, such as `mega` or `alolan`; `null` for a default form."
           }
         },
         "type": "object",
@@ -210,6 +221,20 @@
         ],
         "title": "Pokemon",
         "description": "A Pokémon: its Pokédex number, name, types, base stats and sprite."
+      },
+      "PokemonForm": {
+        "type": "string",
+        "enum": [
+          "mega",
+          "gigantamax",
+          "alolan",
+          "galarian",
+          "hisuian",
+          "paldean",
+          "other"
+        ],
+        "title": "PokemonForm",
+        "description": "Which kind of alternate form a Pokémon is, such as a Mega Evolution or a regional form."
       },
       "PokemonPage": {
         "properties": {
