@@ -8,6 +8,7 @@ from typing import Annotated, Any, Self
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES
+from app.pokemon.enums import PokemonType
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
 
@@ -41,7 +42,7 @@ class Pokemon(BaseModel):
     ]
     name: Annotated[str, Field(description="Lowercase and hyphenated, e.g. `charizard-mega-x`.")]
     types: Annotated[
-        tuple[str, ...],
+        tuple[PokemonType, ...],
         Field(
             min_length=MIN_TYPES,
             max_length=MAX_TYPES,

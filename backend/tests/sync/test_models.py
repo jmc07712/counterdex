@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
+from app.sync.enums import ChangeKind, SyncStatus
 from app.sync.models import PokemonChange, SyncRun
 from tests.support.pokemon import make_pokemon
 
@@ -108,3 +109,24 @@ def test_pokemon_are_not_removed_by_default(db_session: Session) -> None:
 
     assert loaded is not None
     assert loaded.removed_at is None
+
+
+def test_reads_status_and_kind_back_as_enums(db_session: Session) -> None:
+    run = make_run()
+    pokemon = make_pokemon()
+    db_session.add_all([pokemon, run])
+    db_session.flush()
+    change = PokemonChange(
+        pokemon_id=pokemon.id, sync_run_id=run.id, detected_at=STARTED, kind="removed"
+    )
+    db_session.add(change)
+    db_session.flush()
+    db_session.expire_all()
+
+    loaded_run = db_session.get(SyncRun, run.id)
+    loaded_change = db_session.get(PokemonChange, change.id)
+
+    assert loaded_run is not None
+    assert loaded_change is not None
+    assert (loaded_run.status, loaded_change.kind) == (SyncStatus.SUCCEEDED, ChangeKind.REMOVED)
+    assert (type(loaded_run.status), type(loaded_change.kind)) == (SyncStatus, ChangeKind)

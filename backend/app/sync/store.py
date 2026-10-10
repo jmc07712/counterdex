@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
 from app.sync.constants import MAX_REMOVED_SHARE, MIN_REMOVALS_ALLOWED
+from app.sync.enums import ChangeKind
 from app.sync.exceptions import SuspiciousRemovalError
 from app.sync.normalize import content_hash
 from app.sync.types import Change, StoreResult
@@ -49,11 +50,15 @@ def store_pokemon(
             to_write.append(fetched)
         elif row["removed_at"] is not None:
             restored += 1
-            changes.append(Change(fetched.id, "restored", _row_snapshot(row), _snapshot(fetched)))
+            changes.append(
+                Change(fetched.id, ChangeKind.RESTORED, _row_snapshot(row), _snapshot(fetched))
+            )
             to_write.append(fetched)
         elif row["content_hash"] != content_hash(fetched):
             updated += 1
-            changes.append(Change(fetched.id, "updated", _row_snapshot(row), _snapshot(fetched)))
+            changes.append(
+                Change(fetched.id, ChangeKind.UPDATED, _row_snapshot(row), _snapshot(fetched))
+            )
             to_write.append(fetched)
         else:
             unchanged_ids.append(fetched.id)
@@ -65,7 +70,7 @@ def store_pokemon(
     ]
     _check_removals(len(removed_ids), total=len(current))
     changes.extend(
-        Change(pokemon_id, "removed", _row_snapshot(current[pokemon_id]), None)
+        Change(pokemon_id, ChangeKind.REMOVED, _row_snapshot(current[pokemon_id]), None)
         for pokemon_id in removed_ids
     )
 

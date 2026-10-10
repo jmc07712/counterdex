@@ -1,7 +1,8 @@
 from collections.abc import Iterator
+from enum import StrEnum
 from functools import lru_cache
 
-from sqlalchemy import Engine, MetaData, create_engine
+from sqlalchemy import Engine, Enum, MetaData, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.core.config import get_settings
@@ -19,6 +20,22 @@ class Base(DeclarativeBase):
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
             "pk": "pk_%(table_name)s",
         }
+    )
+
+
+def text_enum(enum_class: type[StrEnum], *, check_name: str) -> Enum:
+    """A column type storing a StrEnum's values as text, limited to them by a CHECK constraint.
+
+    Not a Postgres ENUM type: those can't drop values and are awkward to change in migrations.
+    """
+    return Enum(
+        enum_class,
+        name=check_name,
+        native_enum=False,
+        create_constraint=True,
+        length=None,
+        # Store "succeeded", not the member's name "SUCCEEDED".
+        values_callable=lambda members: [member.value for member in members],
     )
 
 

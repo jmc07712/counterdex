@@ -46,3 +46,10 @@ def test_names_are_unique(db_session: Session) -> None:
 
     with pytest.raises(IntegrityError, match="uq_pokemon_name"):
         db_session.flush()
+
+
+def test_rejects_types_that_do_not_exist(db_session: Session) -> None:
+    db_session.add(make_pokemon(types=["water", "shadow"]))
+
+    with pytest.raises(IntegrityError, match="ck_pokemon_known_types"):
+        db_session.flush()

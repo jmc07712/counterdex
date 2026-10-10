@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import STAT_NAMES, Pokemon, Stats
 from app.sync.constants import POKEAPI_STAT_NAMES
 from app.sync.normalize import content_hash, normalize
@@ -17,7 +18,7 @@ def test_normalizes_a_pokeapi_response() -> None:
     assert pokemon == Pokemon(
         id=25,
         name="pikachu",
-        types=("electric",),
+        types=(PokemonType.ELECTRIC,),
         stats=Stats(hp=35, attack=55, defense=40, sp_attack=50, sp_defense=50, speed=90),
         sprite_url="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
         is_default=True,
@@ -109,4 +110,12 @@ def test_rejects_more_than_two_types() -> None:
     raw["types"].append({"slot": 3, "type": {"name": "dragon", "url": ""}})
 
     with pytest.raises(ValueError, match="at most 2"):
+        normalize(PokeApiPokemon.model_validate(raw))
+
+
+def test_rejects_a_type_we_do_not_know() -> None:
+    raw = pokemon_response(25)
+    raw["types"][0]["type"]["name"] = "stellar"
+
+    with pytest.raises(ValueError, match=r"^types\.0: Input should be 'normal'"):
         normalize(PokeApiPokemon.model_validate(raw))

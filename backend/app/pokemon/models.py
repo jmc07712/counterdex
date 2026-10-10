@@ -6,7 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
 from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import STAT_NAMES
+
+# PokemonType's values as a Postgres array, so the table accepts only those types.
+TYPE_VALUES = f"array[{', '.join(repr(type_.value) for type_ in PokemonType)}]::text[]"
 
 
 class Pokemon(Base):
@@ -17,6 +21,7 @@ class Pokemon(Base):
         CheckConstraint(
             f"cardinality(types) between {MIN_TYPES} and {MAX_TYPES}", name="one_or_two_types"
         ),
+        CheckConstraint(f"types <@ {TYPE_VALUES}", name="known_types"),
         *(
             CheckConstraint(
                 f"{stat} between {MIN_BASE_STAT} and {MAX_BASE_STAT}", name=f"{stat}_in_range"

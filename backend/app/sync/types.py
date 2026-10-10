@@ -3,12 +3,12 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
+from app.sync.enums import ChangeKind
 from app.sync.schemas import PokeApiPokemon
 
 Clock = Callable[[], datetime]
-ChangeKind = Literal["updated", "removed", "restored"]
 
 
 @dataclass

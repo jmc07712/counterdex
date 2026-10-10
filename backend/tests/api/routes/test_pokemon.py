@@ -83,3 +83,28 @@ def test_errors_are_not_cached(client: TestClient) -> None:
     response = client.get("/api/pokemon", params={"limit": 0})
 
     assert "cache-control" not in response.headers
+
+
+def test_documents_every_type_a_pokemon_can_have(client: TestClient) -> None:
+    schemas = client.get("/api/openapi.json").json()["components"]["schemas"]
+
+    assert schemas["PokemonType"]["enum"] == [
+        "normal",
+        "fighting",
+        "flying",
+        "poison",
+        "ground",
+        "rock",
+        "bug",
+        "ghost",
+        "steel",
+        "fire",
+        "water",
+        "grass",
+        "electric",
+        "psychic",
+        "ice",
+        "dragon",
+        "dark",
+        "fairy",
+    ]

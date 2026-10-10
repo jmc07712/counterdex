@@ -3,12 +3,13 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import Pokemon, Stats
 
 GYARADOS = Pokemon(
     id=130,
     name="gyarados",
-    types=("water", "flying"),
+    types=(PokemonType.WATER, PokemonType.FLYING),
     stats=Stats(hp=95, attack=125, defense=79, sp_attack=60, sp_defense=100, speed=81),
     sprite_url="https://example.com/130.png",
     is_default=True,
@@ -52,3 +53,8 @@ def test_rejects_base_stats_outside_1_to_255(hp: int) -> None:
 def test_rejects_anything_but_one_or_two_types(types: list[str]) -> None:
     with pytest.raises(ValidationError, match="types"):
         Pokemon.from_columns(GYARADOS_COLUMNS | {"types": types})
+
+
+def test_rejects_types_that_do_not_exist() -> None:
+    with pytest.raises(ValidationError, match=r"types\.1"):
+        Pokemon.from_columns(GYARADOS_COLUMNS | {"types": ["water", "shadow"]})

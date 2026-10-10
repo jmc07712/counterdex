@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
 from app.sync.constants import SYNC_LOCK_KEY
+from app.sync.enums import ChangeKind
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.service import record_failed_sync, run_sync
@@ -52,7 +53,11 @@ async def test_records_each_change_against_its_sync_run(db_session: Session) -> 
     report = await run_sync(fake_pokeapi(speeds={25: 150}), db_session, clock=clock)
 
     change = db_session.scalars(select(PokemonChange)).one()
-    assert (change.pokemon_id, change.kind, change.sync_run_id) == (25, "updated", report.run_id)
+    assert (change.pokemon_id, change.kind, change.sync_run_id) == (
+        25,
+        ChangeKind.UPDATED,
+        report.run_id,
+    )
     assert change.before is not None
     assert change.after is not None
     assert (change.before["speed"], change.after["speed"]) == (90, 150)

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.pokemon.schemas import Pokemon
 from app.sync.client import PokeApiClient
 from app.sync.constants import SYNC_LOCK_KEY
+from app.sync.enums import SyncStatus
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.normalize import normalize
@@ -59,7 +60,7 @@ async def run_sync(
     run = SyncRun(
         started_at=started_at,
         finished_at=clock(),
-        status="succeeded",
+        status=SyncStatus.SUCCEEDED,
         fetched=len(fetched.pokemon),
         inserted=result.inserted,
         updated=result.updated,
@@ -102,7 +103,7 @@ def record_failed_sync(
     run = SyncRun(
         started_at=started_at,
         finished_at=clock(),
-        status="failed",
+        status=SyncStatus.FAILED,
         fetched=0,
         inserted=0,
         updated=0,
