@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { health, listPokemon, type Options } from '../sdk.gen';
-import type { HealthData, HealthResponse, ListPokemonData, ListPokemonError, ListPokemonResponse } from '../types.gen';
+import { health, listPokemon, type Options, syncStatus } from '../sdk.gen';
+import type { HealthData, HealthResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -145,3 +145,23 @@ export const listPokemonInfiniteOptions = (options?: Options<ListPokemonData>) =
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
+
+export const syncStatusQueryKey = (options?: Options<SyncStatusData>) => createQueryKey('syncStatus', options);
+
+/**
+ * Sync status
+ *
+ * When the Pokédex data last came from PokéAPI, and how the most recent sync went.
+ */
+export const syncStatusOptions = (options?: Options<SyncStatusData>) => queryOptions<SyncStatusResponse, DefaultError, SyncStatusResponse, ReturnType<typeof syncStatusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await syncStatus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: syncStatusQueryKey(options)
+});

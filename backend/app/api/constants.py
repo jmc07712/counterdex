@@ -19,3 +19,5 @@ SCALAR_JS_URL = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1"
 # and Vercel's CDN for an hour; after that the CDN answers with its old copy (for up to a day)
 # while it fetches a fresh one.
 POKEMON_CACHE_CONTROL = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+# Sync status is small and read on every Pokédex visit: a minute in browsers, five at the CDN.
+SYNC_STATUS_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"

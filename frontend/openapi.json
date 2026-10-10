@@ -138,6 +138,25 @@
           }
         }
       }
+    },
+    "/api/sync/status": {
+      "get": {
+        "summary": "Sync status",
+        "description": "When the Pokédex data last came from PokéAPI, and how the most recent sync went.",
+        "operationId": "sync_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncOverview"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -351,6 +370,104 @@
         ],
         "title": "Stats",
         "description": "A Pokémon's base stats, each from 1 to 255."
+      },
+      "SyncOverview": {
+        "properties": {
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At",
+            "description": "When the Pokédex data last came from PokéAPI: the end of the latest successful sync, or `null` before the first one."
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncRunSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The most recent sync, successful or not."
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_synced_at",
+          "latest_run"
+        ],
+        "title": "SyncOverview",
+        "description": "How up to date the Pokédex is."
+      },
+      "SyncRunSummary": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/SyncStatus"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          },
+          "inserted": {
+            "type": "integer",
+            "title": "Inserted",
+            "description": "Pokémon new to the Pokédex."
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated",
+            "description": "Pokémon whose data changed."
+          },
+          "removed": {
+            "type": "integer",
+            "title": "Removed",
+            "description": "Pokémon PokéAPI no longer lists."
+          },
+          "restored": {
+            "type": "integer",
+            "title": "Restored",
+            "description": "Removed Pokémon that PokéAPI lists again."
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed",
+            "description": "Pokémon that couldn't be synced this time."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "started_at",
+          "finished_at",
+          "inserted",
+          "updated",
+          "removed",
+          "restored",
+          "failed"
+        ],
+        "title": "SyncRunSummary",
+        "description": "One sync with PokéAPI."
+      },
+      "SyncStatus": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "failed"
+        ],
+        "title": "SyncStatus"
       },
       "ValidationError": {
         "properties": {

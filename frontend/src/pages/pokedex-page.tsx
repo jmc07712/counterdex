@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/page-header'
+import { LastSynced } from '@/features/pokedex/last-synced'
 import { PokedexFilters } from '@/features/pokedex/pokedex-filters'
 import { PokemonGrid } from '@/features/pokedex/pokemon-grid'
 import { NO_FILTERS, usePokedexFilters } from '@/features/pokedex/use-pokedex-filters'
@@ -11,6 +12,7 @@ export function PokedexPage() {
       <PageHeader
         title="Pokédex"
         description="Every Pokémon with its types and base stats. Search, filter, and add any of them to a team."
+        meta={<LastSynced />}
       />
       <PokedexFilters filters={filters} onChange={setFilters} />
       <PokemonGrid filters={filters} onClearFilters={() => setFilters(NO_FILTERS)} />

@@ -183,6 +183,81 @@ export type Stats = {
 };
 
 /**
+ * SyncOverview
+ *
+ * How up to date the Pokédex is.
+ */
+export type SyncOverview = {
+    /**
+     * Last Synced At
+     *
+     * When the Pokédex data last came from PokéAPI: the end of the latest successful sync, or `null` before the first one.
+     */
+    last_synced_at: string | null;
+    /**
+     * The most recent sync, successful or not.
+     */
+    latest_run: SyncRunSummary | null;
+};
+
+/**
+ * SyncRunSummary
+ *
+ * One sync with PokéAPI.
+ */
+export type SyncRunSummary = {
+    status: SyncStatus;
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Finished At
+     */
+    finished_at: string;
+    /**
+     * Inserted
+     *
+     * Pokémon new to the Pokédex.
+     */
+    inserted: number;
+    /**
+     * Updated
+     *
+     * Pokémon whose data changed.
+     */
+    updated: number;
+    /**
+     * Removed
+     *
+     * Pokémon PokéAPI no longer lists.
+     */
+    removed: number;
+    /**
+     * Restored
+     *
+     * Removed Pokémon that PokéAPI lists again.
+     */
+    restored: number;
+    /**
+     * Failed
+     *
+     * Pokémon that couldn't be synced this time.
+     */
+    failed: number;
+};
+
+/**
+ * SyncStatus
+ */
+export const SyncStatus = { SUCCEEDED: 'succeeded', FAILED: 'failed' } as const;
+
+/**
+ * SyncStatus
+ */
+export type SyncStatus = typeof SyncStatus[keyof typeof SyncStatus];
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -283,3 +358,19 @@ export type ListPokemonResponses = {
 };
 
 export type ListPokemonResponse = ListPokemonResponses[keyof ListPokemonResponses];
+
+export type SyncStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/sync/status';
+};
+
+export type SyncStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: SyncOverview;
+};
+
+export type SyncStatusResponse = SyncStatusResponses[keyof SyncStatusResponses];

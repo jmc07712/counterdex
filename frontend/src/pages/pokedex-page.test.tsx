@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { createMemoryRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { PokemonPage } from '@/api'
 import { PokedexPage } from '@/pages/pokedex-page'
@@ -41,6 +41,14 @@ function servePokedex(respond: (query: URLSearchParams) => PokemonPage) {
 const lastRequest = (requests: URLSearchParams[]) => requests.at(-1)?.toString()
 
 describe('PokedexPage', () => {
+  beforeEach(() => {
+    server.use(
+      http.get('/api/sync/status', () =>
+        HttpResponse.json({ last_synced_at: null, latest_run: null }),
+      ),
+    )
+  })
+
   it('shows a card for each Pokémon', async () => {
     servePokedex(() => makePage(['bulbasaur', 'charizard-mega-x']))
 

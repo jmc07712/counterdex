@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from app.api.constants import API_PREFIX, API_TITLE, OPENAPI_URL
-from app.api.routes import docs, health, pokemon
+from app.api.routes import docs, health, pokemon, sync
 
 
 def operation_id(route: APIRoute) -> str:
@@ -22,3 +22,4 @@ app = FastAPI(
 app.include_router(docs.router)
 app.include_router(health.router, prefix=API_PREFIX)
 app.include_router(pokemon.router, prefix=API_PREFIX)
+app.include_router(sync.router, prefix=API_PREFIX)
