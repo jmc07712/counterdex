@@ -79,11 +79,19 @@ def db_session(connection: Connection) -> Iterator[Session]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> Iterator[TestClient]:
-    """The app, using the test's rolled-back session so it sees the rows each test adds."""
+def client(connection: Connection) -> Iterator[TestClient]:
+    """The app, on the test's rolled-back connection so it sees the rows each test adds.
+
+    Each request gets its own session, as in production, so what a route doesn't commit is
+    undone when the request ends.
+    """
     from app.api.main import app
 
-    app.dependency_overrides[get_session] = lambda: db_session
+    def request_session() -> Iterator[Session]:
+        with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+            yield session
+
+    app.dependency_overrides[get_session] = request_session
     # The context manager runs the app's startup and shutdown, as a real server would. Over
     # https, as in production, or the client wouldn't send back Secure cookies.
     with TestClient(app, base_url="https://testserver") as test_client:

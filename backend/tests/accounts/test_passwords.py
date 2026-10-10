@@ -1,3 +1,6 @@
+import pytest
+from pwdlib import PasswordHash
+
 from app.accounts.passwords import hash_password, verify_password
 
 
@@ -18,3 +21,19 @@ def test_only_the_right_password_matches() -> None:
 
 def test_no_password_matches_a_missing_hash() -> None:
     assert not verify_password("pikachu1", None)
+
+
+def test_a_missing_hash_still_costs_a_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    # So that no such user takes about as long as a wrong password.
+    checked: list[str | bytes] = []
+    real_verify = PasswordHash.verify
+
+    def verify(self: PasswordHash, password: str | bytes, hash: str | bytes) -> bool:
+        checked.append(hash)
+        return real_verify(self, password, hash)
+
+    monkeypatch.setattr(PasswordHash, "verify", verify)
+
+    assert not verify_password("pikachu1", None)
+    assert len(checked) == 1
+    assert str(checked[0]).startswith("$argon2id$")

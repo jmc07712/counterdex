@@ -6,7 +6,7 @@ Nothing here commits: the caller owns the transaction.
 from datetime import UTC, datetime
 
 from psycopg.errors import UniqueViolation
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -14,19 +14,19 @@ from app.accounts import models
 from app.accounts.constants import RENEW_SESSIONS_WITHIN, SESSION_LIFETIME
 from app.accounts.exceptions import UsernameTakenError
 from app.accounts.passwords import hash_password, verify_password
-from app.accounts.schemas import Credentials, User
+from app.accounts.schemas import Credentials, NewAccount, User
 from app.accounts.tokens import hash_token, new_token
 from app.accounts.types import SignedIn
 
 
-def sign_up(session: Session, credentials: Credentials) -> SignedIn:
+def sign_up(session: Session, account: NewAccount) -> SignedIn:
     """Creates an account and signs it in.
 
     Raises UsernameTakenError if someone has the username, whatever its case.
     """
     user = models.User(
-        username=credentials.username,
-        password_hash=hash_password(credentials.password.get_secret_value()),
+        username=account.username,
+        password_hash=hash_password(account.password.get_secret_value()),
     )
     try:
         # In a savepoint, so a taken username doesn't abort the caller's transaction.
@@ -34,7 +34,7 @@ def sign_up(session: Session, credentials: Credentials) -> SignedIn:
             session.add(user)
     except IntegrityError as error:
         if _violates(error, models.USERNAME_INDEX.name):
-            raise UsernameTakenError(credentials.username) from error
+            raise UsernameTakenError(account.username) from error
         raise
     return _start_session(session, user)
 
@@ -70,22 +70,29 @@ def find_signed_in(session: Session, token: str) -> SignedIn | None:
     A session used in the second half of its life is renewed for a full one.
     """
     now = datetime.now(UTC)
+    current = (
+        models.UserSession.token_hash == hash_token(token),
+        models.UserSession.expires_at > now,
+    )
     row = session.execute(
-        select(models.UserSession, models.User)
-        .join(models.User)
-        .where(
-            models.UserSession.token_hash == hash_token(token),
-            models.UserSession.expires_at > now,
-        )
+        select(models.User, models.UserSession.expires_at).join(models.UserSession).where(*current)
     ).one_or_none()
     if row is None:
         return None
 
-    user_session, user = row
-    if user_session.expires_at - now < RENEW_SESSIONS_WITHIN:
-        user_session.expires_at = now + SESSION_LIFETIME
-        session.flush()
-    return SignedIn(User.model_validate(user), token, user_session.expires_at)
+    user, expires_at = row
+    if expires_at - now < RENEW_SESSIONS_WITHIN:
+        # One statement, so a sign-out since the select leaves no row to renew.
+        renewed: datetime | None = session.scalar(
+            update(models.UserSession)
+            .where(*current)
+            .values(expires_at=now + SESSION_LIFETIME)
+            .returning(models.UserSession.expires_at)
+        )
+        if renewed is None:
+            return None
+        expires_at = renewed
+    return SignedIn(User.model_validate(user), token, expires_at)
 
 
 def sign_out(session: Session, token: str) -> None:

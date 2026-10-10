@@ -4,10 +4,10 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.accounts.models import UserSession
-from app.accounts.schemas import Credentials
+from app.accounts.schemas import NewAccount
 from app.accounts.tokens import hash_token
 
-ASH = Credentials(username="ash", password="pikachu-i-choose-you")
+ASH = NewAccount(username="ash", password="pikachu-i-choose-you")
 
 
 def expire_in(session: Session, token: str, time_left: timedelta) -> None:

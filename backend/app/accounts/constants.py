@@ -6,7 +6,8 @@ from datetime import timedelta
 
 MIN_USERNAME_LENGTH = 3
 MAX_USERNAME_LENGTH = 32
-# The users table checks it too, so it only uses regex syntax Python and Postgres share.
+# Checked by Pydantic's regex engine and by the users table in Postgres, which read this pattern
+# the same way. Python's re would not: its $ also matches before a final newline.
 USERNAME_PATTERN = f"^[A-Za-z0-9_-]{{{MIN_USERNAME_LENGTH},{MAX_USERNAME_LENGTH}}}$"
 
 # --- Passwords ---

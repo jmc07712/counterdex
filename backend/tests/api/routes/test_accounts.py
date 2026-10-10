@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.accounts.constants import SESSION_LIFETIME
+from app.accounts.models import UserSession
+from app.accounts.tokens import hash_token
 from app.accounts.types import SignedIn
 from tests.support.accounts import ASH, expire_in
 
@@ -51,6 +53,13 @@ def test_rejects_invalid_credentials(client: TestClient, body: dict[str, Any]) -
     assert client.post("/api/users", json=body).status_code == 422
 
 
+def test_rejecting_a_password_doesnt_repeat_it(client: TestClient) -> None:
+    response = client.post("/api/users", json={**ASH_JSON, "password": "pikachu"})
+
+    assert response.status_code == 422
+    assert "pikachu" not in response.text
+
+
 # --- Signing in ---
 
 
@@ -67,6 +76,9 @@ def test_signs_in_with_the_right_password(client: TestClient, ash: SignedIn) -> 
     [
         pytest.param({**ASH_JSON, "password": "raichu-i-choose-you"}, id="wrong-password"),
         pytest.param({**ASH_JSON, "username": "gary"}, id="unknown-username"),
+        # Sign-up's rules don't apply: a guess no account could have is just wrong.
+        pytest.param({**ASH_JSON, "password": "pikachu"}, id="password-too-short-for-any"),
+        pytest.param({**ASH_JSON, "username": "ash ketchum"}, id="username-no-account-has"),
     ],
 )
 def test_wrong_credentials_are_unauthorized(
@@ -115,6 +127,17 @@ def test_using_a_session_late_in_its_life_renews_the_cookie(
 
     assert cookie.value == ash.token
     assert parsedate_to_datetime(cookie["expires"]) >= before + SESSION_LIFETIME
+
+
+def test_a_renewal_is_saved(ash_client: TestClient, db_session: Session, ash: SignedIn) -> None:
+    expire_in(db_session, ash.token, timedelta(days=1))
+    before = datetime.now(UTC)
+
+    ash_client.get("/api/session")
+
+    db_session.expire_all()
+    stored = db_session.get_one(UserSession, hash_token(ash.token))
+    assert stored.expires_at >= before + SESSION_LIFETIME
 
 
 @pytest.mark.parametrize(
@@ -167,7 +190,7 @@ def test_signing_out_ends_the_session(
 
     assert response.status_code == 204
     assert session_cookie(response).value == ""
-    # Ended on the server too: a copy of the cookie no longer works.
+    # Ended on the server, not just in this browser: a copy of the cookie no longer works.
     ash_client.cookies.set("__Host-session", ash.token)
     assert ash_client.get("/api/session").status_code == 401
 

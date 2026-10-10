@@ -83,6 +83,7 @@ type = "independence"
 modules = ["app.api", "app.jobs"]
 
 [tool.uv]
-# Dependencies must be out for about two weeks before we take them. pycparser (via
-# pwdlib -> argon2-cffi -> cffi) released 3.1 on 2026-10-08; lift this once it's settled.
+# Dependencies must be out for about two weeks before we take them. pycparser (via pwdlib ->
+# argon2-cffi -> argon2-cffi-bindings -> cffi) released 3.1 on 2026-10-08; lift this once it's
+# settled.
 constraint-dependencies = ["pycparser<3.1"]

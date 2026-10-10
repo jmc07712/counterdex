@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.accounts.schemas import User
@@ -10,5 +10,5 @@ class SignedIn:
 
     user: User
     # The database stores only its hash.
-    token: str
+    token: str = field(repr=False)
     expires_at: datetime

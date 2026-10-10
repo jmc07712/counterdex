@@ -21,14 +21,11 @@ export type ChangeKind = typeof ChangeKind[keyof typeof ChangeKind];
 /**
  * Credentials
  *
- * A username and password, for signing up or signing in.
+ * A username and password, for signing in.
  */
 export type Credentials = {
     /**
      * Username
-     *
-     * 3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:
-     * "Ash" and "ash" are the same user.
      */
     username: string;
 };
@@ -279,6 +276,21 @@ export const ListingStatus = { LISTED: 'listed', REMOVED: 'removed' } as const;
  * Whether PokéAPI still lists a Pokémon.
  */
 export type ListingStatus = typeof ListingStatus[keyof typeof ListingStatus];
+
+/**
+ * NewAccount
+ *
+ * A username and password, for signing up.
+ */
+export type NewAccount = {
+    /**
+     * Username
+     *
+     * 3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:
+     * "Ash" and "ash" are the same user.
+     */
+    username: string;
+};
 
 /**
  * Pokemon
@@ -639,7 +651,7 @@ export type User = {
     /**
      * Is Admin
      *
-     * Whether they can use the admin view.
+     * Whether they're an admin.
      */
     is_admin: boolean;
 };
@@ -675,9 +687,25 @@ export type ValidationError = {
 /**
  * Credentials
  *
- * A username and password, for signing up or signing in.
+ * A username and password, for signing in.
  */
 export type CredentialsWritable = {
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
+ * NewAccount
+ *
+ * A username and password, for signing up.
+ */
+export type NewAccountWritable = {
     /**
      * Username
      *
@@ -868,7 +896,7 @@ export type SyncStatusResponses = {
 export type SyncStatusResponse = SyncStatusResponses[keyof SyncStatusResponses];
 
 export type SignUpData = {
-    body: CredentialsWritable;
+    body: NewAccountWritable;
     path?: never;
     query?: never;
     url: '/api/users';

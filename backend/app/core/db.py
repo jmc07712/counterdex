@@ -42,7 +42,8 @@ def text_enum(enum_class: type[StrEnum], *, check_name: str) -> Enum:
 @lru_cache
 def get_engine() -> Engine:
     # pool_pre_ping replaces connections the server closed while idle (Neon scales to zero).
-    return create_engine(get_settings().database_url, pool_pre_ping=True)
+    # hide_parameters keeps the values a query sent, such as password hashes, out of its errors.
+    return create_engine(get_settings().database_url, pool_pre_ping=True, hide_parameters=True)
 
 
 def get_session() -> Iterator[Session]:

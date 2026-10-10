@@ -1,10 +1,10 @@
 """Password hashing with argon2id."""
 
-from functools import cache
-
 from pwdlib import PasswordHash
 
 _hasher = PasswordHash.recommended()
+# Checked against when there's no such user; see verify_password.
+_STAND_IN_HASH = _hasher.hash("not anyone's password")
 
 
 def hash_password(password: str) -> str:
@@ -18,12 +18,6 @@ def verify_password(password: str, hashed: str | None) -> bool:
     wrong username takes about as long as a wrong password.
     """
     if hashed is None:
-        _hasher.verify(password, _stand_in_hash())
+        _hasher.verify(password, _STAND_IN_HASH)
         return False
     return _hasher.verify(password, hashed)
-
-
-@cache
-def _stand_in_hash() -> str:
-    # Hashed on first use rather than at import.
-    return _hasher.hash("not anyone's password")

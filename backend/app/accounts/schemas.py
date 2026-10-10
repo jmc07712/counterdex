@@ -2,13 +2,25 @@
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from app.accounts.constants import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, USERNAME_PATTERN
+from app.accounts.constants import (
+    MAX_PASSWORD_LENGTH,
+    MAX_USERNAME_LENGTH,
+    MIN_PASSWORD_LENGTH,
+    USERNAME_PATTERN,
+)
 
 
 class Credentials(BaseModel):
-    """A username and password, for signing up or signing in."""
+    """A username and password, for signing in."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+
+    username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH)
+    password: SecretStr = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH)
+
+
+class NewAccount(Credentials):
+    """A username and password, for signing up."""
 
     username: str = Field(pattern=USERNAME_PATTERN)
     """3 to 32 letters, digits, underscores or hyphens. Case is kept, but ignored when comparing:
@@ -25,4 +37,4 @@ class User(BaseModel):
     id: int
     username: str
     is_admin: bool
-    """Whether they can use the admin view."""
+    """Whether they're an admin."""

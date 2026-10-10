@@ -1,15 +1,15 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, event, select
+from sqlalchemy.orm import ORMExecuteState, Session
 
 from app.accounts import service
 from app.accounts.constants import SESSION_LIFETIME
 from app.accounts.exceptions import UsernameTakenError
 from app.accounts.models import User, UserSession
 from app.accounts.passwords import verify_password
-from app.accounts.schemas import Credentials
+from app.accounts.schemas import Credentials, NewAccount
 from app.accounts.tokens import hash_token
 from app.accounts.types import SignedIn
 from tests.support.accounts import ASH, expire_in
@@ -38,7 +38,7 @@ def test_new_users_are_not_admins(ash: SignedIn) -> None:
 
 def test_a_username_is_taken_whatever_its_case(db_session: Session, ash: SignedIn) -> None:
     with pytest.raises(UsernameTakenError):
-        service.sign_up(db_session, Credentials(username="ASH", password="a-different-one"))
+        service.sign_up(db_session, NewAccount(username="ASH", password="a-different-one"))
 
 
 # --- Signing in ---
@@ -67,6 +67,22 @@ def test_refuses_wrong_credentials(
     db_session: Session, ash: SignedIn, credentials: Credentials
 ) -> None:
     assert service.sign_in(db_session, credentials) is None
+
+
+def test_an_unknown_username_still_costs_a_password_check(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checked: list[str | None] = []
+
+    def verify(password: str, hashed: str | None) -> bool:
+        checked.append(hashed)
+        return verify_password(password, hashed)
+
+    monkeypatch.setattr(service, "verify_password", verify)
+
+    service.sign_in(db_session, Credentials(username="gary", password="whatever"))
+
+    assert checked == [None]
 
 
 def test_each_sign_in_is_its_own_session(db_session: Session, ash: SignedIn) -> None:
@@ -122,6 +138,20 @@ def test_a_session_used_in_its_second_half_is_renewed(db_session: Session, ash: 
     assert signed_in is not None
     assert signed_in.expires_at >= before + SESSION_LIFETIME
     assert db_session.get_one(UserSession, hash_token(ash.token)).expires_at == signed_in.expires_at
+
+
+def test_a_session_ended_while_being_renewed_signs_nobody_in(
+    db_session: Session, ash: SignedIn
+) -> None:
+    expire_in(db_session, ash.token, timedelta(days=1))
+
+    # Another request signs out just before this one renews the session.
+    @event.listens_for(db_session, "do_orm_execute")
+    def sign_out_first(state: ORMExecuteState) -> None:
+        if state.is_update:
+            state.session.connection().execute(delete(UserSession))
+
+    assert service.find_signed_in(db_session, ash.token) is None
 
 
 def test_a_session_used_in_its_first_half_is_left_alone(db_session: Session, ash: SignedIn) -> None:

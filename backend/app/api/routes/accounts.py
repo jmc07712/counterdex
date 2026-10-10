@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.accounts import service
 from app.accounts.exceptions import UsernameTakenError
-from app.accounts.schemas import Credentials, User
+from app.accounts.schemas import Credentials, NewAccount, User
 from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.session_cookie import clear_session_cookie, read_session_cookie, set_session_cookie
@@ -19,10 +19,10 @@ WRONG_CREDENTIALS = "Wrong username or password."
     status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_409_CONFLICT: {"description": USERNAME_TAKEN}},
 )
-def sign_up(session: SessionDep, response: Response, credentials: Credentials) -> User:
+def sign_up(session: SessionDep, response: Response, account: NewAccount) -> User:
     """Creates an account and signs in to it: the response sets the session cookie."""
     try:
-        signed_in = service.sign_up(session, credentials)
+        signed_in = service.sign_up(session, account)
     except UsernameTakenError:
         raise HTTPException(status.HTTP_409_CONFLICT, USERNAME_TAKEN) from None
     session.commit()
