@@ -96,8 +96,9 @@ export function PokemonCard({ pokemon }: { pokemon: Pokemon }) {
                   height={96}
                   loading="lazy"
                   decoding="async"
-                  // PokéAPI sprites have transparent padding; scaling up fills the window.
-                  className="size-full scale-110 object-contain [image-rendering:pixelated]"
+                  // Pinned to the window's edges, so its height comes from the window rather than
+                  // the square image. PokéAPI sprites have transparent padding; scaling up fills it.
+                  className="absolute inset-0 size-full scale-110 object-contain [image-rendering:pixelated]"
                 />
               ) : (
                 <CircleDashed aria-hidden="true" className="size-10 text-muted-foreground" />
