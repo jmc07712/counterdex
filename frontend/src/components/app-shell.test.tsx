@@ -31,4 +31,16 @@ describe('AppShell navigation', () => {
 
     expect(currentPageLinks()).toEqual(['Sign in', 'Sign in'])
   })
+
+  it('links to the API docs, which open in a new tab outside the app', () => {
+    renderAt('/')
+
+    const links = screen.getAllByRole('link', { name: 'API (opens in a new tab)' })
+
+    expect(links).toHaveLength(2)
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', '/api/docs')
+      expect(link).toHaveAttribute('target', '_blank')
+    }
+  })
 })

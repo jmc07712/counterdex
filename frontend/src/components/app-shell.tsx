@@ -1,4 +1,11 @@
-import { CircleUserRound, LayoutGrid, type LucideIcon, UsersRound } from 'lucide-react'
+import {
+  ArrowUpRight,
+  BookOpenText,
+  CircleUserRound,
+  LayoutGrid,
+  type LucideIcon,
+  UsersRound,
+} from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 
 import { BrandMark } from '@/components/brand-mark'
@@ -17,6 +24,10 @@ const primaryNav: NavItem[] = [
 ]
 
 const accountNav: NavItem = { to: '/sign-in', label: 'Sign in', icon: CircleUserRound }
+
+// The API serves its own docs, outside this app: a plain link (not a router link) that opens
+// them in a new tab, so the app keeps its place.
+const apiDocs = { href: '/api/docs', label: 'API', icon: BookOpenText }
 
 export function AppShell() {
   return (
@@ -38,6 +49,11 @@ export function AppShell() {
             {primaryNav.map((item) => (
               <HeaderLink key={item.to} item={item} />
             ))}
+            <a href={apiDocs.href} target="_blank" rel="noopener" className={headerLinkClass(false)}>
+              {apiDocs.label}
+              <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              <NewTabNote />
+            </a>
           </nav>
 
           <div className="ml-auto flex h-full items-center gap-4">
@@ -57,31 +73,56 @@ export function AppShell() {
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <ul className="grid grid-cols-3">
+        <ul className="grid grid-cols-4">
           {[...primaryNav, accountNav].map((item) => (
             <li key={item.to}>
               <TabLink item={item} />
             </li>
           ))}
+          <li>
+            <a href={apiDocs.href} target="_blank" rel="noopener" className={tabLinkClass(false)}>
+              <apiDocs.icon className="size-5" aria-hidden="true" />
+              {apiDocs.label}
+              <NewTabNote />
+            </a>
+          </li>
         </ul>
       </nav>
     </div>
   )
 }
 
+function headerLinkClass(isActive: boolean) {
+  return cn(
+    'inline-flex items-center gap-1 border-b-2 pt-0.5 text-sm font-medium transition-colors',
+    isActive
+      ? 'border-brand text-foreground'
+      : 'border-transparent text-muted-foreground hover:text-foreground',
+  )
+}
+
+function tabLinkClass(isActive: boolean) {
+  return cn(
+    'relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs font-medium',
+    isActive
+      ? 'text-foreground before:absolute before:top-0 before:h-0.5 before:w-10 before:rounded-full before:bg-brand'
+      : 'text-muted-foreground',
+  )
+}
+
+// The space sits outside the span: a span's own leading space is dropped from the link's name.
+function NewTabNote() {
+  return (
+    <>
+      {' '}
+      <span className="sr-only">(opens in a new tab)</span>
+    </>
+  )
+}
+
 function HeaderLink({ item }: { item: NavItem }) {
   return (
-    <NavLink
-      to={item.to}
-      className={({ isActive }) =>
-        cn(
-          'inline-flex items-center border-b-2 pt-0.5 text-sm font-medium transition-colors',
-          isActive
-            ? 'border-brand text-foreground'
-            : 'border-transparent text-muted-foreground hover:text-foreground',
-        )
-      }
-    >
+    <NavLink to={item.to} className={({ isActive }) => headerLinkClass(isActive)}>
       {item.label}
     </NavLink>
   )
@@ -90,17 +131,7 @@ function HeaderLink({ item }: { item: NavItem }) {
 function TabLink({ item }: { item: NavItem }) {
   const Icon = item.icon
   return (
-    <NavLink
-      to={item.to}
-      className={({ isActive }) =>
-        cn(
-          'relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs font-medium',
-          isActive
-            ? 'text-foreground before:absolute before:top-0 before:h-0.5 before:w-10 before:rounded-full before:bg-brand'
-            : 'text-muted-foreground',
-        )
-      }
-    >
+    <NavLink to={item.to} className={({ isActive }) => tabLinkClass(isActive)}>
       <Icon className="size-5" aria-hidden="true" />
       {item.label}
     </NavLink>
