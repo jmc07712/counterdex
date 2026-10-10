@@ -48,6 +48,9 @@ export function PokemonCard({ pokemon }: { pokemon: Pokemon }) {
       tiltMaxAngleX={7}
       tiltMaxAngleY={7}
       glareEnable={canTilt}
+      // White glare can't be seen on a light card, so in light mode it's tinted with the card's
+      // main type, like holo foil.
+      glareColor={`light-dark(${TYPE_STYLES[primary].background}, white)`}
       glareMaxOpacity={0.3}
       glarePosition="all"
       glareBorderRadius="16px"
