@@ -5,6 +5,201 @@ export type ClientOptions = {
 };
 
 /**
+ * EvolutionMethod
+ *
+ * One way a species evolves from the one before it in the latest games: what sets it off,
+ * and any conditions on top. Conditions that don't apply are `null` or `false`. Items, moves,
+ * species and places are named as in PokéAPI, e.g. `thunder-stone`.
+ */
+export type EvolutionMethod = {
+    /**
+     * What sets the evolution off.
+     */
+    trigger: EvolutionTrigger;
+    /**
+     * Min Level
+     *
+     * The level it must reach.
+     */
+    min_level?: number | null;
+    /**
+     * Item
+     *
+     * The item to use on it.
+     */
+    item?: string | null;
+    /**
+     * Held Item
+     *
+     * The item it must hold.
+     */
+    held_item?: string | null;
+    /**
+     * Known Move
+     *
+     * A move it must know.
+     */
+    known_move?: string | null;
+    /**
+     * It must know a move of this type.
+     */
+    known_move_type?: PokemonType | null;
+    /**
+     * Used Move
+     *
+     * The move it must use.
+     */
+    used_move?: string | null;
+    /**
+     * Min Move Count
+     *
+     * How many times it must use `used_move`.
+     */
+    min_move_count?: number | null;
+    /**
+     * Trade Species
+     *
+     * The species it must be traded for.
+     */
+    trade_species?: string | null;
+    /**
+     * Party Species
+     *
+     * A species that must be in the party.
+     */
+    party_species?: string | null;
+    /**
+     * A Pokémon of this type must be in the party.
+     */
+    party_type?: PokemonType | null;
+    /**
+     * Min Happiness
+     *
+     * The friendship it must have, at least.
+     */
+    min_happiness?: number | null;
+    /**
+     * Min Steps
+     *
+     * How many steps it must walk, at least.
+     */
+    min_steps?: number | null;
+    /**
+     * Min Damage Taken
+     *
+     * How much damage it must take, at least.
+     */
+    min_damage_taken?: number | null;
+    /**
+     * How its Attack must compare to its Defense.
+     */
+    relative_physical_stats?: RelativePhysicalStats | null;
+    /**
+     * Location
+     *
+     * Where it must be.
+     */
+    location?: string | null;
+    /**
+     * Region
+     *
+     * The region it must be in.
+     */
+    region?: string | null;
+    /**
+     * When it must be.
+     */
+    time_of_day?: TimeOfDay | null;
+    /**
+     * Only Pokémon of this gender evolve this way.
+     */
+    gender?: Gender | null;
+    /**
+     * Needs Overworld Rain
+     *
+     * It must be raining.
+     */
+    needs_overworld_rain?: boolean;
+    /**
+     * Needs Multiplayer
+     *
+     * It must be with another player.
+     */
+    needs_multiplayer?: boolean;
+    /**
+     * Turn Upside Down
+     *
+     * The console must be held upside down.
+     */
+    turn_upside_down?: boolean;
+    /**
+     * Chance
+     *
+     * The percent chance of evolving this way, when it's left to chance.
+     */
+    chance?: number | null;
+};
+
+/**
+ * EvolutionStage
+ *
+ * A species in an evolution family: how it evolves from the stage before, and what it
+ * evolves into.
+ */
+export type EvolutionStage = {
+    species: Species;
+    /**
+     * Its default form, or `null` if PokéAPI no longer lists it.
+     */
+    pokemon: Pokemon | null;
+    /**
+     * Methods
+     *
+     * Each way it evolves from the stage before; none for the first stage.
+     */
+    methods: Array<EvolutionMethod>;
+    /**
+     * Evolves To
+     *
+     * The species it evolves into: more than one where evolution branches.
+     */
+    evolves_to: Array<EvolutionStage>;
+};
+
+/**
+ * EvolutionTrigger
+ *
+ * What sets an evolution off, as PokéAPI names it.
+ */
+export const EvolutionTrigger = {
+    LEVEL_UP: 'level-up',
+    IN_BATTLE_LEVEL_UP: 'in-battle-level-up',
+    USE_ITEM: 'use-item',
+    TRADE: 'trade',
+    SHED: 'shed',
+    SPIN: 'spin',
+    USE_MOVE: 'use-move',
+    AGILE_STYLE_MOVE: 'agile-style-move',
+    STRONG_STYLE_MOVE: 'strong-style-move',
+    TAKE_DAMAGE: 'take-damage',
+    RECOIL_DAMAGE: 'recoil-damage',
+    THREE_CRITICAL_HITS: 'three-critical-hits',
+    THREE_DEFEATED_BISHARP: 'three-defeated-bisharp',
+    TOWER_OF_DARKNESS: 'tower-of-darkness',
+    TOWER_OF_WATERS: 'tower-of-waters',
+    GIMMIGHOUL_COINS: 'gimmighoul-coins',
+    MELTAN_CANDIES: 'meltan-candies',
+    UNCLASSIFIED: 'unclassified'
+} as const;
+
+/**
+ * EvolutionTrigger
+ *
+ * What sets an evolution off, as PokéAPI names it.
+ */
+export type EvolutionTrigger = typeof EvolutionTrigger[keyof typeof EvolutionTrigger];
+
+/**
  * FormFilter
  *
  * Which forms a list of Pokémon includes.
@@ -21,6 +216,16 @@ export const FormFilter = {
  * Which forms a list of Pokémon includes.
  */
 export type FormFilter = typeof FormFilter[keyof typeof FormFilter];
+
+/**
+ * Gender
+ */
+export const Gender = { FEMALE: 'female', MALE: 'male' } as const;
+
+/**
+ * Gender
+ */
+export type Gender = typeof Gender[keyof typeof Gender];
 
 /**
  * HTTPValidationError
@@ -73,6 +278,35 @@ export type Pokemon = {
      * The kind of alternate form, such as `mega` or `alolan`; `null` for a default form.
      */
     form?: PokemonForm | null;
+};
+
+/**
+ * PokemonDetails
+ *
+ * A Pokémon with its species, the species' other forms, and its evolution family.
+ */
+export type PokemonDetails = {
+    pokemon: Pokemon;
+    /**
+     * Removed At
+     *
+     * When PokéAPI stopped listing it, or `null` while it's listed.
+     */
+    removed_at: string | null;
+    /**
+     * Its species, or `null` until a sync has stored it.
+     */
+    species: Species | null;
+    /**
+     * Forms
+     *
+     * Every form of its species that PokéAPI lists, this one included, in Pokédex order.
+     */
+    forms: Array<Pokemon>;
+    /**
+     * Its evolution family from the first stage, or `null` until a sync has stored it.
+     */
+    evolution: EvolutionStage | null;
 };
 
 /**
@@ -149,6 +383,50 @@ export const PokemonType = {
  * Every type a Pokémon can have, in the games' order.
  */
 export type PokemonType = typeof PokemonType[keyof typeof PokemonType];
+
+/**
+ * RelativePhysicalStats
+ *
+ * How a Pokémon's Attack compares to its Defense.
+ */
+export const RelativePhysicalStats = {
+    ATTACK_HIGHER: 'attack-higher',
+    EQUAL: 'equal',
+    DEFENSE_HIGHER: 'defense-higher'
+} as const;
+
+/**
+ * RelativePhysicalStats
+ *
+ * How a Pokémon's Attack compares to its Defense.
+ */
+export type RelativePhysicalStats = typeof RelativePhysicalStats[keyof typeof RelativePhysicalStats];
+
+/**
+ * Species
+ *
+ * A species: the Pokémon that share a Pokédex number, such as Charizard and its Mega forms.
+ */
+export type Species = {
+    /**
+     * Id
+     *
+     * Pokédex number.
+     */
+    id: number;
+    /**
+     * Name
+     *
+     * Lowercase and hyphenated, e.g. `mr-mime`.
+     */
+    name: string;
+    /**
+     * Genus
+     *
+     * How the Pokédex describes it, e.g. "Flame Pokémon".
+     */
+    genus: string | null;
+};
 
 /**
  * Stats
@@ -258,6 +536,21 @@ export const SyncStatus = { SUCCEEDED: 'succeeded', FAILED: 'failed' } as const;
 export type SyncStatus = typeof SyncStatus[keyof typeof SyncStatus];
 
 /**
+ * TimeOfDay
+ */
+export const TimeOfDay = {
+    DAY: 'day',
+    NIGHT: 'night',
+    DUSK: 'dusk',
+    FULL_MOON: 'full-moon'
+} as const;
+
+/**
+ * TimeOfDay
+ */
+export type TimeOfDay = typeof TimeOfDay[keyof typeof TimeOfDay];
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -358,6 +651,42 @@ export type ListPokemonResponses = {
 };
 
 export type ListPokemonResponse = ListPokemonResponses[keyof ListPokemonResponses];
+
+export type GetPokemonData = {
+    body?: never;
+    path: {
+        /**
+         * Pokemon Id
+         *
+         * The Pokémon's `id`, e.g. 6 or 10034.
+         */
+        pokemon_id: number;
+    };
+    query?: never;
+    url: '/api/pokemon/{pokemon_id}';
+};
+
+export type GetPokemonErrors = {
+    /**
+     * No Pokémon has this id.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPokemonError = GetPokemonErrors[keyof GetPokemonErrors];
+
+export type GetPokemonResponses = {
+    /**
+     * Successful Response
+     */
+    200: PokemonDetails;
+};
+
+export type GetPokemonResponse = GetPokemonResponses[keyof GetPokemonResponses];
 
 export type SyncStatusData = {
     body?: never;

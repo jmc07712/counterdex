@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -44,3 +45,31 @@ def with_columns(pokemon: schemas.Pokemon, **columns: Any) -> schemas.Pokemon:
     if unknown := columns.keys() - current.keys():
         raise TypeError(f"not columns of the pokemon table: {', '.join(sorted(unknown))}")
     return schemas.Pokemon.from_columns(current | columns)
+
+
+def add_species(
+    session: Session,
+    species_id: int,
+    *,
+    family: int,
+    evolves_from: int | None = None,
+    methods: Sequence[schemas.EvolutionMethod] = (),
+    pokemon_ids: Iterable[int] = (),
+    **overrides: Any,
+) -> None:
+    """Saves a species in the evolution family `family`, and links the given Pokémon to it."""
+    fields: dict[str, Any] = {
+        "id": species_id,
+        "name": f"species-{species_id}",
+        "genus": None,
+        "evolution_chain_id": family,
+        "evolves_from_species_id": evolves_from,
+        "evolution_methods": [method.model_dump(mode="json") for method in methods],
+    }
+    session.add(models.Species(**(fields | overrides)))
+    session.flush()
+    session.add_all(
+        models.SpeciesVariety(pokemon_id=pokemon_id, species_id=species_id)
+        for pokemon_id in pokemon_ids
+    )
+    session.flush()

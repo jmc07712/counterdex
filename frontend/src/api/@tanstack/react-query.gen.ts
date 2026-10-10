@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { health, listPokemon, type Options, syncStatus } from '../sdk.gen';
-import type { HealthData, HealthResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { getPokemon, health, listPokemon, type Options, syncStatus } from '../sdk.gen';
+import type { GetPokemonData, GetPokemonError, GetPokemonResponse, HealthData, HealthResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -145,6 +145,29 @@ export const listPokemonInfiniteOptions = (options?: Options<ListPokemonData>) =
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
+
+export const getPokemonQueryKey = (options: Options<GetPokemonData>) => createQueryKey('getPokemon', options);
+
+/**
+ * Get a Pokémon
+ *
+ * A Pokémon with its species, the species' other forms, and its evolution family.
+ *
+ * Pokémon that PokéAPI no longer lists can still be fetched: `removed_at` says when they were
+ * removed.
+ */
+export const getPokemonOptions = (options: Options<GetPokemonData>) => queryOptions<GetPokemonResponse, GetPokemonError, GetPokemonResponse, ReturnType<typeof getPokemonQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPokemon({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPokemonQueryKey(options)
+});
 
 export const syncStatusQueryKey = (options?: Options<SyncStatusData>) => createQueryKey('syncStatus', options);
 

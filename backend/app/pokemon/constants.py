@@ -28,9 +28,9 @@ FORM_MARKERS = {
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
-# Cursors are Pokémon ids, which Postgres stores as 32-bit integers; anything larger can't match
-# a row and would fail in the database instead of being rejected as bad input.
-MAX_CURSOR = 2**31 - 1
+# Postgres stores Pokémon ids as 32-bit integers. A larger id (or cursor, which is an id) can't
+# match a row and would fail in the database instead of being rejected as bad input.
+MAX_POKEMON_ID = 2**31 - 1
 # Longer than any Pokémon's name (27 characters at most), so no real search is cut off.
 MAX_SEARCH_LENGTH = 50
 

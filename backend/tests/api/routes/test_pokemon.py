@@ -2,7 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tests.support.pokemon import add_pokemon, make_pokemon
+from app.pokemon.enums import EvolutionTrigger
+from app.pokemon.schemas import EvolutionMethod
+from tests.support.pokemon import add_pokemon, add_species, make_pokemon
 
 
 def test_serves_a_page_of_pokemon_with_their_public_fields(
@@ -144,3 +146,58 @@ def test_documents_each_filter(client: TestClient) -> None:
     described = {param["name"] for param in operation["parameters"] if param.get("description")}
 
     assert {"q", "type", "forms", "limit", "cursor"} <= described
+
+
+# --- GET /api/pokemon/{id} ---
+
+
+def test_serves_a_pokemons_details(client: TestClient, db_session: Session) -> None:
+    db_session.add_all([make_pokemon(id=129, name="magikarp"), make_pokemon()])
+    db_session.flush()
+    add_species(db_session, 129, family=34, pokemon_ids=[129], name="magikarp")
+    level_20 = EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=20)
+    add_species(
+        db_session,
+        130,
+        family=34,
+        evolves_from=129,
+        methods=[level_20],
+        pokemon_ids=[130],
+        name="gyarados",
+        genus="Atrocious Pokémon",
+    )
+
+    response = client.get("/api/pokemon/130")
+
+    assert response.status_code == 200
+    gyarados = response.json()
+    assert (gyarados["pokemon"]["name"], gyarados["removed_at"]) == ("gyarados", None)
+    assert gyarados["species"] == {"id": 130, "name": "gyarados", "genus": "Atrocious Pokémon"}
+    assert [form["id"] for form in gyarados["forms"]] == [130]
+    magikarp = gyarados["evolution"]
+    assert (magikarp["species"]["name"], magikarp["methods"]) == ("magikarp", [])
+    assert [stage["methods"] for stage in magikarp["evolves_to"]] == [
+        [level_20.model_dump(mode="json")]
+    ]
+
+
+def test_says_when_no_pokemon_has_the_id(client: TestClient) -> None:
+    response = client.get("/api/pokemon/999")
+
+    assert (response.status_code, response.json()) == (404, {"detail": "No Pokémon has this id."})
+
+
+@pytest.mark.parametrize("pokemon_id", ["0", str(2**31), "pikachu"])
+def test_rejects_ids_that_cannot_be_a_pokemons(client: TestClient, pokemon_id: str) -> None:
+    assert client.get(f"/api/pokemon/{pokemon_id}").status_code == 422
+
+
+def test_lets_browsers_and_the_cdn_cache_a_pokemons_details(
+    client: TestClient, db_session: Session
+) -> None:
+    db_session.add(make_pokemon())
+    db_session.flush()
+
+    cache_control = client.get("/api/pokemon/130").headers["cache-control"]
+
+    assert cache_control == "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"

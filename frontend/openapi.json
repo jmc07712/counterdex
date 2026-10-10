@@ -139,6 +139,53 @@
         }
       }
     },
+    "/api/pokemon/{pokemon_id}": {
+      "get": {
+        "summary": "Get a Pokémon",
+        "description": "A Pokémon with its species, the species' other forms, and its evolution family.\n\nPokémon that PokéAPI no longer lists can still be fetched: `removed_at` says when they were\nremoved.",
+        "operationId": "get_pokemon",
+        "parameters": [
+          {
+            "name": "pokemon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "description": "The Pokémon's `id`, e.g. 6 or 10034.",
+              "title": "Pokemon Id"
+            },
+            "description": "The Pokémon's `id`, e.g. 6 or 10034."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokemonDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No Pokémon has this id."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sync/status": {
       "get": {
         "summary": "Sync status",
@@ -161,6 +208,329 @@
   },
   "components": {
     "schemas": {
+      "EvolutionMethod": {
+        "properties": {
+          "trigger": {
+            "$ref": "#/components/schemas/EvolutionTrigger",
+            "description": "What sets the evolution off."
+          },
+          "min_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Level",
+            "description": "The level it must reach."
+          },
+          "item": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item",
+            "description": "The item to use on it."
+          },
+          "held_item": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held Item",
+            "description": "The item it must hold."
+          },
+          "known_move": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Known Move",
+            "description": "A move it must know."
+          },
+          "known_move_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PokemonType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "It must know a move of this type."
+          },
+          "used_move": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Move",
+            "description": "The move it must use."
+          },
+          "min_move_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Move Count",
+            "description": "How many times it must use `used_move`."
+          },
+          "trade_species": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Species",
+            "description": "The species it must be traded for."
+          },
+          "party_species": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Species",
+            "description": "A species that must be in the party."
+          },
+          "party_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PokemonType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A Pokémon of this type must be in the party."
+          },
+          "min_happiness": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Happiness",
+            "description": "The friendship it must have, at least."
+          },
+          "min_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Steps",
+            "description": "How many steps it must walk, at least."
+          },
+          "min_damage_taken": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Damage Taken",
+            "description": "How much damage it must take, at least."
+          },
+          "relative_physical_stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelativePhysicalStats"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How its Attack must compare to its Defense."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location",
+            "description": "Where it must be."
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region",
+            "description": "The region it must be in."
+          },
+          "time_of_day": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimeOfDay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it must be."
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only Pokémon of this gender evolve this way."
+          },
+          "needs_overworld_rain": {
+            "type": "boolean",
+            "title": "Needs Overworld Rain",
+            "description": "It must be raining.",
+            "default": false
+          },
+          "needs_multiplayer": {
+            "type": "boolean",
+            "title": "Needs Multiplayer",
+            "description": "It must be with another player.",
+            "default": false
+          },
+          "turn_upside_down": {
+            "type": "boolean",
+            "title": "Turn Upside Down",
+            "description": "The console must be held upside down.",
+            "default": false
+          },
+          "chance": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chance",
+            "description": "The percent chance of evolving this way, when it's left to chance."
+          }
+        },
+        "type": "object",
+        "required": [
+          "trigger"
+        ],
+        "title": "EvolutionMethod",
+        "description": "One way a species evolves from the one before it in the latest games: what sets it off,\nand any conditions on top. Conditions that don't apply are `null` or `false`. Items, moves,\nspecies and places are named as in PokéAPI, e.g. `thunder-stone`."
+      },
+      "EvolutionStage": {
+        "properties": {
+          "species": {
+            "$ref": "#/components/schemas/Species"
+          },
+          "pokemon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pokemon"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its default form, or `null` if PokéAPI no longer lists it."
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/EvolutionMethod"
+            },
+            "type": "array",
+            "title": "Methods",
+            "description": "Each way it evolves from the stage before; none for the first stage."
+          },
+          "evolves_to": {
+            "items": {
+              "$ref": "#/components/schemas/EvolutionStage"
+            },
+            "type": "array",
+            "title": "Evolves To",
+            "description": "The species it evolves into: more than one where evolution branches."
+          }
+        },
+        "type": "object",
+        "required": [
+          "species",
+          "pokemon",
+          "methods",
+          "evolves_to"
+        ],
+        "title": "EvolutionStage",
+        "description": "A species in an evolution family: how it evolves from the stage before, and what it\nevolves into."
+      },
+      "EvolutionTrigger": {
+        "type": "string",
+        "enum": [
+          "level-up",
+          "in-battle-level-up",
+          "use-item",
+          "trade",
+          "shed",
+          "spin",
+          "use-move",
+          "agile-style-move",
+          "strong-style-move",
+          "take-damage",
+          "recoil-damage",
+          "three-critical-hits",
+          "three-defeated-bisharp",
+          "tower-of-darkness",
+          "tower-of-waters",
+          "gimmighoul-coins",
+          "meltan-candies",
+          "unclassified"
+        ],
+        "title": "EvolutionTrigger",
+        "description": "What sets an evolution off, as PokéAPI names it."
+      },
       "FormFilter": {
         "type": "string",
         "enum": [
@@ -170,6 +540,14 @@
         ],
         "title": "FormFilter",
         "description": "Which forms a list of Pokémon includes."
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "female",
+          "male"
+        ],
+        "title": "Gender"
       },
       "HTTPValidationError": {
         "properties": {
@@ -250,6 +628,66 @@
         "title": "Pokemon",
         "description": "A Pokémon: its Pokédex number, name, types, base stats and sprite."
       },
+      "PokemonDetails": {
+        "properties": {
+          "pokemon": {
+            "$ref": "#/components/schemas/Pokemon"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At",
+            "description": "When PokéAPI stopped listing it, or `null` while it's listed."
+          },
+          "species": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Species"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its species, or `null` until a sync has stored it."
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/Pokemon"
+            },
+            "type": "array",
+            "title": "Forms",
+            "description": "Every form of its species that PokéAPI lists, this one included, in Pokédex order."
+          },
+          "evolution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvolutionStage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its evolution family from the first stage, or `null` until a sync has stored it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "pokemon",
+          "removed_at",
+          "species",
+          "forms",
+          "evolution"
+        ],
+        "title": "PokemonDetails",
+        "description": "A Pokémon with its species, the species' other forms, and its evolution family."
+      },
       "PokemonForm": {
         "type": "string",
         "enum": [
@@ -319,6 +757,50 @@
         ],
         "title": "PokemonType",
         "description": "Every type a Pokémon can have, in the games' order."
+      },
+      "RelativePhysicalStats": {
+        "type": "string",
+        "enum": [
+          "attack-higher",
+          "equal",
+          "defense-higher"
+        ],
+        "title": "RelativePhysicalStats",
+        "description": "How a Pokémon's Attack compares to its Defense."
+      },
+      "Species": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Pokédex number."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Lowercase and hyphenated, e.g. `mr-mime`."
+          },
+          "genus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genus",
+            "description": "How the Pokédex describes it, e.g. \"Flame Pokémon\"."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "genus"
+        ],
+        "title": "Species",
+        "description": "A species: the Pokémon that share a Pokédex number, such as Charizard and its Mega forms."
       },
       "Stats": {
         "properties": {
@@ -468,6 +950,16 @@
           "failed"
         ],
         "title": "SyncStatus"
+      },
+      "TimeOfDay": {
+        "type": "string",
+        "enum": [
+          "day",
+          "night",
+          "dusk",
+          "full-moon"
+        ],
+        "title": "TimeOfDay"
       },
       "ValidationError": {
         "properties": {

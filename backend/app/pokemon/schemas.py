@@ -3,6 +3,7 @@ API serves it. Descriptions are written for API users; they appear in the docs.
 """
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Annotated, Any, Self
 
 from pydantic import (
@@ -18,8 +19,8 @@ from app.pokemon.constants import (
     DEFAULT_PAGE_SIZE,
     FORM_MARKERS,
     MAX_BASE_STAT,
-    MAX_CURSOR,
     MAX_PAGE_SIZE,
+    MAX_POKEMON_ID,
     MAX_SEARCH_LENGTH,
     MAX_TYPES,
     MIN_BASE_STAT,
@@ -176,6 +177,65 @@ class EvolutionMethod(BaseModel):
     """The percent chance of evolving this way, when it's left to chance."""
 
 
+class Species(BaseModel):
+    """A species: the Pokémon that share a Pokédex number, such as Charizard and its Mega forms."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: Annotated[int, Field(description="Pokédex number.")]
+    name: Annotated[str, Field(description="Lowercase and hyphenated, e.g. `mr-mime`.")]
+    genus: Annotated[
+        str | None, Field(description='How the Pokédex describes it, e.g. "Flame Pokémon".')
+    ]
+
+
+class EvolutionStage(BaseModel):
+    """A species in an evolution family: how it evolves from the stage before, and what it
+    evolves into.
+    """
+
+    species: Species
+    pokemon: Annotated[
+        Pokemon | None,
+        Field(description="Its default form, or `null` if PokéAPI no longer lists it."),
+    ]
+    methods: Annotated[
+        list[EvolutionMethod],
+        Field(description="Each way it evolves from the stage before; none for the first stage."),
+    ]
+    evolves_to: Annotated[
+        list["EvolutionStage"],
+        Field(description="The species it evolves into: more than one where evolution branches."),
+    ]
+
+
+class PokemonDetails(BaseModel):
+    """A Pokémon with its species, the species' other forms, and its evolution family."""
+
+    pokemon: Pokemon
+    removed_at: Annotated[
+        datetime | None,
+        Field(description="When PokéAPI stopped listing it, or `null` while it's listed."),
+    ]
+    species: Annotated[
+        Species | None, Field(description="Its species, or `null` until a sync has stored it.")
+    ]
+    forms: Annotated[
+        list[Pokemon],
+        Field(
+            description="Every form of its species that PokéAPI lists, this one included, in "
+            "Pokédex order."
+        ),
+    ]
+    evolution: Annotated[
+        EvolutionStage | None,
+        Field(
+            description="Its evolution family from the first stage, or `null` until a sync has "
+            "stored it."
+        ),
+    ]
+
+
 class PokemonPage(BaseModel):
     """One page of Pokémon."""
 
@@ -226,7 +286,7 @@ class PokemonQuery(BaseModel):
         int | None,
         Field(
             ge=1,
-            le=MAX_CURSOR,
+            le=MAX_POKEMON_ID,
             description="Where to continue from: the previous page's `next_cursor`. Leave it out "
             "for the first page.",
         ),

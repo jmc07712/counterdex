@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { HealthData, HealthResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -33,6 +33,16 @@ export const health = <ThrowOnError extends boolean = false>(options?: Options<H
  * forms, are numbered from 10001, so they come after the main Pokédex.
  */
 export const listPokemon = <ThrowOnError extends boolean = false>(options?: Options<ListPokemonData, ThrowOnError>): RequestResult<ListPokemonResponses, ListPokemonErrors, ThrowOnError> => (options?.client ?? client).get<ListPokemonResponses, ListPokemonErrors, ThrowOnError>({ url: '/api/pokemon', ...options });
+
+/**
+ * Get a Pokémon
+ *
+ * A Pokémon with its species, the species' other forms, and its evolution family.
+ *
+ * Pokémon that PokéAPI no longer lists can still be fetched: `removed_at` says when they were
+ * removed.
+ */
+export const getPokemon = <ThrowOnError extends boolean = false>(options: Options<GetPokemonData, ThrowOnError>): RequestResult<GetPokemonResponses, GetPokemonErrors, ThrowOnError> => (options.client ?? client).get<GetPokemonResponses, GetPokemonErrors, ThrowOnError>({ url: '/api/pokemon/{pokemon_id}', ...options });
 
 /**
  * Sync status
