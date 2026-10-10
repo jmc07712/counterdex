@@ -6,13 +6,14 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.pokemon.schemas import Pokemon
 from app.sync.client import PokeApiClient
 from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.normalize import normalize
 from app.sync.store import store_pokemon
-from app.sync.types import Clock, PokemonRecord, SyncReport
+from app.sync.types import Clock, SyncReport
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +41,17 @@ async def run_sync(
 
     # Keyed by id: two listing URLs can resolve to the same Pokémon, and the upsert must
     # touch each row only once.
-    records: dict[int, PokemonRecord] = {}
+    normalized: dict[int, Pokemon] = {}
     for raw in fetched.pokemon:
         try:
-            records[raw.id] = normalize(raw)
+            normalized[raw.id] = normalize(raw)
         except ValueError as error:
             logger.warning("Skipping %s: %s", raw.name, error)
             failed.append(raw.name)
 
     result = store_pokemon(
         session,
-        sorted(records.values(), key=lambda r: r.id),
+        sorted(normalized.values(), key=lambda pokemon: pokemon.id),
         listed_ids=fetched.listed_ids,
         synced_at=started_at,
     )

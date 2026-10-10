@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
 from app.sync.models import PokemonChange, SyncRun
+from tests.support.pokemon import make_pokemon
 
 STARTED = datetime(2026, 10, 10, 9, tzinfo=UTC)
 
@@ -25,25 +26,6 @@ def make_run(**overrides: Any) -> SyncRun:
         "failed": [],
     }
     return SyncRun(**(fields | overrides))
-
-
-def make_pokemon(**overrides: Any) -> Pokemon:
-    fields: dict[str, Any] = {
-        "id": 25,
-        "name": "pikachu",
-        "types": ["electric"],
-        "hp": 35,
-        "attack": 55,
-        "defense": 40,
-        "sp_attack": 50,
-        "sp_defense": 50,
-        "speed": 90,
-        "sprite_url": None,
-        "is_default": True,
-        "content_hash": "0" * 64,
-        "last_synced_at": STARTED,
-    }
-    return Pokemon(**(fields | overrides))
 
 
 def test_stores_a_sync_run_with_its_failures(db_session: Session) -> None:
@@ -65,10 +47,11 @@ def test_rejects_an_unknown_sync_status(db_session: Session) -> None:
 
 def test_stores_a_change_with_its_before_and_after_snapshots(db_session: Session) -> None:
     run = make_run()
-    db_session.add_all([make_pokemon(), run])
+    pokemon = make_pokemon()
+    db_session.add_all([pokemon, run])
     db_session.flush()
     change = PokemonChange(
-        pokemon_id=25,
+        pokemon_id=pokemon.id,
         sync_run_id=run.id,
         detected_at=STARTED,
         kind="updated",
@@ -87,11 +70,16 @@ def test_stores_a_change_with_its_before_and_after_snapshots(db_session: Session
 
 def test_rejects_an_unknown_change_kind(db_session: Session) -> None:
     run = make_run()
-    db_session.add_all([make_pokemon(), run])
+    pokemon = make_pokemon()
+    db_session.add_all([pokemon, run])
     db_session.flush()
     db_session.add(
         PokemonChange(
-            pokemon_id=25, sync_run_id=run.id, detected_at=STARTED, kind="renamed", before=None
+            pokemon_id=pokemon.id,
+            sync_run_id=run.id,
+            detected_at=STARTED,
+            kind="renamed",
+            before=None,
         )
     )
 
@@ -112,10 +100,11 @@ def test_a_change_must_belong_to_a_known_pokemon(db_session: Session) -> None:
 
 
 def test_pokemon_are_not_removed_by_default(db_session: Session) -> None:
-    db_session.add(make_pokemon())
+    pokemon = make_pokemon()
+    db_session.add(pokemon)
     db_session.flush()
 
-    pokemon = db_session.get(Pokemon, 25)
+    loaded = db_session.get(Pokemon, pokemon.id)
 
-    assert pokemon is not None
-    assert pokemon.removed_at is None
+    assert loaded is not None
+    assert loaded.removed_at is None

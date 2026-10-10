@@ -24,23 +24,6 @@ class FetchResult:
 
 
 @dataclass(frozen=True)
-class PokemonRecord:
-    """One Pokémon as the app stores it: exactly the fields we track for changes."""
-
-    id: int
-    name: str
-    types: tuple[str, ...]
-    hp: int
-    attack: int
-    defense: int
-    sp_attack: int
-    sp_defense: int
-    speed: int
-    sprite_url: str | None
-    is_default: bool
-
-
-@dataclass(frozen=True)
 class Change:
     """A change the sync found, with snapshots of the tracked fields."""
 

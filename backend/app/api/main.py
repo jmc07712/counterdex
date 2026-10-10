@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import health
+from app.api.routes import health, pokemon
 
 app = FastAPI(
     title="Counterdex API",
@@ -11,3 +11,4 @@ app = FastAPI(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(pokemon.router, prefix="/api")

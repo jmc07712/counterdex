@@ -31,6 +31,12 @@ async def test_syncs_pokeapi_into_the_database(db_session: Session) -> None:
     assert count(db_session, Pokemon) == 2
 
 
+async def test_skips_pokemon_with_data_the_table_would_refuse(db_session: Session) -> None:
+    report = await run_sync(fake_pokeapi(speeds={25: 0}), db_session, clock=clock)
+
+    assert (report.inserted, report.failed) == (1, ["pikachu"])
+
+
 async def test_records_a_sync_run(db_session: Session) -> None:
     report = await run_sync(fake_pokeapi(broken_id=6), db_session, clock=clock)
 

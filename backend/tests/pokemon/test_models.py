@@ -1,30 +1,9 @@
-from datetime import UTC, datetime
-from typing import Any
-
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
-
-
-def make_pokemon(**overrides: Any) -> Pokemon:
-    fields: dict[str, Any] = {
-        "id": 25,
-        "name": "pikachu",
-        "types": ["electric"],
-        "hp": 35,
-        "attack": 55,
-        "defense": 40,
-        "sp_attack": 50,
-        "sp_defense": 50,
-        "speed": 90,
-        "sprite_url": "https://example.com/25.png",
-        "is_default": True,
-        "content_hash": "0" * 64,
-        "last_synced_at": datetime(2026, 10, 10, tzinfo=UTC),
-    }
-    return Pokemon(**(fields | overrides))
+from tests.support.pokemon import make_pokemon
 
 
 def test_stores_and_loads_a_pokemon(db_session: Session) -> None:

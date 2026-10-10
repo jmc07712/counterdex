@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from testcontainers.community.postgres import PostgresContainer
 
 from app.core.config import get_settings
-from app.core.db import get_engine
+from app.core.db import get_engine, get_session
 
 # Same major version as production (Neon) and docker-compose.yml.
 POSTGRES_IMAGE = "postgres:17-alpine"
@@ -69,9 +69,12 @@ def db_session(migrated_engine: Engine) -> Iterator[Session]:
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
+def client(db_session: Session) -> Iterator[TestClient]:
+    """The app, using the test's rolled-back session so it sees the rows each test adds."""
     from app.api.main import app
 
+    app.dependency_overrides[get_session] = lambda: db_session
     # The context manager runs the app's startup and shutdown, as a real server would.
     with TestClient(app) as test_client:
         yield test_client
+    app.dependency_overrides.pop(get_session)

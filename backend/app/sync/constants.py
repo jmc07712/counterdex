@@ -17,8 +17,15 @@ RETRY_DELAY_SECONDS = 0.5
 # Rate limiting and server-side failures are worth retrying; other errors won't fix themselves.
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
-# The base stats every PokéAPI Pokémon must have, by PokéAPI's names.
-POKEAPI_STAT_NAMES = ("hp", "attack", "defense", "special-attack", "special-defense", "speed")
+# What PokéAPI calls each of our stats; every PokéAPI Pokémon must have all six.
+POKEAPI_STAT_NAMES = {
+    "hp": "hp",
+    "attack": "attack",
+    "defense": "defense",
+    "sp_attack": "special-attack",
+    "sp_defense": "special-defense",
+    "speed": "speed",
+}
 
 # --- Storing a sync ---
 
