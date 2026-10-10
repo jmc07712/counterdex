@@ -8,11 +8,10 @@ type NavItem = {
   to: string
   label: string
   icon: LucideIcon
-  end?: boolean
 }
 
 const primaryNav: NavItem[] = [
-  { to: '/', label: 'Pokédex', icon: LayoutGrid, end: true },
+  { to: '/', label: 'Pokédex', icon: LayoutGrid },
   { to: '/teams', label: 'Teams', icon: UsersRound },
 ]
 
@@ -70,7 +69,6 @@ function HeaderLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
-      end={item.end}
       className={({ isActive }) =>
         cn(
           'inline-flex items-center border-b-2 pt-0.5 text-sm font-medium transition-colors',
@@ -90,7 +88,6 @@ function TabLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
-      end={item.end}
       className={({ isActive }) =>
         cn(
           'relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs font-medium',
