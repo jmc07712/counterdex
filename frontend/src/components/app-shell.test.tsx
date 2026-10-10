@@ -1,5 +1,6 @@
-import { render, screen, within } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router'
+import { render, screen } from '@testing-library/react'
+import { createMemoryRouter } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 import { describe, expect, it } from 'vitest'
 
 import { AppShell } from '@/components/app-shell'
@@ -12,25 +13,22 @@ function renderAt(path: string) {
   render(<RouterProvider router={router} />)
 }
 
+function currentPageLinks() {
+  return screen.getAllByRole('link', { current: 'page' }).map((link) => link.textContent)
+}
+
+// Both the desktop header and the phone tab bar are in the DOM (CSS decides which is shown),
+// so every section appears twice.
 describe('AppShell navigation', () => {
   it('marks only the current section as the current page', () => {
     renderAt('/teams/42')
 
-    const [headerNav] = screen.getAllByRole('navigation', { name: 'Primary' })
-    expect(within(headerNav).getByRole('link', { name: 'Teams' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(within(headerNav).getByRole('link', { name: 'Pokédex' })).not.toHaveAttribute(
-      'aria-current',
-    )
+    expect(currentPageLinks()).toEqual(['Teams', 'Teams'])
   })
 
   it('does not mark the Pokédex as current on other pages', () => {
     renderAt('/sign-in')
 
-    for (const link of screen.getAllByRole('link', { name: 'Pokédex' })) {
-      expect(link).not.toHaveAttribute('aria-current')
-    }
+    expect(currentPageLinks()).toEqual(['Sign in', 'Sign in'])
   })
 })
