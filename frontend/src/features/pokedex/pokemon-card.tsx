@@ -36,7 +36,13 @@ const MAX_BASE_STAT = 255
 // people ask their OS for less motion.
 const TILT_MEDIA_QUERY = '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)'
 
-export function PokemonCard({ pokemon }: { pokemon: Pokemon }) {
+type PokemonCardProps = {
+  pokemon: Pokemon
+  // PokéAPI no longer lists it.
+  removed?: boolean
+}
+
+export function PokemonCard({ pokemon, removed = false }: PokemonCardProps) {
   const headingId = useId()
   const canTilt = useMediaQuery(TILT_MEDIA_QUERY)
   const [primary, secondary = primary] = pokemon.types
@@ -109,6 +115,11 @@ export function PokemonCard({ pokemon }: { pokemon: Pokemon }) {
               {form && (
                 <Badge variant="secondary" className="absolute top-1.5 left-1.5">
                   {form}
+                </Badge>
+              )}
+              {removed && (
+                <Badge variant="destructive" className="absolute top-1.5 right-1.5">
+                  Removed
                 </Badge>
               )}
             </div>

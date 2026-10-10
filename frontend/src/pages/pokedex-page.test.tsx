@@ -91,12 +91,35 @@ describe('PokedexPage', () => {
   it('starts from the filters in the URL', async () => {
     const requests = servePokemon()
 
-    renderWithProviders(<PokedexPage />, { path: '/?q=char&type=fire&forms=default' })
+    const filters = 'q=char&type=fire&forms=default&status=removed'
 
-    await waitFor(() => expect(requests).toEqual(['q=char&type=fire&forms=default']))
+    renderWithProviders(<PokedexPage />, { path: `/?${filters}` })
+
+    await waitFor(() => expect(requests).toEqual([filters]))
     expect(screen.getByRole('searchbox', { name: 'Search Pokémon' })).toHaveValue('char')
     expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Removed' })).toBeChecked()
+  })
+
+  it('can list the Pokémon PokéAPI no longer lists, marked as removed', async () => {
+    const requests = servePokemon()
+    const { user, router } = renderWithProviders(<PokedexPage />)
+
+    await user.click(screen.getByRole('radio', { name: 'Removed' }))
+
+    await waitFor(() => expect(requests.at(-1)).toBe('status=removed'))
+    expect(router.state.location.search).toBe('?status=removed')
+    const card = await screen.findByRole('article', { name: 'Bulbasaur' })
+    expect(within(card).getByText('Removed')).toBeInTheDocument()
+  })
+
+  it('says when PokéAPI hasn’t removed any Pokémon', async () => {
+    servePokemon(makePage([]))
+
+    renderWithProviders(<PokedexPage />, { path: '/?status=removed' })
+
+    expect(await screen.findByText('No removed Pokémon')).toBeInTheDocument()
   })
 
   it('keeps only the last two types from a hand-edited URL', async () => {

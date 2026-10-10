@@ -107,6 +107,7 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
         {"q": ""},
         {"q": "x" * 51},
         {"forms": "false"},
+        {"status": "deleted"},
     ],
 )
 def test_rejects_filters_that_cannot_match(
@@ -119,7 +120,7 @@ def test_documents_each_filter(openapi: dict[str, Any]) -> None:
     operation = openapi["paths"]["/api/pokemon"]["get"]
     described = {param["name"] for param in operation["parameters"] if param.get("description")}
 
-    assert {"q", "type", "forms", "limit", "cursor"} <= described
+    assert {"q", "type", "forms", "status", "limit", "cursor"} <= described
 
 
 # --- GET /api/pokemon/{id} ---

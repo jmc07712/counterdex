@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.pokemon import models
-from app.pokemon.enums import EvolutionTrigger, FormFilter, PokemonType
+from app.pokemon.enums import EvolutionTrigger, FormFilter, ListingStatus, PokemonType
 from app.pokemon.queries import cdn_sprite_url, get_pokemon_details, list_pokemon
 from app.pokemon.schemas import (
     EvolutionMethod,
@@ -60,7 +60,16 @@ def test_lists_pokemon_in_pokedex_order(db_session: Session) -> None:
     assert names(page) == ["pikachu", "eevee"]
 
 
-def test_hides_pokemon_pokeapi_no_longer_lists(db_session: Session) -> None:
+@pytest.mark.parametrize(
+    ("query", "expected_ids"),
+    [
+        pytest.param(PokemonQuery(), [25], id="listed-by-default"),
+        pytest.param(PokemonQuery(status=ListingStatus.REMOVED), [6], id="removed"),
+    ],
+)
+def test_lists_pokemon_by_whether_pokeapi_still_lists_them(
+    db_session: Session, query: PokemonQuery, expected_ids: list[int]
+) -> None:
     db_session.add_all(
         [
             make_pokemon(id=25, name="pikachu"),
@@ -69,7 +78,7 @@ def test_hides_pokemon_pokeapi_no_longer_lists(db_session: Session) -> None:
     )
     db_session.flush()
 
-    assert ids(list_pokemon(db_session, PokemonQuery())) == [25]
+    assert ids(list_pokemon(db_session, query)) == expected_ids
 
 
 def test_lists_nothing_before_the_first_sync(db_session: Session) -> None:

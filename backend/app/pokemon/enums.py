@@ -46,6 +46,13 @@ class FormFilter(StrEnum):
     ALTERNATE = "alternate"
 
 
+class ListingStatus(StrEnum):
+    """Whether PokéAPI still lists a Pokémon."""
+
+    LISTED = "listed"
+    REMOVED = "removed"
+
+
 class EvolutionTrigger(StrEnum):
     """What sets an evolution off, as PokéAPI names it."""
 

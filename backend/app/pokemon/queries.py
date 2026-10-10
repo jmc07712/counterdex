@@ -7,16 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
 from app.pokemon.constants import CDN_SPRITES_URL, GITHUB_SPRITES_URL
-from app.pokemon.enums import FormFilter
+from app.pokemon.enums import FormFilter, ListingStatus
 
 
 def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
-    """One page of the matching Pokémon PokéAPI still lists, by Pokédex number, after the cursor."""
-    statement = (
-        select(models.Pokemon.__table__)
-        .where(models.Pokemon.removed_at.is_(None))
-        .order_by(models.Pokemon.id)
-    )
+    """One page of the matching Pokémon, by Pokédex number, after the cursor."""
+    statement = select(models.Pokemon.__table__).order_by(models.Pokemon.id)
+    if query.status is ListingStatus.LISTED:
+        statement = statement.where(models.Pokemon.removed_at.is_(None))
+    else:
+        statement = statement.where(models.Pokemon.removed_at.is_not(None))
     if query.cursor is not None:
         statement = statement.where(models.Pokemon.id > query.cursor)
     if query.q is not None:

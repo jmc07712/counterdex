@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 
-import { FormFilter, type ListPokemonData } from '@/api'
+import { FormFilter, type ListPokemonData, ListingStatus } from '@/api'
 import { listPokemonInfiniteOptions } from '@/api/@tanstack/react-query.gen'
 
 import type { PokedexFilters } from './use-pokedex-filters'
@@ -8,12 +8,14 @@ import type { PokedexFilters } from './use-pokedex-filters'
 type PokemonQuery = NonNullable<ListPokemonData['query']>
 
 // Only the filters in use, so the default grid always requests the same URL and the browser and
-// CDN caches can share it. The API rejects an empty search, and lists all forms by default.
-function toQuery({ search, types, forms }: PokedexFilters): PokemonQuery {
+// CDN caches can share it. The API rejects an empty search, and by default lists all forms of the
+// Pokémon PokéAPI lists.
+function toQuery({ search, types, forms, status }: PokedexFilters): PokemonQuery {
   return {
     q: search.trim() || undefined,
     type: types.length > 0 ? types : undefined,
     forms: forms === FormFilter.ALL ? undefined : forms,
+    status: status === ListingStatus.LISTED ? undefined : status,
   }
 }
 

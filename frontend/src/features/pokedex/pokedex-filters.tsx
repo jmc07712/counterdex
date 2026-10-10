@@ -1,17 +1,22 @@
 import { Search } from 'lucide-react'
 
-import { FormFilter } from '@/api'
+import { FormFilter, ListingStatus } from '@/api'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 import { displayName } from './format'
 import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from './pokemon-types'
-import { type PokedexFilters as Filters, parseFormFilter } from './use-pokedex-filters'
+import { type PokedexFilters as Filters, parseOption } from './use-pokedex-filters'
 
 const FORM_OPTIONS: Record<FormFilter, string> = {
   all: 'All',
   default: 'Standard',
   alternate: 'Alternate',
+}
+
+const STATUS_OPTIONS: Record<ListingStatus, string> = {
+  listed: 'Current',
+  removed: 'Removed',
 }
 
 type PokedexFiltersProps = {
@@ -41,26 +46,45 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
             className="pl-8"
           />
         </div>
-        <ToggleGroup
-          type="single"
-          aria-label="Forms"
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={filters.forms}
-          // Choosing the current option again would clear it; one option always stays chosen.
-          onValueChange={(value) => {
-            const forms = parseFormFilter(value)
-            if (forms) onChange({ ...filters, forms })
-          }}
-          className="self-start sm:self-auto"
-        >
-          {Object.values(FormFilter).map((forms) => (
-            <ToggleGroupItem key={forms} value={forms} className="px-3">
-              {FORM_OPTIONS[forms]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {/* Choosing the current option again would clear it; one option always stays chosen. */}
+        <div className="flex flex-wrap gap-2">
+          <ToggleGroup
+            type="single"
+            aria-label="Forms"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={filters.forms}
+            onValueChange={(value) => {
+              const forms = parseOption(Object.values(FormFilter), value)
+              if (forms) onChange({ ...filters, forms })
+            }}
+          >
+            {Object.values(FormFilter).map((forms) => (
+              <ToggleGroupItem key={forms} value={forms} className="px-3">
+                {FORM_OPTIONS[forms]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <ToggleGroup
+            type="single"
+            aria-label="Status"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={filters.status}
+            onValueChange={(value) => {
+              const status = parseOption(Object.values(ListingStatus), value)
+              if (status) onChange({ ...filters, status })
+            }}
+          >
+            {Object.values(ListingStatus).map((status) => (
+              <ToggleGroupItem key={status} value={status} className="px-3">
+                {STATUS_OPTIONS[status]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
       </div>
 
       {/* One swipeable row on phones; wraps on wider screens. */}

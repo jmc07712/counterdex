@@ -26,7 +26,8 @@ export const health = <ThrowOnError extends boolean = false>(options?: Options<H
 /**
  * List Pokémon
  *
- * Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form.
+ * Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form,
+ * and by whether PokéAPI still lists them.
  *
  * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
  * filters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional

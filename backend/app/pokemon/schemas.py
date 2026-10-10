@@ -30,6 +30,7 @@ from app.pokemon.enums import (
     EvolutionTrigger,
     FormFilter,
     Gender,
+    ListingStatus,
     PokemonForm,
     PokemonType,
     RelativePhysicalStats,
@@ -279,6 +280,13 @@ class PokemonQuery(BaseModel):
             "forms such as Mega Evolutions and regional forms."
         ),
     ] = FormFilter.ALL
+    status: Annotated[
+        ListingStatus,
+        Field(
+            description="`listed` for the Pokémon PokéAPI lists, or `removed` for the ones it "
+            "no longer does."
+        ),
+    ] = ListingStatus.LISTED
     limit: Annotated[
         int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many Pokémon per page.")
     ] = DEFAULT_PAGE_SIZE

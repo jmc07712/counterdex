@@ -252,6 +252,20 @@ export type HttpValidationError = {
 };
 
 /**
+ * ListingStatus
+ *
+ * Whether PokéAPI still lists a Pokémon.
+ */
+export const ListingStatus = { LISTED: 'listed', REMOVED: 'removed' } as const;
+
+/**
+ * ListingStatus
+ *
+ * Whether PokéAPI still lists a Pokémon.
+ */
+export type ListingStatus = typeof ListingStatus[keyof typeof ListingStatus];
+
+/**
  * Pokemon
  *
  * A Pokémon: its Pokédex number, name, types, base stats and sprite.
@@ -655,6 +669,10 @@ export type ListPokemonData = {
          * Which forms to list: `all`, only `default` forms, or only `alternate` forms such as Mega Evolutions and regional forms.
          */
         forms?: FormFilter;
+        /**
+         * `listed` for the Pokémon PokéAPI lists, or `removed` for the ones it no longer does.
+         */
+        status?: ListingStatus;
         /**
          * Limit
          *

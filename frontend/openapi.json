@@ -30,7 +30,7 @@
     "/api/pokemon": {
       "get": {
         "summary": "List Pokémon",
-        "description": "Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional\nforms, are numbered from 10001, so they come after the main Pokédex.",
+        "description": "Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form,\nand by whether PokéAPI still lists them.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional\nforms, are numbered from 10001, so they come after the main Pokédex.",
         "operationId": "list_pokemon",
         "parameters": [
           {
@@ -79,6 +79,17 @@
               "default": "all"
             },
             "description": "Which forms to list: `all`, only `default` forms, or only `alternate` forms such as Mega Evolutions and regional forms."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingStatus",
+              "description": "`listed` for the Pokémon PokéAPI lists, or `removed` for the ones it no longer does.",
+              "default": "listed"
+            },
+            "description": "`listed` for the Pokémon PokéAPI lists, or `removed` for the ones it no longer does."
           },
           {
             "name": "limit",
@@ -621,6 +632,15 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "ListingStatus": {
+        "type": "string",
+        "enum": [
+          "listed",
+          "removed"
+        ],
+        "title": "ListingStatus",
+        "description": "Whether PokéAPI still lists a Pokémon."
       },
       "Pokemon": {
         "properties": {
