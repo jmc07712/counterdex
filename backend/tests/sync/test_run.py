@@ -1,14 +1,15 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx2
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon
+from app.models import Pokemon, PokemonChange, SyncRun
 from app.sync.pokeapi import PokeApiClient
-from app.sync.run import SyncReport, run_sync
+from app.sync.run import SYNC_LOCK_KEY, SyncAlreadyRunningError, record_failed_sync, run_sync
 
 pytestmark = pytest.mark.anyio
 
@@ -17,8 +18,15 @@ FIXTURES = Path(__file__).parent / "fixtures" / "pokeapi"
 NOW = datetime(2026, 10, 10, 9, tzinfo=UTC)
 
 
+def clock() -> datetime:
+    return NOW
+
+
 def fake_pokeapi(
-    *, broken_id: int | None = None, extra_urls: tuple[str, ...] = ()
+    *,
+    broken_id: int | None = None,
+    extra_urls: tuple[str, ...] = (),
+    speeds: dict[int, int] | None = None,
 ) -> PokeApiClient:
     async def handler(request: httpx2.Request) -> httpx2.Response:
         if request.url.path.endswith("/pokemon"):
@@ -30,42 +38,79 @@ def fake_pokeapi(
         pokemon_id = int(request.url.path.rstrip("/").rsplit("/", 1)[1])
         if pokemon_id == broken_id:
             return httpx2.Response(500)
-        return httpx2.Response(200, text=(FIXTURES / f"pokemon-{pokemon_id}.json").read_text())
+        data = json.loads((FIXTURES / f"pokemon-{pokemon_id}.json").read_text())
+        if speeds and pokemon_id in speeds:
+            speed = next(s for s in data["stats"] if s["stat"]["name"] == "speed")
+            speed["base_stat"] = speeds[pokemon_id]
+        return httpx2.Response(200, json=data)
 
     http = httpx2.AsyncClient(base_url=BASE_URL, transport=httpx2.MockTransport(handler))
     return PokeApiClient(http, retry_delay=0)
 
 
+def count(session: Session, model: type[Pokemon | SyncRun | PokemonChange]) -> int:
+    return session.scalar(select(func.count()).select_from(model)) or 0
+
+
 async def test_syncs_pokeapi_into_the_database(db_session: Session) -> None:
-    report = await run_sync(fake_pokeapi(), db_session, now=NOW)
+    report = await run_sync(fake_pokeapi(), db_session, clock=clock)
 
-    assert report == SyncReport(fetched=2, inserted=2, updated=0, unchanged=0, failed=[])
-    assert db_session.scalar(select(func.count()).select_from(Pokemon)) == 2
+    assert (report.fetched, report.inserted, report.failed) == (2, 2, [])
+    assert count(db_session, Pokemon) == 2
 
 
-async def test_a_second_sync_with_no_upstream_changes_writes_nothing(db_session: Session) -> None:
-    await run_sync(fake_pokeapi(), db_session, now=NOW)
+async def test_records_a_sync_run(db_session: Session) -> None:
+    report = await run_sync(fake_pokeapi(broken_id=6), db_session, clock=clock)
 
-    report = await run_sync(fake_pokeapi(), db_session, now=NOW)
+    run = db_session.get(SyncRun, report.run_id)
+    assert run is not None
+    assert (run.status, run.inserted, run.failed) == ("succeeded", 1, [f"{BASE_URL}pokemon/6/"])
+    assert (run.started_at, run.finished_at) == (NOW, NOW)
+
+
+async def test_records_each_change_against_its_sync_run(db_session: Session) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    report = await run_sync(fake_pokeapi(speeds={25: 150}), db_session, clock=clock)
+
+    change = db_session.scalars(select(PokemonChange)).one()
+    assert (change.pokemon_id, change.kind, change.sync_run_id) == (25, "updated", report.run_id)
+    assert change.before is not None
+    assert change.after is not None
+    assert (change.before["speed"], change.after["speed"]) == (90, 150)
+    assert change.detected_at == NOW
+
+
+async def test_a_second_sync_with_no_upstream_changes_records_no_changes(
+    db_session: Session,
+) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    report = await run_sync(fake_pokeapi(), db_session, clock=clock)
 
     assert (report.inserted, report.updated, report.unchanged) == (0, 0, 2)
-
-
-async def test_reports_failures_and_still_stores_the_rest(db_session: Session) -> None:
-    report = await run_sync(fake_pokeapi(broken_id=6), db_session, now=NOW)
-
-    assert report.failed == [f"{BASE_URL}pokemon/6/"]
-    assert report.inserted == 1
+    assert count(db_session, PokemonChange) == 0
 
 
 async def test_leaves_committing_to_the_caller(db_session: Session) -> None:
-    # Callers combine the sync with other writes (change events, run records) in one
-    # transaction, so run_sync must not commit on its own.
-    await run_sync(fake_pokeapi(), db_session, now=NOW)
+    # Callers save the sync together with any related writes, so run_sync never commits.
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
 
     db_session.rollback()
 
-    assert db_session.scalar(select(func.count()).select_from(Pokemon)) == 0
+    assert (count(db_session, Pokemon), count(db_session, SyncRun)) == (0, 0)
+
+
+async def test_refuses_to_run_alongside_another_sync(
+    db_session: Session, migrated_engine: Engine
+) -> None:
+    with migrated_engine.connect() as other:
+        other.execute(text("select pg_advisory_lock(:key)"), {"key": SYNC_LOCK_KEY})
+        try:
+            with pytest.raises(SyncAlreadyRunningError):
+                await run_sync(fake_pokeapi(), db_session, clock=clock)
+        finally:
+            other.execute(text("select pg_advisory_unlock(:key)"), {"key": SYNC_LOCK_KEY})
 
 
 async def test_stores_a_pokemon_once_even_if_two_listing_urls_resolve_to_it(
@@ -73,8 +118,15 @@ async def test_stores_a_pokemon_once_even_if_two_listing_urls_resolve_to_it(
 ) -> None:
     # A second spelling of Pikachu's URL is a different listing entry with the same id.
     report = await run_sync(
-        fake_pokeapi(extra_urls=(f"{BASE_URL}pokemon/25",)), db_session, now=NOW
+        fake_pokeapi(extra_urls=(f"{BASE_URL}pokemon/25",)), db_session, clock=clock
     )
 
     assert report.inserted == 2
-    assert db_session.scalar(select(func.count()).select_from(Pokemon)) == 2
+    assert count(db_session, Pokemon) == 2
+
+
+def test_records_a_failed_sync(db_session: Session) -> None:
+    run = record_failed_sync(db_session, started_at=NOW, error="PokéAPI is down", clock=clock)
+
+    assert db_session.get(SyncRun, run.id) is run
+    assert (run.status, run.error, run.fetched, run.failed) == ("failed", "PokéAPI is down", 0, [])

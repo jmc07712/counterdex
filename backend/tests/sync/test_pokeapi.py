@@ -143,7 +143,7 @@ async def test_limits_how_many_requests_run_at_once() -> None:
         "https://pokeapi.test/admin/",  # same host, outside the API path
     ],
 )
-async def test_never_requests_urls_outside_pokeapi(outside_url: str) -> None:
+async def test_fails_when_the_listing_points_outside_pokeapi(outside_url: str) -> None:
     requested: list[str] = []
 
     async def handler(request: httpx2.Request) -> httpx2.Response:
@@ -156,10 +156,9 @@ async def test_never_requests_urls_outside_pokeapi(outside_url: str) -> None:
             return httpx2.Response(200, json={"next": None, "results": results})
         return httpx2.Response(200, json=detail(25))
 
-    result = await make_client(handler).fetch_all()
+    with pytest.raises(PokeApiError, match="outside PokéAPI"):
+        await make_client(handler).fetch_all()
 
-    assert [p.name for p in result.pokemon] == ["pikachu"]
-    assert result.failed == [outside_url]
     assert outside_url not in requested
 
 
@@ -220,3 +219,26 @@ async def test_reports_a_response_that_is_not_json() -> None:
 
     assert [p.name for p in result.pokemon] == ["pikachu"]
     assert result.failed == [f"{BASE_URL}pokemon/6/"]
+
+
+async def test_reports_every_listed_pokemon_including_ones_that_failed() -> None:
+    # Callers need this to tell "removed from PokéAPI" apart from "failed to fetch".
+    async def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/pokemon"):
+            return httpx2.Response(200, json=listing(6, 25))
+        if request.url.path.rstrip("/").endswith("/6"):
+            return httpx2.Response(500)
+        return httpx2.Response(200, json=detail(25))
+
+    result = await make_client(handler).fetch_all()
+
+    assert result.listed_ids == {6, 25}
+
+
+async def test_fails_when_a_listing_url_has_no_pokemon_id() -> None:
+    async def handler(request: httpx2.Request) -> httpx2.Response:
+        results = [{"name": "odd", "url": f"{BASE_URL}pokemon/not-a-number/"}]
+        return httpx2.Response(200, json={"next": None, "results": results})
+
+    with pytest.raises(PokeApiError, match="no Pokémon id"):
+        await make_client(handler).fetch_all()

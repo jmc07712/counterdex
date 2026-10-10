@@ -5,7 +5,6 @@ uv run --env-file .env python -m app.sync
 
 import logging
 import sys
-from datetime import UTC, datetime
 
 import anyio
 import httpx2
@@ -13,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_engine
 from app.sync.pokeapi import POKEAPI_BASE_URL, PokeApiClient
-from app.sync.run import run_sync
+from app.sync.run import record_failed_sync, run_sync, utc_now
 
 logger = logging.getLogger("app.sync")
 
@@ -22,6 +21,7 @@ USER_AGENT = "counterdex-sync (+https://github.com/jmc07712/counterdex)"
 
 
 async def main() -> int:
+    started_at = utc_now()
     async with httpx2.AsyncClient(
         base_url=POKEAPI_BASE_URL,
         timeout=15,
@@ -30,14 +30,27 @@ async def main() -> int:
         follow_redirects=False,
     ) as http:
         with Session(get_engine()) as session:
-            report = await run_sync(PokeApiClient(http), session, now=datetime.now(UTC))
-            session.commit()
+            try:
+                report = await run_sync(PokeApiClient(http), session)
+                session.commit()
+            # This is the command's outermost boundary: whatever went wrong, keep nothing from
+            # the attempt, record that it failed, and exit non-zero.
+            except Exception as error:
+                session.rollback()
+                logger.exception("Sync failed; no changes were saved.")
+                record_failed_sync(
+                    session, started_at=started_at, error=f"{type(error).__name__}: {error}"
+                )
+                session.commit()
+                return 1
 
     logger.info(
-        "Fetched %d Pokémon: %d new, %d updated, %d unchanged.",
+        "Fetched %d Pokémon: %d new, %d updated, %d removed, %d restored, %d unchanged.",
         report.fetched,
         report.inserted,
         report.updated,
+        report.removed,
+        report.restored,
         report.unchanged,
     )
     if report.failed:

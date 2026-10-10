@@ -1,17 +1,36 @@
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from sqlalchemy import select, update
+from sqlalchemy import RowMapping, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import Pokemon
 from app.sync.normalize import PokemonRecord
 
+# The fields a change snapshot records: everything we track except the id itself.
+SNAPSHOT_FIELDS = tuple(name for name in PokemonRecord.__dataclass_fields__ if name != "id")
 # Every column except the id, which identifies the row being written.
 WRITABLE_COLUMNS = tuple(column.name for column in Pokemon.__table__.columns if column.name != "id")
+# Removing more than this in one sync is far likelier to be a broken listing than a real change.
+MAX_REMOVED_SHARE = 0.05
+MIN_REMOVALS_ALLOWED = 10
+
+ChangeKind = Literal["updated", "removed", "restored"]
+
+
+class SuspiciousRemovalError(Exception):
+    """A sync would remove so many Pokémon that the listing is probably wrong."""
+
+
+@dataclass(frozen=True)
+class Change:
+    pokemon_id: int
+    kind: ChangeKind
+    before: dict[str, Any] | None
+    after: dict[str, Any] | None
 
 
 @dataclass(frozen=True)
@@ -19,28 +38,60 @@ class StoreResult:
     inserted: int
     updated: int
     unchanged: int
+    removed: int
+    restored: int
+    changes: list[Change] = field(default_factory=list)
 
 
-def upsert_pokemon(
-    session: Session, records: Sequence[PokemonRecord], *, synced_at: datetime
+def store_pokemon(
+    session: Session,
+    records: Sequence[PokemonRecord],
+    *,
+    listed_ids: set[int],
+    synced_at: datetime,
 ) -> StoreResult:
-    """Insert new Pokémon, rewrite changed ones, and stamp unchanged ones as synced.
+    """Bring the pokemon table in line with PokéAPI and report what changed.
 
-    Comparing content hashes means unchanged rows are never rewritten.
+    New Pokémon are inserted without a change (nobody can have them on a team yet). Updates,
+    removals and restorations come back as changes with before/after snapshots taken before
+    any row is overwritten. Only Pokémon missing from `listed_ids` count as removed, and rows
+    are never deleted.
     """
-    stored_hashes = dict(session.execute(select(Pokemon.id, Pokemon.content_hash)).all())
-    new = [record for record in records if record.id not in stored_hashes]
-    changed = [
-        record
-        for record in records
-        if record.id in stored_hashes and stored_hashes[record.id] != record.content_hash()
-    ]
-    unchanged_ids = [
-        record.id for record in records if stored_hashes.get(record.id) == record.content_hash()
-    ]
+    current = {row["id"]: row for row in session.execute(select(Pokemon.__table__)).mappings()}
+    changes: list[Change] = []
+    to_write: list[PokemonRecord] = []
+    unchanged_ids: list[int] = []
+    inserted = updated = restored = 0
 
-    if new or changed:
-        statement = insert(Pokemon).values([_row(record, synced_at) for record in new + changed])
+    for record in records:
+        row = current.get(record.id)
+        if row is None:
+            inserted += 1
+            to_write.append(record)
+        elif row["removed_at"] is not None:
+            restored += 1
+            changes.append(Change(record.id, "restored", _row_snapshot(row), _snapshot(record)))
+            to_write.append(record)
+        elif row["content_hash"] != record.content_hash():
+            updated += 1
+            changes.append(Change(record.id, "updated", _row_snapshot(row), _snapshot(record)))
+            to_write.append(record)
+        else:
+            unchanged_ids.append(record.id)
+
+    removed_ids = [
+        pokemon_id
+        for pokemon_id, row in current.items()
+        if pokemon_id not in listed_ids and row["removed_at"] is None
+    ]
+    _check_removals(len(removed_ids), total=len(current))
+    changes.extend(
+        Change(pokemon_id, "removed", _row_snapshot(current[pokemon_id]), None)
+        for pokemon_id in removed_ids
+    )
+
+    if to_write:
+        statement = insert(Pokemon).values([_row(record, synced_at) for record in to_write])
         session.execute(
             statement.on_conflict_do_update(
                 index_elements=[Pokemon.id],
@@ -51,8 +102,36 @@ def upsert_pokemon(
         session.execute(
             update(Pokemon).where(Pokemon.id.in_(unchanged_ids)).values(last_synced_at=synced_at)
         )
+    if removed_ids:
+        session.execute(
+            update(Pokemon).where(Pokemon.id.in_(removed_ids)).values(removed_at=synced_at)
+        )
 
-    return StoreResult(inserted=len(new), updated=len(changed), unchanged=len(unchanged_ids))
+    return StoreResult(
+        inserted=inserted,
+        updated=updated,
+        unchanged=len(unchanged_ids),
+        removed=len(removed_ids),
+        restored=restored,
+        changes=changes,
+    )
+
+
+def _check_removals(removed: int, *, total: int) -> None:
+    allowed = max(MIN_REMOVALS_ALLOWED, int(total * MAX_REMOVED_SHARE))
+    if removed > allowed:
+        raise SuspiciousRemovalError(
+            f"refusing to remove {removed} of {total} Pokémon in one sync (limit {allowed})"
+        )
+
+
+def _snapshot(record: PokemonRecord) -> dict[str, Any]:
+    values = asdict(record)
+    return {name: values[name] for name in SNAPSHOT_FIELDS} | {"types": list(record.types)}
+
+
+def _row_snapshot(row: RowMapping) -> dict[str, Any]:
+    return {name: row[name] for name in SNAPSHOT_FIELDS} | {"types": list(row["types"])}
 
 
 def _row(record: PokemonRecord, synced_at: datetime) -> dict[str, Any]:
@@ -60,4 +139,6 @@ def _row(record: PokemonRecord, synced_at: datetime) -> dict[str, Any]:
         "types": list(record.types),
         "content_hash": record.content_hash(),
         "last_synced_at": synced_at,
+        # A restored Pokémon is listed again.
+        "removed_at": None,
     }

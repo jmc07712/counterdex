@@ -38,3 +38,5 @@ class Pokemon(Base):
     # SHA-256 of the tracked fields; lets the sync job skip unchanged Pokémon cheaply.
     content_hash: Mapped[str] = mapped_column(String(64))
     last_synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Set when PokéAPI stops listing the Pokémon. Rows are never deleted, so teams keep working.
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
