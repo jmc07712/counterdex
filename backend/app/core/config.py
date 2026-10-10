@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     database_url: str = Field(init=False)
     # Neon's direct URL, set alongside database_url, which goes through its PgBouncer pooler.
     database_url_unpooled: str | None = Field(default=None, init=False)
+    # Lets browsers and the CDN keep public responses. Off locally, where data changes by hand
+    # and a kept response would hide the change.
+    cache_responses: bool = Field(default=True, init=False)
 
     @field_validator("database_url", "database_url_unpooled")
     @classmethod

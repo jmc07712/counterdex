@@ -200,6 +200,12 @@ def test_lets_browsers_and_the_cdn_cache_pokemon(client: TestClient, path: str) 
     assert client.get(path).headers["cache-control"] == POKEMON_CACHE_CONTROL
 
 
+@pytest.mark.usefixtures("gyarados", "caching_off")
+def test_tells_browsers_not_to_keep_pokemon_when_caching_is_off(client: TestClient) -> None:
+    # Locally, where data changes by hand, a kept response would hide the change.
+    assert client.get("/api/pokemon").headers["cache-control"] == "no-store"
+
+
 @pytest.mark.parametrize(
     "path", ["/api/pokemon?limit=0", "/api/pokemon/999", "/api/pokemon/999/changes"]
 )

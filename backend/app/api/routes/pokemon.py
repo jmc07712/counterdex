@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
+from app.api.caching import cache_publicly
 from app.api.constants import POKEMON_CACHE_CONTROL
 from app.api.dependencies import SessionDep
 from app.pokemon import queries
@@ -24,7 +25,7 @@ def list_pokemon(
     filters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional
     forms, are numbered from 10001, so they come after the main Pokédex.
     """
-    response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
+    cache_publicly(response, POKEMON_CACHE_CONTROL)
     return queries.list_pokemon(session, query)
 
 
@@ -48,7 +49,7 @@ def get_pokemon(session: SessionDep, response: Response, pokemon_id: PokemonId) 
     details = queries.get_pokemon_details(session, pokemon_id)
     if details is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
-    response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
+    cache_publicly(response, POKEMON_CACHE_CONTROL)
     return details
 
 
@@ -65,5 +66,5 @@ def list_pokemon_changes(
     """
     if not queries.pokemon_exists(session, pokemon_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND)
-    response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
+    cache_publicly(response, POKEMON_CACHE_CONTROL)
     return sync_queries.list_pokemon_changes(session, pokemon_id)
