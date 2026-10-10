@@ -25,7 +25,7 @@ from app.pokemon.constants import (
     MIN_BASE_STAT,
     MIN_TYPES,
 )
-from app.pokemon.enums import PokemonForm, PokemonType
+from app.pokemon.enums import FormFilter, PokemonForm, PokemonType
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
 
@@ -149,9 +149,12 @@ class PokemonQuery(BaseModel):
         ),
     ] = ()
     forms: Annotated[
-        bool,
-        Field(description="Include alternate forms, such as Mega Evolutions and regional forms."),
-    ] = True
+        FormFilter,
+        Field(
+            description="Which forms to list: `all`, only `default` forms, or only `alternate` "
+            "forms such as Mega Evolutions and regional forms."
+        ),
+    ] = FormFilter.ALL
     limit: Annotated[
         int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many Pokémon per page.")
     ] = DEFAULT_PAGE_SIZE

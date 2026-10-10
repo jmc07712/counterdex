@@ -58,11 +58,11 @@ describe('usePokemonList', () => {
     const { result } = renderPokemonList({
       search: '  char ',
       types: ['fire', 'flying'],
-      includeForms: false,
+      forms: 'default',
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(requests[0].toString()).toBe('q=char&type=fire&type=flying&forms=false')
+    expect(requests[0].toString()).toBe('q=char&type=fire&type=flying&forms=default')
   })
 
   it('reports a failed request as an error', async () => {

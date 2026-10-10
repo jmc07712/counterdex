@@ -5,6 +5,24 @@ export type ClientOptions = {
 };
 
 /**
+ * FormFilter
+ *
+ * Which forms a list of Pokémon includes.
+ */
+export const FormFilter = {
+    ALL: 'all',
+    DEFAULT: 'default',
+    ALTERNATE: 'alternate'
+} as const;
+
+/**
+ * FormFilter
+ *
+ * Which forms a list of Pokémon includes.
+ */
+export type FormFilter = typeof FormFilter[keyof typeof FormFilter];
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -229,11 +247,9 @@ export type ListPokemonData = {
          */
         type?: Array<PokemonType>;
         /**
-         * Forms
-         *
-         * Include alternate forms, such as Mega Evolutions and regional forms.
+         * Which forms to list: `all`, only `default` forms, or only `alternate` forms such as Mega Evolutions and regional forms.
          */
-        forms?: boolean;
+        forms?: FormFilter;
         /**
          * Limit
          *

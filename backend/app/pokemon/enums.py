@@ -36,3 +36,11 @@ class PokemonForm(StrEnum):
     HISUIAN = "hisuian"
     PALDEAN = "paldean"
     OTHER = "other"
+
+
+class FormFilter(StrEnum):
+    """Which forms a list of Pokémon includes."""
+
+    ALL = "all"
+    DEFAULT = "default"
+    ALTERNATE = "alternate"

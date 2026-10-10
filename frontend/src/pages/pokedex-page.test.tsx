@@ -76,24 +76,43 @@ describe('PokedexPage', () => {
     expect(router.state.location.search).toBe('?type=flying&type=water')
   })
 
-  it('can leave out alternate forms', async () => {
+  it('can list only standard forms', async () => {
     const requests = servePokedex(() => makePage(['charizard']))
     renderPokedex()
 
-    await userEvent.setup().click(screen.getByRole('switch', { name: 'Alternate forms' }))
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Standard' }))
 
-    await waitFor(() => expect(lastRequest(requests)).toBe('forms=false'))
+    await waitFor(() => expect(lastRequest(requests)).toBe('forms=default'))
+  })
+
+  it('can list only alternate forms', async () => {
+    const requests = servePokedex(() => makePage(['charizard-mega-x']))
+    const router = renderPokedex()
+
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Alternate' }))
+
+    await waitFor(() => expect(lastRequest(requests)).toBe('forms=alternate'))
+    expect(router.state.location.search).toBe('?forms=alternate')
+  })
+
+  it('always keeps one forms option chosen', async () => {
+    servePokedex(() => makePage(['charizard']))
+    renderPokedex()
+
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'All' }))
+
+    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
   })
 
   it('starts from the filters in the URL', async () => {
     const requests = servePokedex(() => makePage(['charizard']))
 
-    renderPokedex('/?q=char&type=fire&forms=false')
+    renderPokedex('/?q=char&type=fire&forms=default')
 
-    await waitFor(() => expect(lastRequest(requests)).toBe('q=char&type=fire&forms=false'))
+    await waitFor(() => expect(lastRequest(requests)).toBe('q=char&type=fire&forms=default'))
     expect(screen.getByRole('searchbox', { name: 'Search Pokémon' })).toHaveValue('char')
     expect(screen.getByRole('button', { name: 'Fire' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('switch', { name: 'Alternate forms' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked()
   })
 
   it('keeps only the last two types from a hand-edited URL', async () => {

@@ -74,12 +74,11 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "boolean",
-              "description": "Include alternate forms, such as Mega Evolutions and regional forms.",
-              "default": true,
-              "title": "Forms"
+              "$ref": "#/components/schemas/FormFilter",
+              "description": "Which forms to list: `all`, only `default` forms, or only `alternate` forms such as Mega Evolutions and regional forms.",
+              "default": "all"
             },
-            "description": "Include alternate forms, such as Mega Evolutions and regional forms."
+            "description": "Which forms to list: `all`, only `default` forms, or only `alternate` forms such as Mega Evolutions and regional forms."
           },
           {
             "name": "limit",
@@ -143,6 +142,16 @@
   },
   "components": {
     "schemas": {
+      "FormFilter": {
+        "type": "string",
+        "enum": [
+          "all",
+          "default",
+          "alternate"
+        ],
+        "title": "FormFilter",
+        "description": "Which forms a list of Pokémon includes."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {

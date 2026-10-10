@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.orm import Session
 
-from app.pokemon.enums import PokemonType
+from app.pokemon.enums import FormFilter, PokemonType
 from app.pokemon.queries import cdn_sprite_url, list_pokemon
 from app.pokemon.schemas import PokemonPage, PokemonQuery
 from tests.support.pokemon import add_pokemon, make_pokemon
@@ -138,12 +138,28 @@ def test_filters_by_two_types_together(db_session: Session) -> None:
     assert names(list_pokemon(db_session, query)) == ["charizard"]
 
 
-def test_can_leave_out_alternate_forms(db_session: Session) -> None:
+def test_lists_every_form_by_default(db_session: Session) -> None:
     add_pokedex(db_session)
 
-    page = list_pokemon(db_session, PokemonQuery(limit=10, q="charizard", forms=False))
+    page = list_pokemon(db_session, PokemonQuery(limit=10, q="charizard"))
 
-    assert names(page) == ["charizard"]
+    assert names(page) == ["charizard", "charizard-mega-x"]
+
+
+def test_can_list_only_default_forms(db_session: Session) -> None:
+    add_pokedex(db_session)
+
+    query = PokemonQuery(limit=10, q="charizard", forms=FormFilter.DEFAULT)
+
+    assert names(list_pokemon(db_session, query)) == ["charizard"]
+
+
+def test_can_list_only_alternate_forms(db_session: Session) -> None:
+    add_pokedex(db_session)
+
+    query = PokemonQuery(limit=10, q="charizard", forms=FormFilter.ALTERNATE)
+
+    assert names(list_pokemon(db_session, query)) == ["charizard-mega-x"]
 
 
 def test_pages_through_filtered_results(db_session: Session) -> None:

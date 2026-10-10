@@ -1,14 +1,18 @@
 import { Search } from 'lucide-react'
-import { useId } from 'react'
 
+import { FormFilter } from '@/api'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 import { displayName } from './format'
 import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from './pokemon-types'
-import type { PokedexFilters as Filters } from './use-pokedex-filters'
+import { type PokedexFilters as Filters, parseFormFilter } from './use-pokedex-filters'
+
+const FORM_OPTIONS: Record<FormFilter, string> = {
+  all: 'All',
+  default: 'Standard',
+  alternate: 'Alternate',
+}
 
 type PokedexFiltersProps = {
   filters: Filters
@@ -16,14 +20,13 @@ type PokedexFiltersProps = {
 }
 
 export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
-  const formsId = useId()
-
   return (
     <section
       aria-label="Filters"
-      className="sticky top-14 z-30 -mx-4 mb-6 flex flex-col gap-3 border-b bg-background px-4 py-3 sm:-mx-6 sm:px-6"
+      // Pinned below the header on wider screens; on phones it would take a fifth of the screen.
+      className="-mx-4 mb-6 flex flex-col gap-3 border-b bg-background px-4 py-3 sm:sticky sm:top-14 sm:z-30 sm:-mx-6 sm:px-6"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="relative flex-1">
           <Search
             aria-hidden="true"
@@ -38,14 +41,26 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
             className="pl-8"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Switch
-            id={formsId}
-            checked={filters.includeForms}
-            onCheckedChange={(includeForms) => onChange({ ...filters, includeForms })}
-          />
-          <Label htmlFor={formsId}>Alternate forms</Label>
-        </div>
+        <ToggleGroup
+          type="single"
+          aria-label="Forms"
+          variant="outline"
+          size="sm"
+          spacing={0}
+          value={filters.forms}
+          // Choosing the current option again would clear it; one option always stays chosen.
+          onValueChange={(value) => {
+            const forms = parseFormFilter(value)
+            if (forms) onChange({ ...filters, forms })
+          }}
+          className="self-start sm:self-auto"
+        >
+          {Object.values(FormFilter).map((forms) => (
+            <ToggleGroupItem key={forms} value={forms} className="px-3">
+              {FORM_OPTIONS[forms]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       {/* One swipeable row on phones; wraps on wider screens. */}

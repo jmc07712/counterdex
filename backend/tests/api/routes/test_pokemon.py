@@ -123,7 +123,7 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
     )
     db_session.flush()
 
-    params = {"q": "char", "type": ["fire", "flying"], "forms": "false"}
+    params = {"q": "char", "type": ["fire", "flying"], "forms": "default"}
     page = client.get("/api/pokemon", params=params).json()
 
     assert [pokemon["name"] for pokemon in page["items"]] == ["charizard"]
@@ -131,7 +131,7 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
 
 @pytest.mark.parametrize(
     "params",
-    [{"type": "shadow"}, {"type": ["fire", "water", "grass"]}, {"q": ""}, {"forms": "maybe"}],
+    [{"type": "shadow"}, {"type": ["fire", "water", "grass"]}, {"q": ""}, {"forms": "false"}],
 )
 def test_rejects_filters_that_cannot_match(
     client: TestClient, params: dict[str, str | list[str]]

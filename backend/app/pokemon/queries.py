@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
 from app.pokemon.constants import CDN_SPRITES_URL, GITHUB_SPRITES_URL
+from app.pokemon.enums import FormFilter
 
 
 def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
@@ -21,8 +22,9 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
         # Postgres's @> (contains): the Pokémon has every requested type.
         types = [type_.value for type_ in query.types]
         statement = statement.where(models.Pokemon.types.contains(types))
-    if not query.forms:
-        statement = statement.where(models.Pokemon.is_default.is_(True))
+    if query.forms is not FormFilter.ALL:
+        is_default = query.forms is FormFilter.DEFAULT
+        statement = statement.where(models.Pokemon.is_default.is_(is_default))
     # One extra row shows whether another page follows, without counting the rest.
     rows = session.execute(statement.limit(query.limit + 1)).mappings().all()
 
