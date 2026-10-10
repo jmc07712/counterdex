@@ -4,7 +4,7 @@
     "web": {
       "root": "frontend/",
       "framework": "vite",
-      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+      "rewrites": [{ "source": "/((?!@)[^.]*)", "destination": "/index.html" }]
     },
     "api": {
       "root": "backend/",

@@ -13,9 +13,10 @@ export default defineConfig({
     },
   },
   server: {
-    // Mirror production, where Vercel serves the API under /api on the same origin.
+    // `vercel dev` serves the whole app on :3000 and runs this server on a random port behind it.
+    // Sending /api there too means the app also works when opened on this server's own port.
     proxy: {
-      '/api': 'http://127.0.0.1:8000',
+      '/api': 'http://localhost:3000',
     },
   },
   test: {
