@@ -1,3 +1,4 @@
+import { useScrollDirection, useWindowScroll } from '@mantine/hooks'
 import {
   ArrowUpRight,
   BookOpenText,
@@ -25,11 +26,21 @@ const primaryNav: NavItem[] = [
 
 const accountNav: NavItem = { to: '/sign-in', label: 'Sign in', icon: CircleUserRound }
 
+// The tab bar always shows within this many pixels of the top of the page, so the bounce at the
+// top can't hide it.
+const TAB_BAR_HIDES_AFTER = 56
+
 // The API serves its own docs, outside this app: a plain link (not a router link) that opens
 // them in a new tab, so the app keeps its place.
 const apiDocs = { href: '/api/docs', label: 'API', icon: BookOpenText }
 
 export function AppShell() {
+  // The phone tab bar hides while scrolling down the page and comes back on any scroll up,
+  // like the toolbars in mobile browsers.
+  const scrollDirection = useScrollDirection()
+  const [{ y: scrollY }] = useWindowScroll()
+  const tabBarHidden = scrollDirection === 'down' && scrollY > TAB_BAR_HIDES_AFTER
+
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -71,7 +82,13 @@ export function AppShell() {
 
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        data-state={tabBarHidden ? 'hidden' : 'shown'}
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden',
+          'transition-transform duration-200 ease-out motion-reduce:transition-none',
+          // Tabbing into the hidden bar brings it back, so keyboard focus is never off screen.
+          'data-[state=hidden]:not-has-focus-visible:translate-y-full',
+        )}
       >
         <ul className="grid grid-cols-4">
           {[...primaryNav, accountNav].map((item) => (

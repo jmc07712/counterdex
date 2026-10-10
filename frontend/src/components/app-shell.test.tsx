@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { AppShell } from '@/components/app-shell'
 
@@ -42,5 +42,39 @@ describe('AppShell navigation', () => {
       expect(link).toHaveAttribute('href', '/api/docs')
       expect(link).toHaveAttribute('target', '_blank')
     }
+  })
+})
+
+describe('AppShell tab bar', () => {
+  afterEach(() => scrollTo(0))
+
+  function scrollTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true })
+    fireEvent.scroll(window)
+  }
+
+  // The header's nav comes first; the phone tab bar second.
+  function tabBar() {
+    return screen.getAllByRole('navigation', { name: 'Primary' })[1]
+  }
+
+  it('gets out of the way while scrolling down and comes back on scrolling up', () => {
+    renderAt('/')
+    expect(tabBar()).toHaveAttribute('data-state', 'shown')
+
+    scrollTo(400)
+    expect(tabBar()).toHaveAttribute('data-state', 'hidden')
+
+    // One step up, as a mouse wheel's click or Page Up makes, is enough.
+    scrollTo(200)
+    expect(tabBar()).toHaveAttribute('data-state', 'shown')
+  })
+
+  it('stays in view near the top of the page', () => {
+    renderAt('/')
+
+    scrollTo(40)
+
+    expect(tabBar()).toHaveAttribute('data-state', 'shown')
   })
 })
