@@ -1,0 +1,363 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Counterdex API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pokemon": {
+      "get": {
+        "summary": "List Pokémon",
+        "description": "Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional\nforms, are numbered from 10001, so they come after the main Pokédex.",
+        "operationId": "list_pokemon",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Part of a name, e.g. `char` or `mega x`. Case doesn't matter.",
+              "title": "Q"
+            },
+            "description": "Part of a name, e.g. `char` or `mega x`. Case doesn't matter."
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/PokemonType"
+              },
+              "maxItems": 2,
+              "description": "Only Pokémon of this type. Repeat it (`type=fire&type=flying`) to require both.",
+              "default": [],
+              "title": "Type"
+            },
+            "description": "Only Pokémon of this type. Repeat it (`type=fire&type=flying`) to require both."
+          },
+          {
+            "name": "forms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include alternate forms, such as Mega Evolutions and regional forms.",
+              "default": true,
+              "title": "Forms"
+            },
+            "description": "Include alternate forms, such as Mega Evolutions and regional forms."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "How many Pokémon per page.",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "How many Pokémon per page."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2147483647,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Where to continue from: the previous page's `next_cursor`. Leave it out for the first page.",
+              "title": "Cursor"
+            },
+            "description": "Where to continue from: the previous page's `next_cursor`. Leave it out for the first page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokemonPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Pokemon": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Pokédex number. Alternate forms are numbered from 10001."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Lowercase and hyphenated, e.g. `charizard-mega-x`."
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/PokemonType"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Types",
+            "description": "One or two types, primary type first."
+          },
+          "stats": {
+            "$ref": "#/components/schemas/Stats"
+          },
+          "sprite_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sprite Url",
+            "description": "Front-facing sprite image, or `null` if there isn't one."
+          },
+          "is_default": {
+            "type": "boolean",
+            "title": "Is Default",
+            "description": "`false` for alternate forms, such as Mega Evolutions and regional forms."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "types",
+          "stats",
+          "sprite_url",
+          "is_default"
+        ],
+        "title": "Pokemon",
+        "description": "A Pokémon: its Pokédex number, name, types, base stats and sprite."
+      },
+      "PokemonPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Pokemon"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "This page's Pokémon, in Pokédex order."
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor",
+            "description": "Pass as `cursor` to get the next page; `null` on the last page."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PokemonPage",
+        "description": "One page of Pokémon."
+      },
+      "PokemonType": {
+        "type": "string",
+        "enum": [
+          "normal",
+          "fighting",
+          "flying",
+          "poison",
+          "ground",
+          "rock",
+          "bug",
+          "ghost",
+          "steel",
+          "fire",
+          "water",
+          "grass",
+          "electric",
+          "psychic",
+          "ice",
+          "dragon",
+          "dark",
+          "fairy"
+        ],
+        "title": "PokemonType",
+        "description": "Every type a Pokémon can have, in the games' order."
+      },
+      "Stats": {
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Hp"
+          },
+          "attack": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Attack"
+          },
+          "defense": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Defense"
+          },
+          "sp_attack": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Sp Attack"
+          },
+          "sp_defense": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Sp Defense"
+          },
+          "speed": {
+            "type": "integer",
+            "maximum": 255.0,
+            "minimum": 1.0,
+            "title": "Speed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hp",
+          "attack",
+          "defense",
+          "sp_attack",
+          "sp_defense",
+          "speed"
+        ],
+        "title": "Stats",
+        "description": "A Pokémon's base stats, each from 1 to 255."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

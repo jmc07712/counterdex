@@ -4,14 +4,14 @@ from fastapi import APIRouter, Query, Response
 
 from app.api.constants import POKEMON_CACHE_CONTROL
 from app.api.dependencies import SessionDep
-from app.pokemon.queries import list_pokemon
+from app.pokemon import queries
 from app.pokemon.schemas import PokemonPage, PokemonQuery
 
 router = APIRouter()
 
 
 @router.get("/pokemon", summary="List Pokémon")
-def get_pokemon(
+def list_pokemon(
     session: SessionDep, response: Response, query: Annotated[PokemonQuery, Query()]
 ) -> PokemonPage:
     """Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form.
@@ -21,4 +21,4 @@ def get_pokemon(
     forms, are numbered from 10001, so they come after the main Pokédex.
     """
     response.headers["Cache-Control"] = POKEMON_CACHE_CONTROL
-    return list_pokemon(session, query)
+    return queries.list_pokemon(session, query)

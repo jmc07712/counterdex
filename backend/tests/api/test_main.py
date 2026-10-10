@@ -18,3 +18,11 @@ def test_interactive_docs_are_served_under_api_prefix(client: TestClient) -> Non
 def test_paths_outside_api_are_left_to_the_frontend(client: TestClient, path: str) -> None:
     # Anything outside /api belongs to the frontend, so FastAPI must not claim these paths.
     assert client.get(path).status_code == 404
+
+
+def test_operations_are_named_after_their_routes(client: TestClient) -> None:
+    # Generated clients name their functions after these, e.g. listPokemon().
+    paths = client.get("/api/openapi.json").json()["paths"]
+
+    assert paths["/api/pokemon"]["get"]["operationId"] == "list_pokemon"
+    assert paths["/api/health"]["get"]["operationId"] == "health"

@@ -1,7 +1,10 @@
 import '@testing-library/jest-dom/vitest'
 
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterAll, afterEach, beforeAll } from 'vitest'
+
+import { client } from '@/api/client.gen'
+import { server } from '@/test/server'
 
 // jsdom doesn't implement matchMedia; default to a light-mode OS. This is defined directly
 // rather than with vi.stubGlobal, because the unstubGlobals config would remove a stub after
@@ -16,6 +19,18 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 })
 
+// The app calls the API with relative URLs; Node's fetch needs an absolute one.
+client.setConfig({ baseUrl: window.location.origin })
+
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' })
+})
+
 afterEach(() => {
   cleanup()
+  server.resetHandlers()
+})
+
+afterAll(() => {
+  server.close()
 })
