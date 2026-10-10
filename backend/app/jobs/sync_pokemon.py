@@ -1,6 +1,6 @@
 """Job: bring the pokemon table up to date with PokéAPI.
 
-uv run --env-file .env python -m app.jobs.sync_pokemon
+uv run --env-file ../.env python -m app.jobs.sync_pokemon
 """
 
 import logging

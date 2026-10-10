@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """App configuration, read from environment variables.
 
     The app never reads .env itself: Vercel provides real environment variables, and locally
-    `uv run --env-file .env ...` loads them (see .env.example).
+    `vercel dev` or `uv run --env-file ../.env ...` loads them (see .env.example at the repo root).
     """
 
     # Read from the environment only, never passed in code (init=False tells type checkers).
