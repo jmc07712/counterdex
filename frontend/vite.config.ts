@@ -12,4 +12,10 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    // Mirror production, where Vercel serves the API under /api on the same origin.
+    proxy: {
+      '/api': 'http://127.0.0.1:8000',
+    },
+  },
 })
