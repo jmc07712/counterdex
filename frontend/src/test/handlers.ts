@@ -1,7 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 
-import type { PokemonPage, SyncOverview } from '@/api'
-import { makePage } from '@/test/pokemon'
+import type { PokemonChange, PokemonDetails, PokemonPage, SyncOverview } from '@/api'
+import { makeDetails, makePage } from '@/test/pokemon'
 import { server } from '@/test/server'
 
 // Answers GET requests to `path` with `respond`'s JSON. Returns each request's query string, in
@@ -30,4 +30,21 @@ export function serveSyncStatus(
   overview: SyncOverview = { last_synced_at: null, latest_run: null },
 ) {
   return serve('/api/sync/status', () => overview)
+}
+
+/** Answers each Pokémon's details with `details`, or with the details for its id. */
+export function servePokemonDetails(
+  details: PokemonDetails | ((id: number) => PokemonDetails) = makeDetails(),
+) {
+  const detailsFor = typeof details === 'function' ? details : () => details
+  server.use(
+    http.get('/api/pokemon/:pokemonId', ({ params }) =>
+      HttpResponse.json(detailsFor(Number(params.pokemonId))),
+    ),
+  )
+}
+
+/** Answers each Pokémon's change history with `changes`; by default, that it has none. */
+export function servePokemonChanges(changes: PokemonChange[] = []) {
+  server.use(http.get('/api/pokemon/:pokemonId/changes', () => HttpResponse.json(changes)))
 }

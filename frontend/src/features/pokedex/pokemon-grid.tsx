@@ -28,9 +28,10 @@ const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:g
 type PokemonGridProps = {
   filters: PokedexFilters
   onClearFilters: () => void
+  onOpen: (pokemonId: number) => void
 }
 
-export function PokemonGrid({ filters, onClearFilters }: PokemonGridProps) {
+export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProps) {
   const [search] = useDebounceValue(filters.search, SEARCH_DELAY_MS)
   const query = usePokemonList({ ...filters, search })
   const { ref: endOfList } = useInView({
@@ -97,7 +98,7 @@ export function PokemonGrid({ filters, onClearFilters }: PokemonGridProps) {
             style={{ animationDelay: `${(index % 50) * 20}ms` }}
             className="animate-in duration-300 fill-mode-both fade-in-0 slide-in-from-bottom-2 motion-reduce:animate-none"
           >
-            <PokemonCard pokemon={each} removed={removed} />
+            <PokemonCard pokemon={each} removed={removed} onOpen={() => onOpen(each.id)} />
           </li>
         ))}
       </ul>

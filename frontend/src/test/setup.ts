@@ -23,6 +23,9 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 })
 
+// jsdom doesn't lay pages out, so it has no scrolling to do.
+Element.prototype.scrollIntoView = () => {}
+
 // The app calls the API with relative URLs; Node's fetch needs an absolute one.
 client.setConfig({ baseUrl: window.location.origin })
 

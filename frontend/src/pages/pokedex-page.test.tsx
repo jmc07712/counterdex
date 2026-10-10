@@ -1,11 +1,16 @@
-import { screen, waitFor, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { act, screen, waitFor, within } from '@testing-library/react'
+import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { PokedexPage } from '@/pages/pokedex-page'
-import { servePokemon, serveSyncStatus } from '@/test/handlers'
-import { makePage } from '@/test/pokemon'
+import {
+  servePokemon,
+  servePokemonChanges,
+  servePokemonDetails,
+  serveSyncStatus,
+} from '@/test/handlers'
+import { CHARIZARD_MEGA_X, makeDetails, makePage } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 
@@ -174,5 +179,68 @@ describe('PokedexPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByRole('article', { name: 'Bulbasaur' })).toBeInTheDocument()
+  })
+
+  describe('Pokémon details', () => {
+    beforeEach(() => {
+      servePokemon(makePage(['charizard']))
+      servePokemonDetails()
+      servePokemonChanges()
+    })
+
+    it('open from a Pokémon’s card, and go in the URL', async () => {
+      const { user, router } = renderWithProviders(<PokedexPage />)
+
+      await user.click(await screen.findByRole('button', { name: 'Charizard' }))
+
+      expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+      expect(router.state.location.search).toBe('?pokemon=1')
+    })
+
+    it('open from a shared link', async () => {
+      renderWithProviders(<PokedexPage />, { path: '/?pokemon=6' })
+
+      expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+    })
+
+    it('close with Back after opening from a card', async () => {
+      const { user, router } = renderWithProviders(<PokedexPage />)
+      await user.click(await screen.findByRole('button', { name: 'Charizard' }))
+      await screen.findByRole('dialog', { name: 'Charizard' })
+
+      await act(() => router.navigate(-1))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(router.state.location.search).toBe('')
+    })
+
+    it('keep showing the open Pokémon while the next one loads, instead of flashing', async () => {
+      servePokemonDetails((id) =>
+        makeDetails(id === CHARIZARD_MEGA_X.id ? { pokemon: CHARIZARD_MEGA_X } : {}),
+      )
+      // Mega Charizard X answers slowly, so the switch can be seen mid-way.
+      server.use(
+        http.get(`/api/pokemon/${CHARIZARD_MEGA_X.id}`, async () => {
+          await delay(100)
+          return HttpResponse.json(makeDetails({ pokemon: CHARIZARD_MEGA_X }))
+        }),
+      )
+      const { user } = renderWithProviders(<PokedexPage />, { path: '/?pokemon=6' })
+      const dialog = await screen.findByRole('dialog', { name: 'Charizard' })
+
+      await user.click(within(dialog).getByRole('button', { name: /Charizard Mega X/ }))
+
+      expect(screen.getByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+      expect(await screen.findByRole('dialog', { name: 'Charizard Mega X' })).toBeInTheDocument()
+    })
+
+    it('close a shared link without leaving the Pokédex', async () => {
+      const { user, router } = renderWithProviders(<PokedexPage />, { path: '/?q=char&pokemon=6' })
+
+      await user.click(await screen.findByRole('button', { name: 'Close' }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(router.state.location.search).toBe('?q=char')
+    })
   })
 })

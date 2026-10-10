@@ -29,6 +29,17 @@ export function formLabel(pokemon: Pokemon): string | null {
   return pokemon.form ? FORM_LABELS[pokemon.form] : null
 }
 
+// A label for each base stat, in the API's order. A Record, so a new stat needs a label.
+export const STAT_LABELS: Record<keyof Stats, string> = {
+  hp: 'HP',
+  attack: 'Attack',
+  defense: 'Defense',
+  sp_attack: 'Sp. Atk',
+  sp_defense: 'Sp. Def',
+  speed: 'Speed',
+}
+export const STATS = Object.keys(STAT_LABELS) as (keyof Stats)[]
+
 export function statTotal(stats: Stats): number {
   return Object.values(stats).reduce((total, value) => total + value, 0)
 }
