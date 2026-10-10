@@ -1,8 +1,9 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AppShell } from '@/components/app-shell'
 import { renderWithProviders } from '@/test/render'
+
+import { AppShell } from './app-shell'
 
 // Both the desktop header and the phone tab bar are in the DOM (CSS decides which is shown),
 // so every section appears twice.

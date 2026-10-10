@@ -3,7 +3,6 @@ import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { PokedexPage } from '@/pages/pokedex-page'
 import {
   servePokemon,
   servePokemonChanges,
@@ -13,6 +12,8 @@ import {
 import { CHARIZARD_MEGA_X, makeDetails, makePage } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
+
+import { PokedexPage } from './pokedex'
 
 // Bulbasaur, with a cursor on to a second page with Ivysaur.
 function twoPages(query: URLSearchParams) {

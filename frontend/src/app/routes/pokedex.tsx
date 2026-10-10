@@ -1,10 +1,10 @@
-import { PageHeader } from '@/components/page-header'
-import { PokedexFilters } from '@/features/pokedex/pokedex-filters'
-import { PokemonDetailsDialog } from '@/features/pokedex/pokemon-details-dialog'
-import { PokemonGrid } from '@/features/pokedex/pokemon-grid'
-import { SyncIndicator } from '@/features/pokedex/sync-indicator'
-import { NO_FILTERS, usePokedexFilters } from '@/features/pokedex/use-pokedex-filters'
-import { useSelectedPokemon } from '@/features/pokedex/use-selected-pokemon'
+import { PageHeader } from '@/components/layout/page-header'
+import { PokedexFilters } from '@/features/pokedex/components/pokedex-filters'
+import { PokemonGrid } from '@/features/pokedex/components/pokemon-grid'
+import { NO_FILTERS, usePokedexFilters } from '@/features/pokedex/hooks/use-pokedex-filters'
+import { PokemonDetailsDialog } from '@/features/pokemon-details/components/pokemon-details-dialog'
+import { useSelectedPokemon } from '@/features/pokemon-details/hooks/use-selected-pokemon'
+import { SyncIndicator } from '@/features/sync-status/components/sync-indicator'
 
 export function PokedexPage() {
   const [filters, setFilters] = usePokedexFilters()

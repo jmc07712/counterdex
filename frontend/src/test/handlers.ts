@@ -1,8 +1,9 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 
 import type { PokemonChange, PokemonDetails, PokemonPage, SyncOverview } from '@/api'
-import { makeDetails, makePage } from '@/test/pokemon'
-import { server } from '@/test/server'
+
+import { makeDetails, makePage } from './pokemon'
+import { server } from './server'
 
 // Answers GET requests to `path` with `respond`'s JSON. Returns each request's query string, in
 // the order they came, so tests can check what the app asked for.

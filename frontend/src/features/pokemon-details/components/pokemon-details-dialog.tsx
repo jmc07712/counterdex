@@ -3,6 +3,12 @@ import { format } from 'date-fns'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
+import { BaseStats } from '@/components/pokemon/base-stats'
+import { dexNumber, displayName, statTotal } from '@/components/pokemon/format'
+import { PokemonChip } from '@/components/pokemon/pokemon-chip'
+import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
+import { SpriteWindow } from '@/components/pokemon/sprite-window'
+import { TypeBadges } from '@/components/pokemon/type-badges'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,14 +21,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
-import { BaseStats } from './base-stats'
 import { ChangeHistory } from './change-history'
 import { EvolutionTree } from './evolution-tree'
-import { dexNumber, displayName, statTotal } from './format'
-import { PokemonChip } from './pokemon-chip'
-import { TYPE_STYLES } from './pokemon-types'
-import { SpriteWindow } from './sprite-window'
-import { TypeBadges } from './type-badges'
 
 // Below md, a sheet along the bottom of the screen that slides up, as in phone apps; from md up,
 // a dialog in the middle.

@@ -1,11 +1,11 @@
 import { createBrowserRouter } from 'react-router'
 
-import { AppShell } from '@/components/app-shell'
-import { NotFoundPage } from '@/pages/not-found-page'
-import { PokedexPage } from '@/pages/pokedex-page'
-import { SignInPage } from '@/pages/sign-in-page'
-import { TeamPage } from '@/pages/team-page'
-import { TeamsPage } from '@/pages/teams-page'
+import { NotFoundPage } from '@/app/routes/not-found'
+import { PokedexPage } from '@/app/routes/pokedex'
+import { SignInPage } from '@/app/routes/sign-in'
+import { TeamPage } from '@/app/routes/team'
+import { TeamsPage } from '@/app/routes/teams'
+import { AppShell } from '@/components/layout/app-shell'
 
 export const router = createBrowserRouter([
   {

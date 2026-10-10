@@ -7,9 +7,8 @@ import type {
   RelativePhysicalStats,
   TimeOfDay,
 } from '@/api'
+import { displayName } from '@/components/pokemon/format'
 import { Badge } from '@/components/ui/badge'
-
-import { displayName } from './format'
 
 // PokéAPI's item sprites, from the same CDN as its Pokémon sprites. Newer items have none.
 const ITEM_SPRITES_URL = 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/'

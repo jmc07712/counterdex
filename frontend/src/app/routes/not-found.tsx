@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-import { PageHeader } from '@/components/page-header'
+import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 
 export function NotFoundPage() {

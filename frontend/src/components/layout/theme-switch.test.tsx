@@ -1,9 +1,10 @@
 import { act, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ThemeSwitch } from '@/components/theme-switch'
 import { THEME_STORAGE_KEY } from '@/lib/theme'
 import { renderWithProviders } from '@/test/render'
+
+import { ThemeSwitch } from './theme-switch'
 
 const root = document.documentElement
 

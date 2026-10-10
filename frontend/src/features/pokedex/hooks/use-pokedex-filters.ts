@@ -1,8 +1,7 @@
 import { useSearchParams } from 'react-router'
 
 import { FormFilter, ListingStatus, type PokemonType } from '@/api'
-
-import { MAX_TYPES, toPokemonTypes } from './pokemon-types'
+import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 
 export type PokedexFilters = {
   search: string

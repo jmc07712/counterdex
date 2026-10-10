@@ -2,10 +2,10 @@ import { CornerDownRight } from 'lucide-react'
 import { useState } from 'react'
 
 import type { EvolutionMethod, EvolutionStage } from '@/api'
+import { PokemonChip } from '@/components/pokemon/pokemon-chip'
 import { Button } from '@/components/ui/button'
 
 import { EvolutionMethodChips } from './evolution-method-chips'
-import { PokemonChip } from './pokemon-chip'
 
 // Most stages evolve one or two ways, but Alcremie has 21, so longer lists start folded.
 const UNFOLDED_METHODS = 2

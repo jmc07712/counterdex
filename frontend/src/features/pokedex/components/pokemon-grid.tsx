@@ -3,6 +3,7 @@ import { useInView } from 'react-intersection-observer'
 import { useDebounceValue } from 'usehooks-ts'
 
 import { ListingStatus } from '@/api'
+import { PokemonCard } from '@/components/pokemon/pokemon-card'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,10 +15,8 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-
-import { PokemonCard } from './pokemon-card'
-import type { PokedexFilters } from './use-pokedex-filters'
-import { usePokemonList } from './use-pokemon-list'
+import type { PokedexFilters } from '@/features/pokedex/hooks/use-pokedex-filters'
+import { usePokemonList } from '@/features/pokedex/hooks/use-pokemon-list'
 
 // Wait for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 250

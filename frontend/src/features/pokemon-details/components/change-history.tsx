@@ -1,9 +1,8 @@
 import { format } from 'date-fns'
 
 import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
+import { displayName, formLabel, STAT_LABELS, STATS } from '@/components/pokemon/format'
 import { Badge } from '@/components/ui/badge'
-
-import { displayName, formLabel, STAT_LABELS, STATS } from './format'
 
 // What each kind of change means. A Record, so a kind the API adds needs a label.
 const KIND_LABELS: Record<ChangeKind, string> = {

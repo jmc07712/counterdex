@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import indexHtml from '../../index.html?raw'
-import { THEME_STORAGE_KEY } from '@/lib/theme'
+import { THEME_STORAGE_KEY } from './theme'
 
 describe('theme storage key', () => {
   it('matches the no-flash script in index.html', () => {

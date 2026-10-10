@@ -9,9 +9,10 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 
-import { BrandMark } from '@/components/brand-mark'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { cn } from '@/lib/utils'
+
+import { BrandMark } from './brand-mark'
+import { ThemeSwitch } from './theme-switch'
 
 type NavItem = {
   to: string

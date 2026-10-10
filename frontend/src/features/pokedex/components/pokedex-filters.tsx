@@ -1,12 +1,14 @@
 import { Search } from 'lucide-react'
 
 import { FormFilter, ListingStatus } from '@/api'
+import { displayName } from '@/components/pokemon/format'
+import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-
-import { displayName } from './format'
-import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from './pokemon-types'
-import { type PokedexFilters as Filters, parseOption } from './use-pokedex-filters'
+import {
+  type PokedexFilters as Filters,
+  parseOption,
+} from '@/features/pokedex/hooks/use-pokedex-filters'
 
 const FORM_OPTIONS: Record<FormFilter, string> = {
   all: 'All',

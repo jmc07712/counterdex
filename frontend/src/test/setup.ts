@@ -8,7 +8,8 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
 
 import { client } from '@/api/client.gen'
-import { server } from '@/test/server'
+
+import { server } from './server'
 
 // jsdom doesn't implement matchMedia; default to a light-mode OS. This is defined directly
 // rather than with vi.stubGlobal, because the unstubGlobals config would remove a stub after
