@@ -1,26 +1,34 @@
-import os
 from collections.abc import Iterator
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
+from testcontainers.community.postgres import PostgresContainer
 
-# Point the app at the test database before any test connects, so tests can never touch
-# development data. Environment variables beat backend/.env; export TEST_DATABASE_URL in your
-# shell to use a different test database.
-os.environ["DATABASE_URL"] = os.environ.get(
-    "TEST_DATABASE_URL",
-    "postgresql+psycopg://counterdex:counterdex@localhost:5432/counterdex_test",
-)
+from app.core.config import get_settings
+from app.core.db import get_engine
+
+# Same major version as production (Neon) and docker-compose.yml.
+POSTGRES_IMAGE = "postgres:17-alpine"
 
 
 @pytest.fixture
 def anyio_backend() -> str:
     # Async tests run on asyncio only (AnyIO's pytest plugin would also try trio).
     return "asyncio"
+
+
+@pytest.fixture(scope="session")
+def postgres_url() -> Iterator[str]:
+    """A throwaway Postgres for this test run, started on first use and removed afterwards.
+
+    Tests never touch the docker-compose database used for development.
+    """
+    with PostgresContainer(POSTGRES_IMAGE, driver="psycopg") as postgres:
+        yield postgres.get_connection_url()
 
 
 @pytest.fixture(scope="session")
@@ -31,17 +39,20 @@ def alembic_config() -> Config:
 
 
 @pytest.fixture(scope="session")
-def migrated_engine(alembic_config: Config) -> Engine:
+def migrated_engine(postgres_url: str, alembic_config: Config) -> Iterator[Engine]:
     """The test database, upgraded to the latest migration once per test run."""
-    from app.core.db import get_engine
+    with pytest.MonkeyPatch.context() as env:
+        env.setenv("DATABASE_URL", postgres_url)
+        get_settings.cache_clear()
+        get_engine.cache_clear()
 
-    engine = get_engine()
-    with engine.connect() as connection:
-        database = connection.execute(text("select current_database()")).scalar_one()
-    assert database.endswith("_test"), f"refusing to migrate non-test database {database!r}"
+        command.upgrade(alembic_config, "head")
+        engine = get_engine()
+        yield engine
 
-    command.upgrade(alembic_config, "head")
-    return engine
+        engine.dispose()
+        get_settings.cache_clear()
+        get_engine.cache_clear()
 
 
 @pytest.fixture
