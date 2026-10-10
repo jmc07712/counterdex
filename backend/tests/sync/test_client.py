@@ -7,9 +7,10 @@ from app.sync.constants import MAX_PAGES
 from app.sync.exceptions import PokeApiError
 from tests.support.pokeapi import (
     BASE_URL,
+    SPECIES_IDS,
     Handler,
     client_for,
-    evolution_chain_response,
+    fake_pokeapi,
     listing_response,
     pokemon_response,
     requested_id,
@@ -20,30 +21,32 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_fetches_every_pokemon_in_the_listing() -> None:
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.path.endswith("/pokemon"):
-            return httpx2.Response(200, json=listing_response(6, 25))
-        pokemon_id = requested_id(request)
-        return httpx2.Response(200, json=pokemon_response(pokemon_id))
-
-    result = await client_for(handler).fetch_pokemon()
+    result = await fake_pokeapi().fetch_pokemon()
 
     assert sorted(p.name for p in result.pokemon) == ["charizard", "pikachu"]
     assert result.failed == []
 
 
-async def test_follows_pagination_through_every_page() -> None:
+def listed_on_two_pages(first: int, second: int, *, requested: list[str] | None = None) -> Handler:
+    """PokéAPI listing Pokémon `first` on one page and `second` on the next; every URL
+    requested is added to `requested`.
+    """
     page_two = f"{BASE_URL}pokemon?offset=1&limit=1"
 
     async def handler(request: httpx2.Request) -> httpx2.Response:
+        if requested is not None:
+            requested.append(str(request.url))
         if request.url.path.endswith("/pokemon"):
             if request.url.params.get("offset") == "1":
-                return httpx2.Response(200, json=listing_response(25))
-            return httpx2.Response(200, json=listing_response(6, next_page=page_two))
-        pokemon_id = requested_id(request)
-        return httpx2.Response(200, json=pokemon_response(pokemon_id))
+                return httpx2.Response(200, json=listing_response(second))
+            return httpx2.Response(200, json=listing_response(first, next_page=page_two))
+        return httpx2.Response(200, json=pokemon_response(requested_id(request)))
 
-    result = await client_for(handler).fetch_pokemon()
+    return handler
+
+
+async def test_follows_pagination_through_every_page() -> None:
+    result = await client_for(listed_on_two_pages(6, 25)).fetch_pokemon()
 
     assert sorted(p.name for p in result.pokemon) == ["charizard", "pikachu"]
 
@@ -66,18 +69,35 @@ async def test_retries_server_errors() -> None:
     assert calls == 2
 
 
-async def test_reports_pokemon_that_keep_failing_without_losing_the_rest() -> None:
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        pytest.param(500, b"", id="server-error"),
+        pytest.param(200, b"<html>maintenance</html>", id="not-json"),
+        pytest.param(200, b'{"id": 6, "name": "charizard"}', id="not-a-pokemon"),
+    ],
+)
+async def test_reports_pokemon_it_cannot_fetch_without_losing_the_rest(
+    status: int, body: bytes
+) -> None:
     async def handler(request: httpx2.Request) -> httpx2.Response:
         if request.url.path.endswith("/pokemon"):
             return httpx2.Response(200, json=listing_response(6, 25))
-        if request.url.path.rstrip("/").endswith("/6"):
-            return httpx2.Response(500)
+        if requested_id(request) == 6:
+            return httpx2.Response(status, content=body)
         return httpx2.Response(200, json=pokemon_response(25))
 
     result = await client_for(handler).fetch_pokemon()
 
     assert [p.name for p in result.pokemon] == ["pikachu"]
     assert result.failed == [f"{BASE_URL}pokemon/6/"]
+
+
+async def test_reports_every_listed_pokemon_including_ones_that_failed() -> None:
+    # Callers need this to tell "removed from PokéAPI" apart from "failed to fetch".
+    result = await fake_pokeapi(failing=("pokemon/6",)).fetch_pokemon()
+
+    assert result.listed_ids == {6, 25}
 
 
 async def test_does_not_retry_client_errors() -> None:
@@ -127,19 +147,10 @@ async def test_limits_how_many_requests_run_at_once() -> None:
 )
 async def test_fails_when_the_listing_points_outside_pokeapi(outside_url: str) -> None:
     requested: list[str] = []
-
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        requested.append(str(request.url))
-        if request.url.path.endswith("/pokemon"):
-            results = [
-                {"name": "pikachu", "url": f"{BASE_URL}pokemon/25/"},
-                {"name": "outside", "url": outside_url},
-            ]
-            return httpx2.Response(200, json={"next": None, "results": results})
-        return httpx2.Response(200, json=pokemon_response(25))
+    pokeapi = fake_pokeapi(extra_urls=(outside_url,), requested=requested)
 
     with pytest.raises(PokeApiError, match="outside PokéAPI"):
-        await client_for(handler).fetch_pokemon()
+        await pokeapi.fetch_pokemon()
 
     assert outside_url not in requested
 
@@ -172,50 +183,13 @@ async def test_fails_when_the_listing_never_ends() -> None:
 
 
 async def test_fetches_a_pokemon_listed_twice_only_once() -> None:
-    page_two = f"{BASE_URL}pokemon?offset=1&limit=1"
-    detail_calls = 0
+    # Offset paging can list a Pokémon on two pages if PokéAPI changes while it's read.
+    requested: list[str] = []
 
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        nonlocal detail_calls
-        if request.url.path.endswith("/pokemon"):
-            if request.url.params.get("offset") == "1":
-                return httpx2.Response(200, json=listing_response(25))
-            return httpx2.Response(200, json=listing_response(25, next_page=page_two))
-        detail_calls += 1
-        return httpx2.Response(200, json=pokemon_response(25))
-
-    result = await client_for(handler).fetch_pokemon()
-
-    assert len(result.pokemon) == 1
-    assert detail_calls == 1
-
-
-async def test_reports_a_response_that_is_not_json() -> None:
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.path.endswith("/pokemon"):
-            return httpx2.Response(200, json=listing_response(6, 25))
-        if request.url.path.rstrip("/").endswith("/6"):
-            return httpx2.Response(200, text="<html>maintenance</html>")
-        return httpx2.Response(200, json=pokemon_response(25))
-
-    result = await client_for(handler).fetch_pokemon()
+    result = await client_for(listed_on_two_pages(25, 25, requested=requested)).fetch_pokemon()
 
     assert [p.name for p in result.pokemon] == ["pikachu"]
-    assert result.failed == [f"{BASE_URL}pokemon/6/"]
-
-
-async def test_reports_every_listed_pokemon_including_ones_that_failed() -> None:
-    # Callers need this to tell "removed from PokéAPI" apart from "failed to fetch".
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.path.endswith("/pokemon"):
-            return httpx2.Response(200, json=listing_response(6, 25))
-        if request.url.path.rstrip("/").endswith("/6"):
-            return httpx2.Response(500)
-        return httpx2.Response(200, json=pokemon_response(25))
-
-    result = await client_for(handler).fetch_pokemon()
-
-    assert result.listed_ids == {6, 25}
+    assert requested.count(f"{BASE_URL}pokemon/25/") == 1
 
 
 async def test_fails_when_a_listing_url_has_no_id() -> None:
@@ -227,51 +201,31 @@ async def test_fails_when_a_listing_url_has_no_id() -> None:
         await client_for(handler).fetch_pokemon()
 
 
-def species_handler(*, failing: tuple[str, ...] = ()) -> Handler:
-    """PokéAPI listing Charmander's family (4, 5, 6); requests to the `failing` paths fail."""
-
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        path = request.url.path.rstrip("/")
-        if path.endswith(failing) and failing:
-            return httpx2.Response(500)
-        if path.endswith("/pokemon-species"):
-            return httpx2.Response(200, json=listing_response(4, 5, 6, resource="pokemon-species"))
-        if "/evolution-chain/" in path:
-            return httpx2.Response(200, json=evolution_chain_response(requested_id(request)))
-        return httpx2.Response(200, json=species_response(requested_id(request)))
-
-    return handler
-
-
 async def test_fetches_every_species_and_their_evolution_chain_once() -> None:
-    chain_requests: list[str] = []
-    handler = species_handler()
+    requested: list[str] = []
 
-    async def counting(request: httpx2.Request) -> httpx2.Response:
-        if "/evolution-chain/" in request.url.path:
-            chain_requests.append(str(request.url))
-        return await handler(request)
+    result = await fake_pokeapi(requested=requested).fetch_species()
 
-    result = await client_for(counting).fetch_species()
-
-    assert sorted(s.name for s in result.species) == ["charizard", "charmander", "charmeleon"]
-    assert [chain.id for chain in result.evolution_chains] == [2]
-    assert chain_requests == [f"{BASE_URL}evolution-chain/2/"]
+    assert sorted(s.id for s in result.species) == sorted(SPECIES_IDS)
+    assert sorted(chain.id for chain in result.evolution_chains) == [2, 10]
+    # Three species link to each chain.
+    chain_requests = [url for url in requested if "/evolution-chain/" in url]
+    assert sorted(chain_requests) == sorted(f"{BASE_URL}evolution-chain/{id_}/" for id_ in (2, 10))
     assert result.failed == []
 
 
 async def test_reports_species_that_keep_failing_without_losing_the_rest() -> None:
-    result = await client_for(species_handler(failing=("pokemon-species/5",))).fetch_species()
+    result = await fake_pokeapi(failing=("pokemon-species/5",)).fetch_species()
 
-    assert sorted(s.name for s in result.species) == ["charizard", "charmander"]
+    assert sorted(s.id for s in result.species) == [4, 6, 25, 26, 172]
     assert result.failed == [f"{BASE_URL}pokemon-species/5/"]
 
 
 async def test_reports_an_evolution_chain_that_keeps_failing() -> None:
-    result = await client_for(species_handler(failing=("evolution-chain/2",))).fetch_species()
+    result = await fake_pokeapi(failing=("evolution-chain/2",)).fetch_species()
 
-    assert len(result.species) == 3
-    assert result.evolution_chains == []
+    assert len(result.species) == 6
+    assert [chain.id for chain in result.evolution_chains] == [10]
     assert result.failed == [f"{BASE_URL}evolution-chain/2/"]
 
 

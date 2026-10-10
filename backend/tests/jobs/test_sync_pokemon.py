@@ -1,7 +1,7 @@
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 
 import pytest
-from sqlalchemy import Engine, func, select
+from sqlalchemy import Connection, func, select
 from sqlalchemy.orm import Session
 
 from app.jobs.sync_pokemon import sync_pokemon
@@ -14,14 +14,9 @@ pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture
-def sessions(migrated_engine: Engine) -> Iterator[Callable[[], Session]]:
-    """Sessions whose commits stay inside one transaction that's rolled back afterwards."""
-    with migrated_engine.connect() as connection:
-        transaction = connection.begin()
-        try:
-            yield lambda: Session(bind=connection, join_transaction_mode="create_savepoint")
-        finally:
-            transaction.rollback()
+def sessions(connection: Connection) -> Callable[[], Session]:
+    """Sessions whose commits stay inside the test's transaction, which is rolled back."""
+    return lambda: Session(bind=connection, join_transaction_mode="create_savepoint")
 
 
 def counts(sessions: Callable[[], Session]) -> tuple[int, list[SyncStatus]]:
@@ -39,7 +34,7 @@ async def test_saves_a_successful_sync_and_exits_zero(sessions: Callable[[], Ses
 
 
 async def test_exits_non_zero_when_some_pokemon_failed(sessions: Callable[[], Session]) -> None:
-    exit_code = await sync_pokemon(fake_pokeapi(broken_id=6), sessions)
+    exit_code = await sync_pokemon(fake_pokeapi(failing=("pokemon/6",)), sessions)
 
     assert exit_code == 1
     # What did sync is still saved; the failure is on the run record.
@@ -49,7 +44,7 @@ async def test_exits_non_zero_when_some_pokemon_failed(sessions: Callable[[], Se
 async def test_keeps_nothing_and_records_the_failure_when_the_sync_fails(
     sessions: Callable[[], Session],
 ) -> None:
-    exit_code = await sync_pokemon(fake_pokeapi(listing_status=503), sessions)
+    exit_code = await sync_pokemon(fake_pokeapi(failing=("pokemon",)), sessions)
 
     assert exit_code == 1
     assert counts(sessions) == (0, [SyncStatus.FAILED])

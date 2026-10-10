@@ -4,13 +4,14 @@ import pytest
 from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
-from app.pokemon.models import Pokemon, Species, SpeciesVariety
+from app.pokemon.models import Pokemon, Species
 from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.service import record_failed_sync, run_sync
 from tests.support.pokeapi import BASE_URL, SPECIES_IDS, fake_pokeapi
+from tests.support.pokemon import stored_varieties
 
 pytestmark = pytest.mark.anyio
 
@@ -39,7 +40,7 @@ async def test_skips_pokemon_with_data_the_table_would_refuse(db_session: Sessio
 
 
 async def test_records_a_sync_run(db_session: Session) -> None:
-    report = await run_sync(fake_pokeapi(broken_id=6), db_session, clock=clock)
+    report = await run_sync(fake_pokeapi(failing=("pokemon/6",)), db_session, clock=clock)
 
     run = db_session.get(SyncRun, report.run_id)
     assert run is not None
@@ -120,13 +121,12 @@ async def test_syncs_species_and_their_evolution_families(db_session: Session) -
 async def test_links_each_synced_pokemon_to_its_species(db_session: Session) -> None:
     await run_sync(fake_pokeapi(), db_session, clock=clock)
 
-    rows = db_session.execute(select(SpeciesVariety.pokemon_id, SpeciesVariety.species_id))
-    assert dict(rows.all()) == {6: 6, 25: 25}
+    assert stored_varieties(db_session) == {6: 6, 25: 25}
 
 
 async def test_reports_species_it_could_not_sync(db_session: Session) -> None:
     # Charmeleon failed to fetch, so none of its family is updated until the next sync.
-    report = await run_sync(fake_pokeapi(broken_species_id=5), db_session, clock=clock)
+    report = await run_sync(fake_pokeapi(failing=("pokemon-species/5",)), db_session, clock=clock)
 
     assert report.failed == ["charizard", "charmander", f"{BASE_URL}pokemon-species/5/"]
     assert sorted(db_session.scalars(select(Species.id))) == [25, 26, 172]

@@ -2,20 +2,38 @@ from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
+from app.pokemon.enums import EvolutionTrigger, PokemonType
 
+# Where PokéAPI links Gyarados's sprite, and where the API serves it from instead.
 GYARADOS_SPRITE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/130.png"
+GYARADOS_CDN_SPRITE = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/130.png"
+
+# Pikachu as the sync reads it from PokéAPI's recorded response (pokeapi_responses/pokemon-25).
+PIKACHU = schemas.Pokemon(
+    id=25,
+    name="pikachu",
+    types=(PokemonType.ELECTRIC,),
+    stats=schemas.Stats(hp=35, attack=55, defense=40, sp_attack=50, sp_defense=50, speed=90),
+    sprite_url="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+    is_default=True,
+)
+
+# How Charmander evolves into Charmeleon, and Charmeleon into Charizard.
+LEVEL_16 = schemas.EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=16)
+LEVEL_36 = schemas.EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=36)
 
 
-def make_pokemon(**overrides: Any) -> models.Pokemon:
-    """A valid pokemon row; tests override only the fields they're about.
+def gyarados_columns() -> dict[str, Any]:
+    """Gyarados as the pokemon table's columns, less the sync's bookkeeping.
 
-    Gyarados by default: its primary type isn't alphabetically first and its six stats all
-    differ, so a reordered or swapped field can't go unnoticed.
+    Its primary type isn't alphabetically first and its six stats all differ, so a reordered or
+    swapped field can't go unnoticed.
     """
-    fields: dict[str, Any] = {
+    return {
         "id": 130,
         "name": "gyarados",
         "types": ["water", "flying"],
@@ -27,10 +45,13 @@ def make_pokemon(**overrides: Any) -> models.Pokemon:
         "speed": 81,
         "sprite_url": GYARADOS_SPRITE,
         "is_default": True,
-        "content_hash": "0" * 64,
-        "last_synced_at": datetime(2026, 10, 10, tzinfo=UTC),
     }
-    return models.Pokemon(**(fields | overrides))
+
+
+def make_pokemon(**overrides: Any) -> models.Pokemon:
+    """A valid pokemon row, Gyarados by default; tests override only the fields they're about."""
+    bookkeeping = {"content_hash": "0" * 64, "last_synced_at": datetime(2026, 10, 10, tzinfo=UTC)}
+    return models.Pokemon(**(gyarados_columns() | bookkeeping | overrides))
 
 
 def add_pokemon(session: Session, *ids: int) -> None:
@@ -73,3 +94,11 @@ def add_species(
         for pokemon_id in pokemon_ids
     )
     session.flush()
+
+
+def stored_varieties(session: Session) -> dict[int, int]:
+    """Each stored Pokémon's species, by Pokémon id."""
+    rows = session.execute(
+        select(models.SpeciesVariety.pokemon_id, models.SpeciesVariety.species_id)
+    )
+    return dict(rows.all())

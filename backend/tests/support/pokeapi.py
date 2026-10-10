@@ -4,7 +4,7 @@ Nothing here touches the network (and pytest-socket would fail the test if it tr
 """
 
 import json
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Collection, Coroutine, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -62,25 +62,29 @@ def client_for(handler: Handler, *, concurrency: int = 20) -> PokeApiClient:
 
 def fake_pokeapi(
     *,
-    listing_status: int = 200,
-    broken_id: int | None = None,
-    broken_species_id: int | None = None,
-    speeds: dict[int, int] | None = None,
-    extra_urls: tuple[str, ...] = (),
+    failing: Collection[str] = (),
+    speeds: Mapping[int, int] | None = None,
+    extra_urls: Sequence[str] = (),
+    requested: list[str] | None = None,
 ) -> PokeApiClient:
-    """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species,
-    with optional failures and changes.
+    """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species.
+
+    Requests for the `failing` paths, such as "pokemon/6" (or "pokemon" for the listing), get a
+    server error every time. `speeds` changes Pokémon's speed by id, `extra_urls` are listed
+    after the Pokémon, and every URL requested is added to `requested`.
     """
 
     async def handler(request: httpx2.Request) -> httpx2.Response:
+        if requested is not None:
+            requested.append(str(request.url))
         path = request.url.path.removeprefix(httpx2.URL(BASE_URL).path).strip("/")
+        if path in failing:
+            return httpx2.Response(500)
         match path.split("/"):
             case ["pokemon"]:
                 listing = listing_response(6, 25)
                 listing["results"] += [{"name": url, "url": url} for url in extra_urls]
-                return httpx2.Response(listing_status, json=listing)
-            case ["pokemon", pokemon_id] if int(pokemon_id) == broken_id:
-                return httpx2.Response(500)
+                return httpx2.Response(200, json=listing)
             case ["pokemon", pokemon_id]:
                 data = pokemon_response(int(pokemon_id))
                 if speeds and int(pokemon_id) in speeds:
@@ -91,8 +95,6 @@ def fake_pokeapi(
                 return httpx2.Response(
                     200, json=listing_response(*SPECIES_IDS, resource="pokemon-species")
                 )
-            case ["pokemon-species", species_id] if int(species_id) == broken_species_id:
-                return httpx2.Response(500)
             case ["pokemon-species", species_id]:
                 return httpx2.Response(200, json=species_response(int(species_id)))
             case ["evolution-chain", chain_id]:

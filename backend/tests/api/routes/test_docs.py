@@ -1,8 +1,15 @@
 import json
 import re
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def docs_page(client: TestClient) -> str:
+    """The interactive docs page's HTML."""
+    return client.get("/api/docs").text
 
 
 @pytest.mark.parametrize("path", ["/api", "/api/"])
@@ -14,28 +21,23 @@ def test_the_api_root_redirects_to_the_docs(client: TestClient, path: str) -> No
     assert response.headers["location"] == "/api/docs"
 
 
-def test_the_docs_routes_are_not_listed_as_endpoints(client: TestClient) -> None:
-    paths = client.get("/api/openapi.json").json()["paths"]
-
-    assert paths.keys().isdisjoint({"/api", "/api/", "/api/docs"})
+def test_the_docs_routes_are_not_listed_as_endpoints(openapi: dict[str, Any]) -> None:
+    assert openapi["paths"].keys().isdisjoint({"/api", "/api/", "/api/docs"})
 
 
-def test_the_docs_page_renders_this_apis_schema(client: TestClient) -> None:
-    page = client.get("/api/docs")
-
-    assert page.status_code == 200
-    assert "/api/openapi.json" in page.text
+def test_the_docs_page_renders_this_apis_schema(docs_page: str) -> None:
+    assert "/api/openapi.json" in docs_page
 
 
-def test_the_docs_page_loads_a_pinned_scalar_release(client: TestClient) -> None:
-    page = client.get("/api/docs")
+def test_the_docs_page_loads_a_pinned_scalar_release(docs_page: str) -> None:
+    # The page runs Scalar's script, so a new release mustn't change the page unseen.
+    assert re.search(
+        r"https://cdn\.jsdelivr\.net/npm/@scalar/api-reference@\d+\.\d+\.\d+", docs_page
+    )
 
-    assert "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1" in page.text
 
-
-def test_the_docs_page_does_not_report_back_to_scalar(client: TestClient) -> None:
-    page = client.get("/api/docs").text
-    scalar_config = re.search(r"createApiReference\([^,]+, (\{.*\})\)", page)
+def test_the_docs_page_does_not_report_back_to_scalar(docs_page: str) -> None:
+    scalar_config = re.search(r"createApiReference\([^,]+, (\{.*\})\)", docs_page)
 
     assert scalar_config is not None
     config = json.loads(scalar_config.group(1))

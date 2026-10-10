@@ -5,74 +5,49 @@ from pydantic import ValidationError
 
 from app.pokemon.enums import PokemonForm, PokemonType
 from app.pokemon.schemas import Pokemon, PokemonQuery, Stats
+from tests.support.pokemon import GYARADOS_SPRITE, gyarados_columns
 
 GYARADOS = Pokemon(
     id=130,
     name="gyarados",
     types=(PokemonType.WATER, PokemonType.FLYING),
     stats=Stats(hp=95, attack=125, defense=79, sp_attack=60, sp_defense=100, speed=81),
-    sprite_url="https://example.com/130.png",
+    sprite_url=GYARADOS_SPRITE,
     is_default=True,
 )
-GYARADOS_COLUMNS: dict[str, Any] = {
-    "id": 130,
-    "name": "gyarados",
-    "types": ["water", "flying"],
-    "hp": 95,
-    "attack": 125,
-    "defense": 79,
-    "sp_attack": 60,
-    "sp_defense": 100,
-    "speed": 81,
-    "sprite_url": "https://example.com/130.png",
-    "is_default": True,
-}
 
 
 def test_gives_each_stat_its_own_column() -> None:
-    assert GYARADOS.to_columns() == GYARADOS_COLUMNS
+    assert GYARADOS.to_columns() == gyarados_columns()
 
 
-def test_reads_a_pokemon_back_from_its_columns() -> None:
-    assert Pokemon.from_columns(GYARADOS_COLUMNS) == GYARADOS
-
-
-def test_ignores_the_syncs_bookkeeping_columns() -> None:
-    row = GYARADOS_COLUMNS | {"content_hash": "0" * 64, "removed_at": None}
+def test_reads_a_pokemon_back_from_its_row() -> None:
+    # A row also holds the sync's bookkeeping, which isn't part of the Pokémon.
+    row = gyarados_columns() | {"content_hash": "0" * 64, "removed_at": None}
 
     assert Pokemon.from_columns(row) == GYARADOS
 
 
-@pytest.mark.parametrize("hp", [0, 256])
-def test_rejects_base_stats_outside_1_to_255(hp: int) -> None:
-    with pytest.raises(ValidationError, match="hp"):
-        Pokemon.from_columns(GYARADOS_COLUMNS | {"hp": hp})
-
-
-@pytest.mark.parametrize("types", [[], ["water", "flying", "dragon"]])
-def test_rejects_anything_but_one_or_two_types(types: list[str]) -> None:
-    with pytest.raises(ValidationError, match="types"):
-        Pokemon.from_columns(GYARADOS_COLUMNS | {"types": types})
-
-
-def test_rejects_types_that_do_not_exist() -> None:
-    with pytest.raises(ValidationError, match=r"types\.1"):
-        Pokemon.from_columns(GYARADOS_COLUMNS | {"types": ["water", "shadow"]})
+@pytest.mark.parametrize(
+    ("columns", "field"),
+    [
+        pytest.param({"types": []}, "types", id="no-types"),
+        pytest.param({"types": ["water", "flying", "dragon"]}, "types", id="three-types"),
+        pytest.param({"types": ["water", "shadow"]}, r"types\.1", id="unknown-type"),
+        pytest.param({"hp": 0}, "hp", id="base-stat-below-1"),
+        pytest.param({"hp": 256}, "hp", id="base-stat-above-255"),
+    ],
+)
+def test_rejects_a_pokemon_with_impossible_types_or_stats(
+    columns: dict[str, Any], field: str
+) -> None:
+    # The sync then skips just this Pokémon, before the table would refuse it.
+    with pytest.raises(ValidationError, match=field):
+        Pokemon.from_columns(gyarados_columns() | columns)
 
 
 def test_searches_names_as_they_are_stored() -> None:
     assert PokemonQuery(q="  Charizard Mega X ").q == "charizard-mega-x"
-
-
-@pytest.mark.parametrize("q", ["", "x" * 51])
-def test_rejects_searches_that_are_empty_or_too_long(q: str) -> None:
-    with pytest.raises(ValidationError, match="q"):
-        PokemonQuery(q=q)
-
-
-def test_rejects_more_types_than_a_pokemon_can_have() -> None:
-    with pytest.raises(ValidationError, match="type"):
-        PokemonQuery(types=(PokemonType.FIRE, PokemonType.WATER, PokemonType.GRASS))
 
 
 @pytest.mark.parametrize(
@@ -88,7 +63,7 @@ def test_rejects_more_types_than_a_pokemon_can_have() -> None:
     ],
 )
 def test_says_which_kind_of_alternate_form_it_is(name: str, form: PokemonForm) -> None:
-    pokemon = Pokemon.from_columns(GYARADOS_COLUMNS | {"name": name, "is_default": False})
+    pokemon = Pokemon.from_columns(gyarados_columns() | {"name": name, "is_default": False})
 
     assert pokemon.form is form
 
@@ -99,7 +74,9 @@ def test_a_default_form_has_no_form_kind() -> None:
 
 def test_the_form_kind_is_not_stored() -> None:
     # It's worked out from the name, so it stays out of the columns (and the content hash).
-    assert "form" not in Pokemon.from_columns(GYARADOS_COLUMNS | {"is_default": False}).to_columns()
+    alternate = Pokemon.from_columns(gyarados_columns() | {"is_default": False})
+
+    assert "form" not in alternate.to_columns()
 
 
 def test_the_form_kind_always_comes_from_the_name() -> None:

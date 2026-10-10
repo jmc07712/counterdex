@@ -1,132 +1,58 @@
-from datetime import UTC, datetime
-from typing import Any
-
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
 from app.sync.enums import ChangeKind, SyncStatus
 from app.sync.models import PokemonChange, SyncRun
-from tests.support.pokemon import make_pokemon
-
-STARTED = datetime(2026, 10, 10, 9, tzinfo=UTC)
+from tests.support.sync import add_sync_run, make_sync_run
 
 
-def make_run(**overrides: Any) -> SyncRun:
-    fields: dict[str, Any] = {
-        "started_at": STARTED,
-        "finished_at": STARTED,
-        "status": "succeeded",
-        "fetched": 1351,
-        "inserted": 0,
-        "updated": 1,
-        "unchanged": 1350,
-        "removed": 0,
-        "restored": 0,
-        "failed": [],
-    }
-    return SyncRun(**(fields | overrides))
+@pytest.fixture
+def run(db_session: Session) -> SyncRun:
+    """A stored sync run, for changes to belong to."""
+    return add_sync_run(db_session)
 
 
-def test_stores_a_sync_run_with_its_failures(db_session: Session) -> None:
-    run = make_run(status="failed", failed=["https://pokeapi.co/api/v2/pokemon/6/"], error="boom")
-    db_session.add(run)
-    db_session.flush()
-    db_session.expire_all()
-
-    assert db_session.get(SyncRun, run.id) == run
-    assert run.failed == ["https://pokeapi.co/api/v2/pokemon/6/"]
+def change(run: SyncRun, pokemon_id: int, kind: str) -> PokemonChange:
+    """A change the run found, without snapshots."""
+    return PokemonChange(
+        pokemon_id=pokemon_id, sync_run_id=run.id, detected_at=run.finished_at, kind=kind
+    )
 
 
 def test_rejects_an_unknown_sync_status(db_session: Session) -> None:
-    db_session.add(make_run(status="exploded"))
+    db_session.add(make_sync_run(status="exploded"))
 
     with pytest.raises(IntegrityError, match="ck_sync_runs_known_status"):
         db_session.flush()
 
 
-def test_stores_a_change_with_its_before_and_after_snapshots(db_session: Session) -> None:
-    run = make_run()
-    pokemon = make_pokemon()
-    db_session.add_all([pokemon, run])
-    db_session.flush()
-    change = PokemonChange(
-        pokemon_id=pokemon.id,
-        sync_run_id=run.id,
-        detected_at=STARTED,
-        kind="updated",
-        before={"speed": 90},
-        after={"speed": 150},
-    )
-    db_session.add(change)
-    db_session.flush()
-    db_session.expire_all()
-
-    loaded = db_session.get(PokemonChange, change.id)
-
-    assert loaded is not None
-    assert (loaded.kind, loaded.before, loaded.after) == ("updated", {"speed": 90}, {"speed": 150})
-
-
-def test_rejects_an_unknown_change_kind(db_session: Session) -> None:
-    run = make_run()
-    pokemon = make_pokemon()
-    db_session.add_all([pokemon, run])
-    db_session.flush()
-    db_session.add(
-        PokemonChange(
-            pokemon_id=pokemon.id,
-            sync_run_id=run.id,
-            detected_at=STARTED,
-            kind="renamed",
-            before=None,
-        )
-    )
+def test_rejects_an_unknown_change_kind(
+    db_session: Session, run: SyncRun, gyarados: Pokemon
+) -> None:
+    db_session.add(change(run, gyarados.id, kind="renamed"))
 
     with pytest.raises(IntegrityError, match="ck_pokemon_changes_known_kind"):
         db_session.flush()
 
 
-def test_a_change_must_belong_to_a_known_pokemon(db_session: Session) -> None:
-    run = make_run()
-    db_session.add(run)
-    db_session.flush()
-    db_session.add(
-        PokemonChange(pokemon_id=99999, sync_run_id=run.id, detected_at=STARTED, kind="removed")
-    )
+def test_a_change_must_belong_to_a_known_pokemon(db_session: Session, run: SyncRun) -> None:
+    db_session.add(change(run, 99999, kind="removed"))
 
     with pytest.raises(IntegrityError, match="fk_pokemon_changes_pokemon_id_pokemon"):
         db_session.flush()
 
 
-def test_pokemon_are_not_removed_by_default(db_session: Session) -> None:
-    pokemon = make_pokemon()
-    db_session.add(pokemon)
-    db_session.flush()
-
-    loaded = db_session.get(Pokemon, pokemon.id)
-
-    assert loaded is not None
-    assert loaded.removed_at is None
-
-
-def test_reads_status_and_kind_back_as_enums(db_session: Session) -> None:
-    run = make_run()
-    pokemon = make_pokemon()
-    db_session.add_all([pokemon, run])
-    db_session.flush()
-    change = PokemonChange(
-        pokemon_id=pokemon.id, sync_run_id=run.id, detected_at=STARTED, kind="removed"
-    )
-    db_session.add(change)
+def test_reads_status_and_kind_back_as_enums(
+    db_session: Session, run: SyncRun, gyarados: Pokemon
+) -> None:
+    db_session.add(change(run, gyarados.id, kind="removed"))
     db_session.flush()
     db_session.expire_all()
 
-    loaded_run = db_session.get(SyncRun, run.id)
-    loaded_change = db_session.get(PokemonChange, change.id)
+    stored_change = db_session.scalars(select(PokemonChange)).one()
 
-    assert loaded_run is not None
-    assert loaded_change is not None
-    assert (loaded_run.status, loaded_change.kind) == (SyncStatus.SUCCEEDED, ChangeKind.REMOVED)
-    assert (type(loaded_run.status), type(loaded_change.kind)) == (SyncStatus, ChangeKind)
+    assert (run.status, stored_change.kind) == (SyncStatus.SUCCEEDED, ChangeKind.REMOVED)
+    assert (type(run.status), type(stored_change.kind)) == (SyncStatus, ChangeKind)

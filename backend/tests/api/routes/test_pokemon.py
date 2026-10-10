@@ -1,18 +1,18 @@
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.pokemon.enums import EvolutionTrigger
-from app.pokemon.schemas import EvolutionMethod
-from tests.support.pokemon import add_pokemon, add_species, make_pokemon
+from app.api.constants import POKEMON_CACHE_CONTROL
+from tests.support.pokemon import GYARADOS_CDN_SPRITE, LEVEL_16, add_pokemon, make_pokemon
+
+# Pokémon ids are 32-bit Postgres integers, so 2**31 can't be one.
+NOT_POKEMON_IDS = ["0", str(2**31), "pikachu"]
 
 
-def test_serves_a_page_of_pokemon_with_their_public_fields(
-    client: TestClient, db_session: Session
-) -> None:
-    db_session.add(make_pokemon())
-    db_session.flush()
-
+@pytest.mark.usefixtures("gyarados")
+def test_serves_a_page_of_pokemon_with_their_public_fields(client: TestClient) -> None:
     response = client.get("/api/pokemon")
 
     assert response.status_code == 200
@@ -30,7 +30,7 @@ def test_serves_a_page_of_pokemon_with_their_public_fields(
                     "sp_defense": 100,
                     "speed": 81,
                 },
-                "sprite_url": "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/130.png",
+                "sprite_url": GYARADOS_CDN_SPRITE,
                 "is_default": True,
                 "form": None,
             }
@@ -70,56 +70,21 @@ def test_accepts_any_cursor_a_pokemon_id_can_hold(client: TestClient, cursor: in
     assert client.get("/api/pokemon", params={"cursor": cursor}).status_code == 200
 
 
-# Pokémon ids are 32-bit Postgres integers, so 2**31 can't be one.
-@pytest.mark.parametrize("cursor", ["0", str(2**31), "pikachu"])
+@pytest.mark.parametrize("cursor", NOT_POKEMON_IDS)
 def test_rejects_cursors_that_cannot_be_a_pokemon_id(client: TestClient, cursor: str) -> None:
     assert client.get("/api/pokemon", params={"cursor": cursor}).status_code == 422
 
 
-def test_can_be_cached_by_browsers_and_the_cdn(client: TestClient) -> None:
-    cache_control = client.get("/api/pokemon").headers["cache-control"]
-
-    assert cache_control == "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
-
-
-def test_errors_are_not_cached(client: TestClient) -> None:
-    response = client.get("/api/pokemon", params={"limit": 0})
-
-    assert "cache-control" not in response.headers
-
-
-def test_documents_every_type_a_pokemon_can_have(client: TestClient) -> None:
-    schemas = client.get("/api/openapi.json").json()["components"]["schemas"]
-
-    assert schemas["PokemonType"]["enum"] == [
-        "normal",
-        "fighting",
-        "flying",
-        "poison",
-        "ground",
-        "rock",
-        "bug",
-        "ghost",
-        "steel",
-        "fire",
-        "water",
-        "grass",
-        "electric",
-        "psychic",
-        "ice",
-        "dragon",
-        "dark",
-        "fairy",
-    ]
-
-
 def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) -> None:
+    # Each filter rules out one of these: moltres the name, charmander the types, and
+    # charizard-mega-y the form.
     db_session.add_all(
         [
+            make_pokemon(id=4, name="charmander", types=["fire"]),
             make_pokemon(id=6, name="charizard", types=["fire", "flying"]),
             make_pokemon(id=146, name="moltres", types=["fire", "flying"]),
             make_pokemon(
-                id=10034, name="charizard-mega-x", types=["fire", "dragon"], is_default=False
+                id=10035, name="charizard-mega-y", types=["fire", "flying"], is_default=False
             ),
         ]
     )
@@ -133,7 +98,13 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
 
 @pytest.mark.parametrize(
     "params",
-    [{"type": "shadow"}, {"type": ["fire", "water", "grass"]}, {"q": ""}, {"forms": "false"}],
+    [
+        {"type": "shadow"},
+        {"type": ["fire", "water", "grass"]},
+        {"q": ""},
+        {"q": "x" * 51},
+        {"forms": "false"},
+    ],
 )
 def test_rejects_filters_that_cannot_match(
     client: TestClient, params: dict[str, str | list[str]]
@@ -141,8 +112,8 @@ def test_rejects_filters_that_cannot_match(
     assert client.get("/api/pokemon", params=params).status_code == 422
 
 
-def test_documents_each_filter(client: TestClient) -> None:
-    operation = client.get("/api/openapi.json").json()["paths"]["/api/pokemon"]["get"]
+def test_documents_each_filter(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/pokemon"]["get"]
     described = {param["name"] for param in operation["parameters"] if param.get("description")}
 
     assert {"q", "type", "forms", "limit", "cursor"} <= described
@@ -151,33 +122,19 @@ def test_documents_each_filter(client: TestClient) -> None:
 # --- GET /api/pokemon/{id} ---
 
 
-def test_serves_a_pokemons_details(client: TestClient, db_session: Session) -> None:
-    db_session.add_all([make_pokemon(id=129, name="magikarp"), make_pokemon()])
-    db_session.flush()
-    add_species(db_session, 129, family=34, pokemon_ids=[129], name="magikarp")
-    level_20 = EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=20)
-    add_species(
-        db_session,
-        130,
-        family=34,
-        evolves_from=129,
-        methods=[level_20],
-        pokemon_ids=[130],
-        name="gyarados",
-        genus="Atrocious Pokémon",
-    )
-
-    response = client.get("/api/pokemon/130")
+@pytest.mark.usefixtures("charmander_family")
+def test_serves_a_pokemons_details(client: TestClient) -> None:
+    response = client.get("/api/pokemon/6")
 
     assert response.status_code == 200
-    gyarados = response.json()
-    assert (gyarados["pokemon"]["name"], gyarados["removed_at"]) == ("gyarados", None)
-    assert gyarados["species"] == {"id": 130, "name": "gyarados", "genus": "Atrocious Pokémon"}
-    assert [form["id"] for form in gyarados["forms"]] == [130]
-    magikarp = gyarados["evolution"]
-    assert (magikarp["species"]["name"], magikarp["methods"]) == ("magikarp", [])
-    assert [stage["methods"] for stage in magikarp["evolves_to"]] == [
-        [level_20.model_dump(mode="json")]
+    charizard = response.json()
+    assert (charizard["pokemon"]["name"], charizard["removed_at"]) == ("charizard", None)
+    assert charizard["species"] == {"id": 6, "name": "charizard", "genus": "Flame Pokémon"}
+    assert [form["id"] for form in charizard["forms"]] == [6, 10034]
+    charmander = charizard["evolution"]
+    assert (charmander["species"]["name"], charmander["methods"]) == ("charmander", [])
+    assert [stage["methods"] for stage in charmander["evolves_to"]] == [
+        [LEVEL_16.model_dump(mode="json")]
     ]
 
 
@@ -187,17 +144,20 @@ def test_says_when_no_pokemon_has_the_id(client: TestClient) -> None:
     assert (response.status_code, response.json()) == (404, {"detail": "No Pokémon has this id."})
 
 
-@pytest.mark.parametrize("pokemon_id", ["0", str(2**31), "pikachu"])
+@pytest.mark.parametrize("pokemon_id", NOT_POKEMON_IDS)
 def test_rejects_ids_that_cannot_be_a_pokemons(client: TestClient, pokemon_id: str) -> None:
     assert client.get(f"/api/pokemon/{pokemon_id}").status_code == 422
 
 
-def test_lets_browsers_and_the_cdn_cache_a_pokemons_details(
-    client: TestClient, db_session: Session
-) -> None:
-    db_session.add(make_pokemon())
-    db_session.flush()
+# --- Caching ---
 
-    cache_control = client.get("/api/pokemon/130").headers["cache-control"]
 
-    assert cache_control == "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+@pytest.mark.parametrize("path", ["/api/pokemon", "/api/pokemon/130"])
+@pytest.mark.usefixtures("gyarados")
+def test_lets_browsers_and_the_cdn_cache_pokemon(client: TestClient, path: str) -> None:
+    assert client.get(path).headers["cache-control"] == POKEMON_CACHE_CONTROL
+
+
+@pytest.mark.parametrize("path", ["/api/pokemon?limit=0", "/api/pokemon/999"])
+def test_errors_are_not_cached(client: TestClient, path: str) -> None:
+    assert "cache-control" not in client.get(path).headers
