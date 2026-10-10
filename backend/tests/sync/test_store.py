@@ -73,6 +73,8 @@ def test_inserts_new_pokemon_without_recording_changes(db_session: Session) -> N
     assert charizard.types == ["fire", "flying"]
     assert charizard.content_hash == content_hash(CHARIZARD)
     assert charizard.last_synced_at == FIRST_SYNC
+    # Joining the Pokédex isn't a change.
+    assert charizard.last_changed_at is None
 
 
 @pytest.mark.usefixtures("first_sync")
@@ -80,7 +82,8 @@ def test_leaves_unchanged_pokemon_alone_but_records_the_sync(db_session: Session
     result = store_pokemon(db_session, [PIKACHU, CHARIZARD], listed_ids=BOTH, synced_at=SECOND_SYNC)
 
     assert result == StoreResult(inserted=0, updated=0, unchanged=2, removed=0, restored=0)
-    assert stored(db_session, models.Pokemon, 25).last_synced_at == SECOND_SYNC
+    pikachu = stored(db_session, models.Pokemon, 25)
+    assert (pikachu.last_synced_at, pikachu.last_changed_at) == (SECOND_SYNC, None)
 
 
 @pytest.mark.usefixtures("first_sync")
@@ -95,7 +98,8 @@ def test_records_what_changed_before_overwriting_it(db_session: Session) -> None
     assert result.changes == [
         Change(25, ChangeKind.UPDATED, before=snapshot(PIKACHU), after=snapshot(faster_pikachu))
     ]
-    assert stored(db_session, models.Pokemon, 25).speed == 150
+    pikachu = stored(db_session, models.Pokemon, 25)
+    assert (pikachu.speed, pikachu.last_changed_at) == (150, SECOND_SYNC)
 
 
 @pytest.mark.usefixtures("first_sync")
@@ -104,7 +108,8 @@ def test_marks_pokemon_missing_from_the_listing_as_removed(db_session: Session) 
 
     assert result.removed == 1
     assert result.changes == [Change(6, ChangeKind.REMOVED, before=snapshot(CHARIZARD), after=None)]
-    assert stored(db_session, models.Pokemon, 6).removed_at == SECOND_SYNC
+    charizard = stored(db_session, models.Pokemon, 6)
+    assert (charizard.removed_at, charizard.last_changed_at) == (SECOND_SYNC, SECOND_SYNC)
 
 
 @pytest.mark.usefixtures("first_sync")
@@ -121,7 +126,8 @@ def test_records_a_removal_only_once(db_session: Session) -> None:
     result = store_pokemon(db_session, [PIKACHU], listed_ids={25}, synced_at=THIRD_SYNC)
 
     assert (result.removed, result.changes) == (0, [])
-    assert stored(db_session, models.Pokemon, 6).removed_at == SECOND_SYNC
+    charizard = stored(db_session, models.Pokemon, 6)
+    assert (charizard.removed_at, charizard.last_changed_at) == (SECOND_SYNC, SECOND_SYNC)
 
 
 @pytest.mark.usefixtures("charizard_removed")
@@ -132,7 +138,8 @@ def test_restores_a_pokemon_that_comes_back(db_session: Session) -> None:
     assert result.changes == [
         Change(6, ChangeKind.RESTORED, before=snapshot(CHARIZARD), after=snapshot(CHARIZARD))
     ]
-    assert stored(db_session, models.Pokemon, 6).removed_at is None
+    charizard = stored(db_session, models.Pokemon, 6)
+    assert (charizard.removed_at, charizard.last_changed_at) == (None, THIRD_SYNC)
 
 
 def test_refuses_to_remove_a_suspicious_number_of_pokemon(db_session: Session) -> None:

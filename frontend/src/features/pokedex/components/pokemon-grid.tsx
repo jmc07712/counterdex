@@ -15,7 +15,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PokedexFilters } from '@/features/pokedex/hooks/use-pokedex-filters'
+import type { PokedexFilters, PokedexView } from '@/features/pokedex/hooks/use-pokedex-filters'
 import { usePokemonList } from '@/features/pokedex/hooks/use-pokemon-list'
 
 // Wait for a pause in typing before searching, so each keystroke isn't a request.
@@ -23,6 +23,22 @@ const SEARCH_DELAY_MS = 250
 // Start loading the next page this far before the end of the list scrolls into view.
 const PRELOAD_MARGIN = '800px'
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+
+// What each view says when nothing matches.
+const NOTHING_FOUND: Record<PokedexView, { title: string; description: string }> = {
+  listed: {
+    title: 'No Pokémon match these filters',
+    description: 'Try a shorter search, or fewer types.',
+  },
+  changed: {
+    title: 'No recent changes',
+    description: 'No sync has changed these Pokémon in the last week.',
+  },
+  removed: {
+    title: 'No removed Pokémon',
+    description: 'PokéAPI still lists every Pokémon these filters match.',
+  },
+}
 
 type PokemonGridProps = {
   filters: PokedexFilters
@@ -57,7 +73,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
   }
 
   const pokemon = query.data.pages.flatMap((page) => page.items)
-  const removed = filters.status === ListingStatus.REMOVED
+  const { view } = filters
 
   if (pokemon.length === 0) {
     return (
@@ -66,14 +82,8 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
           <EmptyMedia variant="icon">
             <SearchX />
           </EmptyMedia>
-          <EmptyTitle>
-            {removed ? 'No removed Pokémon' : 'No Pokémon match these filters'}
-          </EmptyTitle>
-          <EmptyDescription>
-            {removed
-              ? 'PokéAPI still lists every Pokémon these filters match.'
-              : 'Try a shorter search, or fewer types.'}
-          </EmptyDescription>
+          <EmptyTitle>{NOTHING_FOUND[view].title}</EmptyTitle>
+          <EmptyDescription>{NOTHING_FOUND[view].description}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button variant="outline" onClick={onClearFilters}>
@@ -97,7 +107,11 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
             style={{ animationDelay: `${(index % 50) * 20}ms` }}
             className="animate-in duration-300 fill-mode-both fade-in-0 slide-in-from-bottom-2 motion-reduce:animate-none"
           >
-            <PokemonCard pokemon={each} removed={removed} onOpen={() => onOpen(each.id)} />
+            <PokemonCard
+              pokemon={each}
+              removed={view === ListingStatus.REMOVED}
+              onOpen={() => onOpen(each.id)}
+            />
           </li>
         ))}
       </ul>

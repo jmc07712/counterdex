@@ -1,6 +1,7 @@
 import type { Pokemon } from '@/api'
 import { cn } from '@/lib/utils'
 
+import { ChangedMark } from './changed-mark'
 import { displayName } from './format'
 import { TYPE_STYLES } from './pokemon-types'
 
@@ -52,6 +53,7 @@ export function PokemonChip({
         )}
       </span>
       {displayName(pokemon.name)}
+      {pokemon.changed_recently && <ChangedMark />}
     </button>
   )
 }

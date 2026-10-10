@@ -306,6 +306,12 @@ export type Pokemon = {
      * The kind of alternate form, such as `mega` or `alolan`; `null` for a default form.
      */
     form?: PokemonForm | null;
+    /**
+     * Changed Recently
+     *
+     * Whether a sync changed it in the last week: updated it, removed it or listed it again.
+     */
+    changed_recently?: boolean;
 };
 
 /**
@@ -673,6 +679,12 @@ export type ListPokemonData = {
          * `listed` for the Pokémon PokéAPI lists, or `removed` for the ones it no longer does.
          */
         status?: ListingStatus;
+        /**
+         * Changed
+         *
+         * Only Pokémon a sync has changed in the last week: updated, removed or listed again.
+         */
+        changed?: boolean;
         /**
          * Limit
          *

@@ -1,5 +1,7 @@
 """Constants for the Pokémon domain."""
 
+from datetime import timedelta
+
 from app.pokemon.enums import PokemonForm
 
 # --- Rules every stored Pokémon follows ---
@@ -25,6 +27,9 @@ FORM_MARKERS = {
 }
 
 # --- Listing ---
+
+# How long after a sync changes a Pokémon it counts as recently changed.
+RECENTLY_CHANGED = timedelta(days=7)
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200

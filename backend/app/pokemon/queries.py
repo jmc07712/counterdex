@@ -1,12 +1,13 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
-from app.pokemon.constants import CDN_SPRITES_URL, GITHUB_SPRITES_URL
+from app.pokemon.constants import CDN_SPRITES_URL, GITHUB_SPRITES_URL, RECENTLY_CHANGED
 from app.pokemon.enums import FormFilter, ListingStatus
 
 
@@ -26,6 +27,8 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
         # Postgres's @> (contains): the Pokémon has every requested type.
         types = [type_.value for type_ in query.types]
         statement = statement.where(models.Pokemon.types.contains(types))
+    if query.changed:
+        statement = statement.where(models.Pokemon.last_changed_at >= func.now() - RECENTLY_CHANGED)
     if query.forms is not FormFilter.ALL:
         is_default = query.forms is FormFilter.DEFAULT
         statement = statement.where(models.Pokemon.is_default.is_(is_default))
@@ -128,10 +131,15 @@ def _listed_forms(
 
 
 def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
-    """A Pokémon as the API serves it, from the pokemon table's columns: sprite from the CDN."""
-    return schemas.Pokemon.from_columns(
+    """A Pokémon as the API serves it, from the pokemon table's columns: its sprite from the CDN,
+    and whether a sync changed it lately (a change's snapshots have no such column).
+    """
+    pokemon = schemas.Pokemon.from_columns(
         {**columns, "sprite_url": cdn_sprite_url(columns["sprite_url"])}
     )
+    changed_at = columns.get("last_changed_at")
+    recently = changed_at is not None and changed_at >= datetime.now(UTC) - RECENTLY_CHANGED
+    return pokemon.model_copy(update={"changed_recently": recently})
 
 
 def _species(species: models.Species) -> schemas.Species:

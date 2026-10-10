@@ -50,6 +50,9 @@ class Pokemon(Base):
     last_synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # Set when PokéAPI stops listing the Pokémon. Rows are never deleted, so teams keep working.
     removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When a sync last changed it: updated its data, removed it or listed it again. Joining the
+    # Pokédex isn't a change. Kept here so lists can filter on it without the change history.
+    last_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Species(Base):

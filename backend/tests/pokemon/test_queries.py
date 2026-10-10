@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy.orm import Session
@@ -79,6 +79,36 @@ def test_lists_pokemon_by_whether_pokeapi_still_lists_them(
     db_session.flush()
 
     assert ids(list_pokemon(db_session, query)) == expected_ids
+
+
+def test_lists_only_pokemon_a_sync_changed_in_the_last_week(db_session: Session) -> None:
+    now = datetime.now(UTC)
+    db_session.add_all(
+        [
+            make_pokemon(id=1, name="bulbasaur", last_changed_at=now - timedelta(days=2)),
+            make_pokemon(id=2, name="ivysaur", last_changed_at=now - timedelta(days=8)),
+            make_pokemon(id=3, name="venusaur"),
+        ]
+    )
+    db_session.flush()
+
+    assert ids(list_pokemon(db_session, PokemonQuery(changed=True))) == [1]
+
+
+def test_says_which_pokemon_a_sync_changed_in_the_last_week(db_session: Session) -> None:
+    now = datetime.now(UTC)
+    db_session.add_all(
+        [
+            make_pokemon(id=1, name="bulbasaur", last_changed_at=now - timedelta(days=2)),
+            make_pokemon(id=2, name="ivysaur", last_changed_at=now - timedelta(days=8)),
+            make_pokemon(id=3, name="venusaur"),
+        ]
+    )
+    db_session.flush()
+
+    page = list_pokemon(db_session, PokemonQuery())
+
+    assert [pokemon.changed_recently for pokemon in page.items] == [True, False, False]
 
 
 def test_lists_nothing_before_the_first_sync(db_session: Session) -> None:

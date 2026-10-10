@@ -10,6 +10,7 @@ export function makePokemon(overrides: Partial<Pokemon> = {}): Pokemon {
     sprite_url: 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/130.png',
     is_default: true,
     form: null,
+    changed_recently: false,
     ...overrides,
   }
 }

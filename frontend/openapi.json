@@ -92,6 +92,18 @@
             "description": "`listed` for the Pokémon PokéAPI lists, or `removed` for the ones it no longer does."
           },
           {
+            "name": "changed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only Pokémon a sync has changed in the last week: updated, removed or listed again.",
+              "default": false,
+              "title": "Changed"
+            },
+            "description": "Only Pokémon a sync has changed in the last week: updated, removed or listed again."
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -694,6 +706,12 @@
               }
             ],
             "description": "The kind of alternate form, such as `mega` or `alolan`; `null` for a default form."
+          },
+          "changed_recently": {
+            "type": "boolean",
+            "title": "Changed Recently",
+            "description": "Whether a sync changed it in the last week: updated it, removed it or listed it again.",
+            "default": false
           }
         },
         "type": "object",

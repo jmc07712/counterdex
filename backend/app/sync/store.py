@@ -35,7 +35,7 @@ def store_pokemon(
         row["id"]: row for row in session.execute(select(models.Pokemon.__table__)).mappings()
     }
     changes: list[Change] = []
-    to_write: list[schemas.Pokemon] = []
+    to_write: list[dict[str, Any]] = []
     unchanged_ids: list[int] = []
     inserted = updated = restored = 0
 
@@ -43,19 +43,19 @@ def store_pokemon(
         row = current.get(fetched.id)
         if row is None:
             inserted += 1
-            to_write.append(fetched)
+            to_write.append(_row(fetched, synced_at, changed=False))
         elif row["removed_at"] is not None:
             restored += 1
             changes.append(
                 Change(fetched.id, ChangeKind.RESTORED, _row_snapshot(row), _snapshot(fetched))
             )
-            to_write.append(fetched)
+            to_write.append(_row(fetched, synced_at, changed=True))
         elif row["content_hash"] != content_hash(fetched):
             updated += 1
             changes.append(
                 Change(fetched.id, ChangeKind.UPDATED, _row_snapshot(row), _snapshot(fetched))
             )
-            to_write.append(fetched)
+            to_write.append(_row(fetched, synced_at, changed=True))
         else:
             unchanged_ids.append(fetched.id)
 
@@ -71,7 +71,7 @@ def store_pokemon(
     )
 
     if to_write:
-        _upsert(session, models.Pokemon, [_row(each, synced_at) for each in to_write])
+        _upsert(session, models.Pokemon, to_write)
     if unchanged_ids:
         session.execute(
             update(models.Pokemon)
@@ -82,7 +82,7 @@ def store_pokemon(
         session.execute(
             update(models.Pokemon)
             .where(models.Pokemon.id.in_(removed_ids))
-            .values(removed_at=synced_at)
+            .values(removed_at=synced_at, last_changed_at=synced_at)
         )
 
     return StoreResult(
@@ -169,10 +169,12 @@ def _row_snapshot(row: RowMapping) -> dict[str, Any]:
     return _snapshot(schemas.Pokemon.from_columns(row))
 
 
-def _row(pokemon: schemas.Pokemon, synced_at: datetime) -> dict[str, Any]:
+def _row(pokemon: schemas.Pokemon, synced_at: datetime, *, changed: bool) -> dict[str, Any]:
     return pokemon.to_columns() | {
         "content_hash": content_hash(pokemon),
         "last_synced_at": synced_at,
         # A restored Pokémon is listed again.
         "removed_at": None,
+        # A new Pokémon joins the Pokédex without a change.
+        "last_changed_at": synced_at if changed else None,
     }

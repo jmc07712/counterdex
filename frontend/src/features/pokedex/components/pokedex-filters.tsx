@@ -1,12 +1,14 @@
 import { Search } from 'lucide-react'
 
-import { FormFilter, ListingStatus } from '@/api'
+import { FormFilter } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   type PokedexFilters as Filters,
+  POKEDEX_VIEWS,
+  type PokedexView,
   parseOption,
 } from '@/features/pokedex/hooks/use-pokedex-filters'
 
@@ -16,8 +18,9 @@ const FORM_OPTIONS: Record<FormFilter, string> = {
   alternate: 'Alternate',
 }
 
-const STATUS_OPTIONS: Record<ListingStatus, string> = {
+const VIEW_OPTIONS: Record<PokedexView, string> = {
   listed: 'Current',
+  changed: 'Changed',
   removed: 'Removed',
 }
 
@@ -74,15 +77,15 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
             variant="outline"
             size="sm"
             spacing={0}
-            value={filters.status}
+            value={filters.view}
             onValueChange={(value) => {
-              const status = parseOption(Object.values(ListingStatus), value)
-              if (status) onChange({ ...filters, status })
+              const view = parseOption(POKEDEX_VIEWS, value)
+              if (view) onChange({ ...filters, view })
             }}
           >
-            {Object.values(ListingStatus).map((status) => (
-              <ToggleGroupItem key={status} value={status} className="px-3">
-                {STATUS_OPTIONS[status]}
+            {POKEDEX_VIEWS.map((view) => (
+              <ToggleGroupItem key={view} value={view} className="px-3">
+                {VIEW_OPTIONS[view]}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>

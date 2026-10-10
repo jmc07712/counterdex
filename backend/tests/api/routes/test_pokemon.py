@@ -36,6 +36,7 @@ def test_serves_a_page_of_pokemon_with_their_public_fields(client: TestClient) -
                 "sprite_url": GYARADOS_CDN_SPRITE,
                 "is_default": True,
                 "form": None,
+                "changed_recently": False,
             }
         ],
         "next_cursor": None,
@@ -108,6 +109,7 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
         {"q": "x" * 51},
         {"forms": "false"},
         {"status": "deleted"},
+        {"changed": "maybe"},
     ],
 )
 def test_rejects_filters_that_cannot_match(
@@ -120,7 +122,7 @@ def test_documents_each_filter(openapi: dict[str, Any]) -> None:
     operation = openapi["paths"]["/api/pokemon"]["get"]
     described = {param["name"] for param in operation["parameters"] if param.get("description")}
 
-    assert {"q", "type", "forms", "status", "limit", "cursor"} <= described
+    assert {"q", "type", "forms", "status", "changed", "limit", "cursor"} <= described
 
 
 # --- GET /api/pokemon/{id} ---

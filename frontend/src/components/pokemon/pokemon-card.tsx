@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card'
 
 import { BaseStats } from './base-stats'
+import { ChangedMark } from './changed-mark'
 import { dexNumber, displayName, formLabel, statTotal } from './format'
 import { TYPE_STYLES } from './pokemon-types'
 import { SpriteWindow } from './sprite-window'
@@ -66,7 +67,10 @@ export function PokemonCard({ pokemon, removed = false, onOpen }: PokemonCardPro
                 {displayName(pokemon.name)}
               </h3>
             </CardTitle>
-            <CardDescription className="text-xs tabular-nums">{dexNumber(pokemon.id)}</CardDescription>
+            <CardDescription className="flex items-center gap-1 text-xs tabular-nums">
+              {dexNumber(pokemon.id)}
+              {pokemon.changed_recently && <ChangedMark />}
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="flex flex-1 flex-col gap-2">

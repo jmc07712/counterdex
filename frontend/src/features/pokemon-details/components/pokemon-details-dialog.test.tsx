@@ -63,6 +63,21 @@ describe('PokemonDetailsDialog', () => {
     expect(within(evolution).getByRole('button', { current: true })).toHaveTextContent('Charizard')
   })
 
+  it('marks the stages a sync changed lately', async () => {
+    const details = makeDetails()
+    const charmeleon = details.evolution?.evolves_to[0]
+    if (charmeleon?.pokemon) charmeleon.pokemon = { ...charmeleon.pokemon, changed_recently: true }
+    servePokemonDetails(details)
+
+    const { dialog } = await openDetails()
+
+    const evolution = within(dialog).getByRole('list', { name: 'Evolution' })
+    const changed = within(evolution).getAllByText('Changed recently')
+    expect(changed.map((mark) => mark.closest('button')?.textContent)).toEqual([
+      'CharmeleonChanged recently',
+    ])
+  })
+
   it('says when its species doesn’t evolve', async () => {
     const charizard = { id: 6, name: 'charizard', genus: 'Flame Pokémon' }
     servePokemonDetails(

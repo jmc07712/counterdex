@@ -3,18 +3,23 @@ import { useSearchParams } from 'react-router'
 import { FormFilter, ListingStatus, type PokemonType } from '@/api'
 import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 
+/** Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed lately, or those
+ * PokéAPI removed. */
+export type PokedexView = ListingStatus | 'changed'
+export const POKEDEX_VIEWS: PokedexView[] = [ListingStatus.LISTED, 'changed', ListingStatus.REMOVED]
+
 export type PokedexFilters = {
   search: string
   types: PokemonType[]
   forms: FormFilter
-  status: ListingStatus
+  view: PokedexView
 }
 
 export const NO_FILTERS: PokedexFilters = {
   search: '',
   types: [],
   forms: FormFilter.ALL,
-  status: ListingStatus.LISTED,
+  view: ListingStatus.LISTED,
 }
 
 /** The option a value names, if it names one of `options`. */
@@ -33,16 +38,16 @@ export function usePokedexFilters() {
     search: params.get('q') ?? '',
     types: toPokemonTypes(params.getAll('type')).slice(-MAX_TYPES),
     forms: parseOption(Object.values(FormFilter), params.get('forms')) ?? FormFilter.ALL,
-    status: parseOption(Object.values(ListingStatus), params.get('status')) ?? ListingStatus.LISTED,
+    view: parseOption(POKEDEX_VIEWS, params.get('status')) ?? ListingStatus.LISTED,
   }
 
-  function setFilters({ search, types, forms, status }: PokedexFilters) {
+  function setFilters({ search, types, forms, view }: PokedexFilters) {
     const next = new URLSearchParams()
     if (search) next.set('q', search)
     // A Pokémon has at most two types: picking a third drops the oldest.
     for (const type of types.slice(-MAX_TYPES)) next.append('type', type)
     if (forms !== FormFilter.ALL) next.set('forms', forms)
-    if (status !== ListingStatus.LISTED) next.set('status', status)
+    if (view !== ListingStatus.LISTED) next.set('status', view)
     // Replace rather than push, so typing a search doesn't add a history entry per keystroke.
     setParams(next, { replace: true })
   }

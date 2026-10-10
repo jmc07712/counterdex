@@ -9,7 +9,7 @@ import {
   servePokemonDetails,
   serveSyncStatus,
 } from '@/test/handlers'
-import { CHARIZARD_MEGA_X, makeDetails, makePage } from '@/test/pokemon'
+import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 
@@ -120,12 +120,28 @@ describe('PokedexPage', () => {
     expect(within(card).getByText('Removed')).toBeInTheDocument()
   })
 
-  it('says when PokéAPI hasn’t removed any Pokémon', async () => {
+  it('can list the Pokémon syncs changed lately, marked as changed', async () => {
+    const bulbasaur = makePokemon({ id: 1, name: 'bulbasaur', changed_recently: true })
+    const requests = servePokemon({ items: [bulbasaur], next_cursor: null })
+    const { user, router } = renderWithProviders(<PokedexPage />)
+
+    await user.click(screen.getByRole('radio', { name: 'Changed' }))
+
+    await waitFor(() => expect(requests.at(-1)).toBe('changed=true'))
+    expect(router.state.location.search).toBe('?status=changed')
+    const card = await screen.findByRole('article', { name: 'Bulbasaur' })
+    expect(within(card).getByText('Changed recently')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['removed', 'No removed Pokémon'],
+    ['changed', 'No recent changes'],
+  ])('says when there are no %s Pokémon', async (status, message) => {
     servePokemon(makePage([]))
 
-    renderWithProviders(<PokedexPage />, { path: '/?status=removed' })
+    renderWithProviders(<PokedexPage />, { path: `/?status=${status}` })
 
-    expect(await screen.findByText('No removed Pokémon')).toBeInTheDocument()
+    expect(await screen.findByText(message)).toBeInTheDocument()
   })
 
   it('keeps only the last two types from a hand-edited URL', async () => {

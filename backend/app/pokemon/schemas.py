@@ -57,6 +57,11 @@ class Stats(BaseModel):
 STAT_NAMES = tuple(Stats.model_fields)
 
 
+# Fields that aren't the pokemon table's columns: stats are spread over six columns, and the rest
+# are worked out from other columns.
+NOT_COLUMNS = {"stats", "form", "changed_recently"}
+
+
 # The sync detects changes by hashing exactly these fields, so adding one changes every stored
 # hash and the next sync records every Pokémon as updated (a pinned-hash test guards this).
 class Pokemon(BaseModel):
@@ -97,6 +102,16 @@ class Pokemon(BaseModel):
         ),
     ] = None
 
+    # Worked out by the queries from when a sync last changed it, so, like `form`, it's never
+    # stored or hashed.
+    changed_recently: Annotated[
+        bool,
+        Field(
+            description="Whether a sync changed it in the last week: updated it, removed it or "
+            "listed it again."
+        ),
+    ] = False
+
     @field_validator("form", mode="before")
     @classmethod
     def classify_form(cls, _form: object, info: ValidationInfo) -> PokemonForm | None:
@@ -111,14 +126,14 @@ class Pokemon(BaseModel):
     @classmethod
     def from_columns(cls, columns: Mapping[Any, Any]) -> Self:
         """Read a Pokémon from the pokemon table's columns, ignoring the sync's bookkeeping."""
-        fields = {name: columns[name] for name in cls.model_fields if name not in {"stats", "form"}}
+        fields = {name: columns[name] for name in cls.model_fields if name not in NOT_COLUMNS}
         stats = {name: columns[name] for name in STAT_NAMES}
         return cls.model_validate(fields | {"stats": stats})
 
     def to_columns(self) -> dict[str, Any]:
         """The Pokémon as the pokemon table's columns, as plain JSON-ready values."""
-        # The form kind is worked out from the name, so it isn't stored (or hashed).
-        fields = self.model_dump(mode="json", exclude={"stats", "form"})
+        # The form and recent changes are worked out, so they aren't stored (or hashed).
+        fields = self.model_dump(mode="json", exclude=NOT_COLUMNS)
         return fields | self.stats.model_dump(mode="json")
 
 
@@ -287,6 +302,13 @@ class PokemonQuery(BaseModel):
             "no longer does."
         ),
     ] = ListingStatus.LISTED
+    changed: Annotated[
+        bool,
+        Field(
+            description="Only Pokémon a sync has changed in the last week: updated, removed or "
+            "listed again."
+        ),
+    ] = False
     limit: Annotated[
         int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many Pokémon per page.")
     ] = DEFAULT_PAGE_SIZE

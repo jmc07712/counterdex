@@ -1,4 +1,5 @@
 import type { Pokemon, Species } from '@/api'
+import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { dexNumber, displayName } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
@@ -24,8 +25,9 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
 
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1 pb-1">
-          <p className="font-heading text-sm font-bold tabular-nums opacity-70">
-            {dexNumber(pokemon.id)}
+          <p className="flex items-center gap-1 font-heading text-sm font-bold tabular-nums">
+            <span className="opacity-70">{dexNumber(pokemon.id)}</span>
+            {pokemon.changed_recently && <ChangedMark className="text-current" />}
           </p>
           <DialogTitle className="font-heading text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
             {displayName(pokemon.name)}
