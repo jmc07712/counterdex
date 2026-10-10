@@ -14,7 +14,7 @@ def test_interactive_docs_are_served_under_api_prefix(client: TestClient) -> Non
     assert client.get("/api/docs").status_code == 200
 
 
-@pytest.mark.parametrize("path", ["/docs", "/openapi.json"])
-def test_docs_are_not_served_at_the_root(client: TestClient, path: str) -> None:
+@pytest.mark.parametrize("path", ["/", "/docs", "/openapi.json"])
+def test_paths_outside_api_are_left_to_the_frontend(client: TestClient, path: str) -> None:
     # Anything outside /api belongs to the frontend, so FastAPI must not claim these paths.
     assert client.get(path).status_code == 404

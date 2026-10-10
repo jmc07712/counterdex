@@ -1,5 +1,18 @@
 """Tunables for the HTTP API."""
 
+# --- Paths ---
+
+# Vercel routes only /api/* to this service, so everything it serves lives there, docs included.
+API_PREFIX = "/api"
+DOCS_URL = f"{API_PREFIX}/docs"
+OPENAPI_URL = f"{API_PREFIX}/openapi.json"
+
+# --- Docs page ---
+
+API_TITLE = "Counterdex API"
+# The page runs this script, so it's pinned: a new Scalar release can't change the page unseen.
+SCALAR_JS_URL = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1"
+
 # --- Pagination ---
 
 DEFAULT_PAGE_SIZE = 50
