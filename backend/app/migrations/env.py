@@ -8,13 +8,14 @@ import logging
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+from app.accounts.models import User, UserSession
 from app.core.config import get_settings
 from app.core.db import Base
 from app.pokemon.models import Pokemon
 from app.sync.models import PokemonChange, SyncRun
 
 # Importing each domain's models registers their tables on Base.metadata; list new ones here.
-MODELS = (Pokemon, PokemonChange, SyncRun)
+MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession)
 
 config = context.config
 target_metadata = Base.metadata

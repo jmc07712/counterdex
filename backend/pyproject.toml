@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.143.0",
     "httpx2>=2.13.1",
     "psycopg[binary]>=3.3.6",
+    "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.15.0",
     "scalar-fastapi>=1.9.1",
     "sqlalchemy>=2.1.4",
@@ -68,15 +69,20 @@ include_external_packages = true
 [[tool.importlinter.contracts]]
 name = "Domains build on core, never the other way round"
 type = "layers"
-layers = ["app.sync", "app.pokemon", "app.core"]
+layers = ["app.sync", "app.pokemon : app.accounts", "app.core"]
 
 [[tool.importlinter.contracts]]
 name = "Domains and core know nothing about entrypoints or the web framework"
 type = "forbidden"
-source_modules = ["app.core", "app.pokemon", "app.sync"]
+source_modules = ["app.core", "app.accounts", "app.pokemon", "app.sync"]
 forbidden_modules = ["app.api", "app.jobs", "fastapi", "starlette"]
 
 [[tool.importlinter.contracts]]
 name = "Entrypoints are independent of each other"
 type = "independence"
 modules = ["app.api", "app.jobs"]
+
+[tool.uv]
+# Dependencies must be out for about two weeks before we take them. pycparser (via
+# pwdlib -> argon2-cffi -> cffi) released 3.1 on 2026-10-08; lift this once it's settled.
+constraint-dependencies = ["pycparser<3.1"]

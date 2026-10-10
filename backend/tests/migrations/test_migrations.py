@@ -5,12 +5,13 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, create_engine, make_url, text
 
+from app.accounts.models import User, UserSession
 from app.core.db import Base
 from app.pokemon.models import Pokemon
 from app.sync.models import PokemonChange, SyncRun
 
 # Imported so their tables are registered on Base.metadata, as in app/migrations/env.py.
-MODELS = (Pokemon, PokemonChange, SyncRun)
+MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession)
 # Each CHECK constraint's table, name and definition, as Postgres normalizes it.
 CHECK_CONSTRAINTS = text(
     "select conrelid::regclass::text, conname, pg_get_constraintdef(oid) from pg_constraint"
