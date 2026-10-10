@@ -4,9 +4,8 @@ from sqlalchemy import CheckConstraint, DateTime, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
-
-STAT_COLUMNS = ("hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
+from app.core.db import Base
+from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES, STAT_NAMES
 
 
 class Pokemon(Base):
@@ -14,10 +13,14 @@ class Pokemon(Base):
 
     __tablename__ = "pokemon"
     __table_args__ = (
-        CheckConstraint("cardinality(types) between 1 and 2", name="one_or_two_types"),
+        CheckConstraint(
+            f"cardinality(types) between {MIN_TYPES} and {MAX_TYPES}", name="one_or_two_types"
+        ),
         *(
-            CheckConstraint(f"{stat} between 1 and 255", name=f"{stat}_in_range")
-            for stat in STAT_COLUMNS
+            CheckConstraint(
+                f"{stat} between {MIN_BASE_STAT} and {MAX_BASE_STAT}", name=f"{stat}_in_range"
+            )
+            for stat in STAT_NAMES
         ),
     )
 

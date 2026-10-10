@@ -1,43 +1,24 @@
+"""Run a sync end to end: fetch, normalize, store, and record the run and its changes."""
+
 import logging
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import PokemonChange, SyncRun
-from app.sync.normalize import PokemonRecord, normalize
-from app.sync.pokeapi import PokeApiClient
+from app.sync.client import PokeApiClient
+from app.sync.constants import SYNC_LOCK_KEY
+from app.sync.exceptions import SyncAlreadyRunningError
+from app.sync.models import PokemonChange, SyncRun
+from app.sync.normalize import normalize
 from app.sync.store import store_pokemon
+from app.sync.types import Clock, PokemonRecord, SyncReport
 
 logger = logging.getLogger(__name__)
-
-# Postgres advisory lock that lets only one sync write at a time (any constant works).
-SYNC_LOCK_KEY = 4_202_510
-
-Clock = Callable[[], datetime]
 
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
-
-
-class SyncAlreadyRunningError(Exception):
-    """Another sync holds the lock; this one would race it."""
-
-
-@dataclass(frozen=True)
-class SyncReport:
-    run_id: int
-    fetched: int
-    inserted: int
-    updated: int
-    unchanged: int
-    removed: int
-    restored: int
-    # PokéAPI URLs (or names, for unusable data) of Pokémon that couldn't be synced.
-    failed: list[str] = field(default_factory=list)
 
 
 async def run_sync(

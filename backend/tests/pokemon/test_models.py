@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon
+from app.pokemon.models import Pokemon
 
 
 def make_pokemon(**overrides: Any) -> Pokemon:

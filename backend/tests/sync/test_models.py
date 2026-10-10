@@ -5,7 +5,8 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon, PokemonChange, SyncRun
+from app.pokemon.models import Pokemon
+from app.sync.models import PokemonChange, SyncRun
 
 STARTED = datetime(2026, 10, 10, 9, tzinfo=UTC)
 

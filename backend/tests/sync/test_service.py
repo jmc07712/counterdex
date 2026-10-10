@@ -1,51 +1,23 @@
-import json
 from datetime import UTC, datetime
-from pathlib import Path
 
-import httpx2
 import pytest
 from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon, PokemonChange, SyncRun
-from app.sync.pokeapi import PokeApiClient
-from app.sync.run import SYNC_LOCK_KEY, SyncAlreadyRunningError, record_failed_sync, run_sync
+from app.pokemon.models import Pokemon
+from app.sync.constants import SYNC_LOCK_KEY
+from app.sync.exceptions import SyncAlreadyRunningError
+from app.sync.models import PokemonChange, SyncRun
+from app.sync.service import record_failed_sync, run_sync
+from tests.support.pokeapi import BASE_URL, fake_pokeapi
 
 pytestmark = pytest.mark.anyio
 
-BASE_URL = "https://pokeapi.test/api/v2/"
-FIXTURES = Path(__file__).parent / "fixtures" / "pokeapi"
 NOW = datetime(2026, 10, 10, 9, tzinfo=UTC)
 
 
 def clock() -> datetime:
     return NOW
-
-
-def fake_pokeapi(
-    *,
-    broken_id: int | None = None,
-    extra_urls: tuple[str, ...] = (),
-    speeds: dict[int, int] | None = None,
-) -> PokeApiClient:
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        if request.url.path.endswith("/pokemon"):
-            urls = [f"{BASE_URL}pokemon/{pokemon_id}/" for pokemon_id in (6, 25)]
-            urls += extra_urls
-            return httpx2.Response(
-                200, json={"next": None, "results": [{"name": u, "url": u} for u in urls]}
-            )
-        pokemon_id = int(request.url.path.rstrip("/").rsplit("/", 1)[1])
-        if pokemon_id == broken_id:
-            return httpx2.Response(500)
-        data = json.loads((FIXTURES / f"pokemon-{pokemon_id}.json").read_text())
-        if speeds and pokemon_id in speeds:
-            speed = next(s for s in data["stats"] if s["stat"]["name"] == "speed")
-            speed["base_stat"] = speeds[pokemon_id]
-        return httpx2.Response(200, json=data)
-
-    http = httpx2.AsyncClient(base_url=BASE_URL, transport=httpx2.MockTransport(handler))
-    return PokeApiClient(http, retry_delay=0)
 
 
 def count(session: Session, model: type[Pokemon | SyncRun | PokemonChange]) -> int:

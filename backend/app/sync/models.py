@@ -5,7 +5,7 @@ from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Identi
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.core.db import Base
 
 
 class SyncRun(Base):

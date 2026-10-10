@@ -5,9 +5,11 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon
-from app.sync.normalize import PokemonRecord
-from app.sync.store import Change, StoreResult, SuspiciousRemovalError, store_pokemon
+from app.pokemon.models import Pokemon
+from app.sync.exceptions import SuspiciousRemovalError
+from app.sync.normalize import content_hash
+from app.sync.store import store_pokemon
+from app.sync.types import Change, PokemonRecord, StoreResult
 
 FIRST_SYNC = datetime(2026, 10, 10, 9, tzinfo=UTC)
 SECOND_SYNC = datetime(2026, 10, 11, 9, tzinfo=UTC)
@@ -61,7 +63,7 @@ def test_inserts_new_pokemon_without_recording_changes(db_session: Session) -> N
     assert (result.inserted, result.changes) == (2, [])
     charizard = stored(db_session, 6)
     assert charizard.types == ["fire", "flying"]
-    assert charizard.content_hash == CHARIZARD.content_hash()
+    assert charizard.content_hash == content_hash(CHARIZARD)
     assert charizard.last_synced_at == FIRST_SYNC
 
 

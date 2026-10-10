@@ -70,7 +70,7 @@ def db_session(migrated_engine: Engine) -> Iterator[Session]:
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    from app.main import app
+    from app.api.main import app
 
     # The context manager runs the app's startup and shutdown, as a real server would.
     with TestClient(app) as test_client:

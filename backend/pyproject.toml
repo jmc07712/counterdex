@@ -14,6 +14,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "import-linter>=2.15",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-socket>=0.8.1",
@@ -57,3 +58,24 @@ name = "ruff_format"
 type = "module"
 module = "ruff"
 options = "format REVISION_SCRIPT_FILENAME"
+
+# Architecture rules, checked by `uv run lint-imports`.
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domains build on core, never the other way round"
+type = "layers"
+layers = ["app.sync", "app.pokemon", "app.core"]
+
+[[tool.importlinter.contracts]]
+name = "Domains and core know nothing about entrypoints or the web framework"
+type = "forbidden"
+source_modules = ["app.core", "app.pokemon", "app.sync"]
+forbidden_modules = ["app.api", "app.jobs", "fastapi", "starlette"]
+
+[[tool.importlinter.contracts]]
+name = "Entrypoints are independent of each other"
+type = "independence"
+modules = ["app.api", "app.jobs"]

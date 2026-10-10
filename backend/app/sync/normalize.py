@@ -1,49 +1,32 @@
+"""Turn PokéAPI responses into the records the app stores."""
+
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 
-from app.sync.pokeapi import PokeApiPokemon
-
-REQUIRED_STATS = ("hp", "attack", "defense", "special-attack", "special-defense", "speed")
-# Mirrors the pokemon table's constraints, so one bad upstream record is skipped and reported
-# instead of failing the database write for every Pokémon in the sync.
-STAT_RANGE = range(1, 256)
-MAX_TYPES = 2
-
-
-@dataclass(frozen=True)
-class PokemonRecord:
-    """One Pokémon as the app stores it: exactly the fields we track for changes."""
-
-    id: int
-    name: str
-    types: tuple[str, ...]
-    hp: int
-    attack: int
-    defense: int
-    sp_attack: int
-    sp_defense: int
-    speed: int
-    sprite_url: str | None
-    is_default: bool
-
-    def content_hash(self) -> str:
-        # Sorted keys and fixed separators give identical bytes for identical data.
-        payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(payload.encode()).hexdigest()
+from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES
+from app.sync.constants import POKEAPI_STAT_NAMES
+from app.sync.schemas import PokeApiPokemon
+from app.sync.types import PokemonRecord
 
 
 def normalize(raw: PokeApiPokemon) -> PokemonRecord:
+    """Raises ValueError for data our table would refuse, so it can be skipped and reported."""
     stats = {entry.stat.name: entry.base_stat for entry in raw.stats}
-    missing = [name for name in REQUIRED_STATS if name not in stats]
+    missing = [name for name in POKEAPI_STAT_NAMES if name not in stats]
     if missing:
         raise ValueError(f"{raw.name} is missing base stats: {', '.join(missing)}")
-    out_of_range = [name for name in REQUIRED_STATS if stats[name] not in STAT_RANGE]
+    out_of_range = [
+        name for name in POKEAPI_STAT_NAMES if not MIN_BASE_STAT <= stats[name] <= MAX_BASE_STAT
+    ]
     if out_of_range:
-        raise ValueError(f"{raw.name} has base stats outside 1-255: {', '.join(out_of_range)}")
+        raise ValueError(
+            f"{raw.name} has base stats outside {MIN_BASE_STAT}-{MAX_BASE_STAT}: "
+            f"{', '.join(out_of_range)}"
+        )
     types = tuple(slot.type.name for slot in sorted(raw.types, key=lambda slot: slot.slot))
-    if not 1 <= len(types) <= MAX_TYPES:
-        raise ValueError(f"{raw.name} has {len(types)} types; expected 1 or {MAX_TYPES}")
+    if not MIN_TYPES <= len(types) <= MAX_TYPES:
+        raise ValueError(f"{raw.name} has {len(types)} types; expected {MIN_TYPES}-{MAX_TYPES}")
 
     return PokemonRecord(
         id=raw.id,
@@ -58,3 +41,10 @@ def normalize(raw: PokeApiPokemon) -> PokemonRecord:
         sprite_url=raw.sprites.front_default,
         is_default=raw.is_default,
     )
+
+
+def content_hash(record: PokemonRecord) -> str:
+    """SHA-256 of a record's tracked fields; equal data always gives an equal hash."""
+    # Sorted keys and fixed separators give identical bytes for identical data.
+    payload = json.dumps(asdict(record), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()

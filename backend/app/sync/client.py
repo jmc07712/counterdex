@@ -1,81 +1,23 @@
-"""PokéAPI client for the sync job, and validated shapes for the responses it reads.
-
-Only the fields the app uses are declared; Pydantic ignores the rest (moves, games, etc.).
-"""
+"""HTTP client for PokéAPI. Knows nothing about our database."""
 
 import logging
-from dataclasses import dataclass, field
 
 import anyio
 import httpx2
-from pydantic import BaseModel
+
+from app.sync.constants import (
+    CONCURRENT_REQUESTS,
+    MAX_ATTEMPTS,
+    MAX_PAGES,
+    PAGE_SIZE,
+    RETRY_DELAY_SECONDS,
+    RETRYABLE_STATUS_CODES,
+)
+from app.sync.exceptions import PokeApiError
+from app.sync.schemas import PokeApiListing, PokeApiPokemon
+from app.sync.types import FetchResult
 
 logger = logging.getLogger(__name__)
-
-POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
-# Entries per listing page; PokéAPI paginates and returns a `next` link until the last page.
-PAGE_SIZE = 200
-# A listing that runs past this (20,000 Pokémon) is broken, not big.
-MAX_PAGES = 100
-
-
-class PokeApiError(Exception):
-    """PokéAPI sent something we can't trust to be safe or complete."""
-
-
-# Rate limiting and server-side failures are worth retrying; other errors won't fix themselves.
-RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
-
-
-class NamedResource(BaseModel):
-    name: str
-
-
-class TypeSlot(BaseModel):
-    slot: int
-    type: NamedResource
-
-
-class BaseStat(BaseModel):
-    base_stat: int
-    stat: NamedResource
-
-
-class Sprites(BaseModel):
-    front_default: str | None
-
-
-class PokeApiPokemon(BaseModel):
-    """GET /pokemon/{id}"""
-
-    id: int
-    name: str
-    is_default: bool
-    types: list[TypeSlot]
-    stats: list[BaseStat]
-    sprites: Sprites
-
-
-class ListingEntry(BaseModel):
-    name: str
-    url: str
-
-
-class PokeApiListing(BaseModel):
-    """GET /pokemon?offset=N&limit=M"""
-
-    next: str | None
-    results: list[ListingEntry]
-
-
-@dataclass
-class FetchResult:
-    pokemon: list[PokeApiPokemon] = field(default_factory=list)
-    # Every id in PokéAPI's listing, fetched or not. Only these count as still existing.
-    listed_ids: set[int] = field(default_factory=set)
-    # URLs that still failed after retrying. A failed fetch says nothing about whether the
-    # Pokémon still exists, so callers must not treat these as removed.
-    failed: list[str] = field(default_factory=list)
 
 
 class PokeApiClient:
@@ -83,9 +25,9 @@ class PokeApiClient:
         self,
         http: httpx2.AsyncClient,
         *,
-        concurrency: int = 20,
-        attempts: int = 3,
-        retry_delay: float = 0.5,
+        concurrency: int = CONCURRENT_REQUESTS,
+        attempts: int = MAX_ATTEMPTS,
+        retry_delay: float = RETRY_DELAY_SECONDS,
     ) -> None:
         self._http = http
         self._limiter = anyio.CapacityLimiter(concurrency)
@@ -156,7 +98,6 @@ class PokeApiClient:
             except httpx2.HTTPError as error:
                 if not _is_retryable(error) or attempt >= self._attempts:
                     raise
-            # Exponential backoff: 0.5s, 1s, 2s, ... between attempts.
             await anyio.sleep(self._retry_delay * 2 ** (attempt - 1))
             attempt += 1
 

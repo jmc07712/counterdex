@@ -1,4 +1,4 @@
-"""Alembic environment: migrates the database named by DATABASE_URL to match app.models."""
+"""Alembic environment: migrates the database named by DATABASE_URL to match the models."""
 
 import logging
 
@@ -6,7 +6,12 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.core.config import get_settings
-from app.models import Base
+from app.core.db import Base
+from app.pokemon.models import Pokemon
+from app.sync.models import PokemonChange, SyncRun
+
+# Importing each domain's models registers their tables on Base.metadata; list new ones here.
+MODELS = (Pokemon, PokemonChange, SyncRun)
 
 config = context.config
 target_metadata = Base.metadata

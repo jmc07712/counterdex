@@ -1,46 +1,24 @@
+"""Write a sync's records to the database and work out what changed."""
+
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, fields
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from sqlalchemy import RowMapping, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import Pokemon
-from app.sync.normalize import PokemonRecord
+from app.pokemon.models import Pokemon
+from app.sync.constants import MAX_REMOVED_SHARE, MIN_REMOVALS_ALLOWED
+from app.sync.exceptions import SuspiciousRemovalError
+from app.sync.normalize import content_hash
+from app.sync.types import Change, PokemonRecord, StoreResult
 
 # The fields a change snapshot records: everything we track except the id itself.
-SNAPSHOT_FIELDS = tuple(name for name in PokemonRecord.__dataclass_fields__ if name != "id")
+SNAPSHOT_FIELDS = tuple(f.name for f in fields(PokemonRecord) if f.name != "id")
 # Every column except the id, which identifies the row being written.
 WRITABLE_COLUMNS = tuple(column.name for column in Pokemon.__table__.columns if column.name != "id")
-# Removing more than this in one sync is far likelier to be a broken listing than a real change.
-MAX_REMOVED_SHARE = 0.05
-MIN_REMOVALS_ALLOWED = 10
-
-ChangeKind = Literal["updated", "removed", "restored"]
-
-
-class SuspiciousRemovalError(Exception):
-    """A sync would remove so many Pokémon that the listing is probably wrong."""
-
-
-@dataclass(frozen=True)
-class Change:
-    pokemon_id: int
-    kind: ChangeKind
-    before: dict[str, Any] | None
-    after: dict[str, Any] | None
-
-
-@dataclass(frozen=True)
-class StoreResult:
-    inserted: int
-    updated: int
-    unchanged: int
-    removed: int
-    restored: int
-    changes: list[Change] = field(default_factory=list)
 
 
 def store_pokemon(
@@ -72,7 +50,7 @@ def store_pokemon(
             restored += 1
             changes.append(Change(record.id, "restored", _row_snapshot(row), _snapshot(record)))
             to_write.append(record)
-        elif row["content_hash"] != record.content_hash():
+        elif row["content_hash"] != content_hash(record):
             updated += 1
             changes.append(Change(record.id, "updated", _row_snapshot(row), _snapshot(record)))
             to_write.append(record)
@@ -137,7 +115,7 @@ def _row_snapshot(row: RowMapping) -> dict[str, Any]:
 def _row(record: PokemonRecord, synced_at: datetime) -> dict[str, Any]:
     return asdict(record) | {
         "types": list(record.types),
-        "content_hash": record.content_hash(),
+        "content_hash": content_hash(record),
         "last_synced_at": synced_at,
         # A restored Pokémon is listed again.
         "removed_at": None,

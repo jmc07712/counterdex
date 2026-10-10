@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     `uv run --env-file .env ...` loads them (see .env.example).
     """
 
-    database_url: str
+    # Read from the environment only, never passed in code (init=False tells type checkers).
+    database_url: str = Field(init=False)
 
     @field_validator("database_url")
     @classmethod
