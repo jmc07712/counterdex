@@ -19,7 +19,7 @@ export function parseFormFilter(value: string | null): FormFilter | undefined {
 
 /**
  * The Pokédex filters, kept in the URL (?q=char&type=fire&forms=alternate) so a filtered view can be
- * shared or bookmarked, and the back button undoes a change.
+ * shared, bookmarked, or reloaded.
  */
 export function usePokedexFilters() {
   const [params, setParams] = useSearchParams()
