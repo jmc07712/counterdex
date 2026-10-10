@@ -1,56 +1,38 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
+import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import type { SyncOverview, SyncRunSummary } from '@/api'
-import { server } from '@/test/server'
+import { serveSyncStatus } from '@/test/handlers'
+import { termsAndDefinitions } from '@/test/queries'
+import { renderWithProviders } from '@/test/render'
 
 import { SyncIndicator } from './sync-indicator'
 
 const THREE_HOURS_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
 
-function makeRun(overrides: Partial<SyncRunSummary> = {}): SyncRunSummary {
+// The Pokédex as synced three hours ago, by a run like `run`.
+function syncedThreeHoursAgo(run: Partial<SyncRunSummary> = {}): SyncOverview {
   return {
-    status: 'succeeded',
-    started_at: THREE_HOURS_AGO,
-    finished_at: THREE_HOURS_AGO,
-    inserted: 0,
-    updated: 2,
-    removed: 1,
-    restored: 0,
-    failed: 0,
-    ...overrides,
+    last_synced_at: THREE_HOURS_AGO,
+    latest_run: {
+      status: 'succeeded',
+      started_at: THREE_HOURS_AGO,
+      finished_at: THREE_HOURS_AGO,
+      inserted: 4,
+      updated: 3,
+      removed: 2,
+      restored: 1,
+      failed: 0,
+      ...run,
+    },
   }
-}
-
-// Answers with `overview`, and reports whether the request was made.
-function serveSyncStatus(overview: SyncOverview) {
-  const served = { requested: false }
-  server.use(
-    http.get('/api/sync/status', () => {
-      served.requested = true
-      return HttpResponse.json(overview)
-    }),
-  )
-  return served
-}
-
-function renderIndicator() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <SyncIndicator />
-    </QueryClientProvider>,
-  )
 }
 
 describe('SyncIndicator', () => {
   it('says how long ago the Pokédex was synced', async () => {
-    serveSyncStatus({ last_synced_at: THREE_HOURS_AGO, latest_run: makeRun() })
+    serveSyncStatus(syncedThreeHoursAgo())
 
-    renderIndicator()
+    renderWithProviders(<SyncIndicator />)
 
     expect(
       await screen.findByRole('button', { name: 'Synced about 3 hours ago' }),
@@ -58,26 +40,28 @@ describe('SyncIndicator', () => {
   })
 
   it('opens the details of the latest sync', async () => {
-    serveSyncStatus({ last_synced_at: THREE_HOURS_AGO, latest_run: makeRun() })
-    renderIndicator()
+    serveSyncStatus(syncedThreeHoursAgo())
+    const { user } = renderWithProviders(<SyncIndicator />)
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: /Synced/ }))
+    await user.click(await screen.findByRole('button', { name: 'Synced about 3 hours ago' }))
 
     const details = await screen.findByRole('dialog')
     expect(within(details).getByText('Synced with PokéAPI about 3 hours ago.')).toBeInTheDocument()
-    expect(within(details).getByText('Updated').nextElementSibling).toHaveTextContent('2')
-    expect(within(details).getByText('Removed').nextElementSibling).toHaveTextContent('1')
     expect(within(details).getByRole('time')).toHaveAttribute('datetime', THREE_HOURS_AGO)
+    expect(termsAndDefinitions(details)).toEqual([
+      ['New', '4'],
+      ['Updated', '3'],
+      ['Removed', '2'],
+      ['Restored', '1'],
+      ['Couldn’t sync', '0'],
+    ])
   })
 
   it('flags a failed sync, and says how old the data is', async () => {
-    serveSyncStatus({
-      last_synced_at: THREE_HOURS_AGO,
-      latest_run: makeRun({ status: 'failed' }),
-    })
-    renderIndicator()
+    serveSyncStatus(syncedThreeHoursAgo({ status: 'failed' }))
+    const { user } = renderWithProviders(<SyncIndicator />)
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Last sync failed' }))
+    await user.click(await screen.findByRole('button', { name: 'Last sync failed' }))
 
     expect(
       within(await screen.findByRole('dialog')).getByText(
@@ -87,11 +71,11 @@ describe('SyncIndicator', () => {
   })
 
   it('says nothing before the first sync', async () => {
-    const served = serveSyncStatus({ last_synced_at: null, latest_run: null })
+    const requests = serveSyncStatus({ last_synced_at: null, latest_run: null })
 
-    const { container } = renderIndicator()
+    const { container } = renderWithProviders(<SyncIndicator />)
 
-    await waitFor(() => expect(served.requested).toBe(true))
+    await waitFor(() => expect(requests).toHaveLength(1))
     expect(container).toBeEmptyDOMElement()
   })
 })

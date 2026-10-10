@@ -1,39 +1,24 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { createMemoryRouter } from 'react-router'
-import { RouterProvider } from 'react-router/dom'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fireEvent, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AppShell } from '@/components/app-shell'
-
-function renderAt(path: string) {
-  const router = createMemoryRouter(
-    [{ Component: AppShell, children: [{ path: '*', element: <p>page</p> }] }],
-    { initialEntries: [path] },
-  )
-  render(<RouterProvider router={router} />)
-}
-
-function currentPageLinks() {
-  return screen.getAllByRole('link', { current: 'page' }).map((link) => link.textContent)
-}
+import { renderWithProviders } from '@/test/render'
 
 // Both the desktop header and the phone tab bar are in the DOM (CSS decides which is shown),
 // so every section appears twice.
 describe('AppShell navigation', () => {
-  it('marks only the current section as the current page', () => {
-    renderAt('/teams/42')
+  it.each([
+    ['/teams/42', 'Teams'],
+    ['/sign-in', 'Sign in'],
+  ])('at %s, marks only %s as the current page', (path, section) => {
+    renderWithProviders(<AppShell />, { path })
 
-    expect(currentPageLinks()).toEqual(['Teams', 'Teams'])
-  })
-
-  it('does not mark the Pokédex as current on other pages', () => {
-    renderAt('/sign-in')
-
-    expect(currentPageLinks()).toEqual(['Sign in', 'Sign in'])
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((link) => link.textContent)).toEqual([section, section])
   })
 
   it('links to the API docs, which open in a new tab outside the app', () => {
-    renderAt('/')
+    renderWithProviders(<AppShell />)
 
     const links = screen.getAllByRole('link', { name: 'API (opens in a new tab)' })
 
@@ -46,10 +31,9 @@ describe('AppShell navigation', () => {
 })
 
 describe('AppShell tab bar', () => {
-  afterEach(() => scrollTo(0))
-
+  // The unstubGlobals config puts the scroll position back after each test.
   function scrollTo(y: number) {
-    Object.defineProperty(window, 'scrollY', { value: y, configurable: true })
+    vi.stubGlobal('scrollY', y)
     fireEvent.scroll(window)
   }
 
@@ -59,7 +43,7 @@ describe('AppShell tab bar', () => {
   }
 
   it('gets out of the way while scrolling down and comes back on scrolling up', () => {
-    renderAt('/')
+    renderWithProviders(<AppShell />)
     expect(tabBar()).toHaveAttribute('data-state', 'shown')
 
     scrollTo(400)
@@ -71,7 +55,7 @@ describe('AppShell tab bar', () => {
   })
 
   it('stays in view near the top of the page', () => {
-    renderAt('/')
+    renderWithProviders(<AppShell />)
 
     scrollTo(40)
 

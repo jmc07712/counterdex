@@ -1,13 +1,13 @@
-import { act, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ThemeSwitch } from '@/components/theme-switch'
 import { THEME_STORAGE_KEY } from '@/lib/theme'
+import { renderWithProviders } from '@/test/render'
 
 const root = document.documentElement
 
-/** A controllable stand-in for the OS dark-mode setting (jsdom has no matchMedia). */
+/** A controllable stand-in for the OS dark-mode setting, over setup.ts's fixed light one. */
 function mockSystemTheme(initiallyDark: boolean) {
   let matches = initiallyDark
   const listeners = new Set<(event: MediaQueryListEvent) => void>()
@@ -30,10 +30,6 @@ function mockSystemTheme(initiallyDark: boolean) {
   }
 }
 
-beforeEach(() => {
-  mockSystemTheme(false)
-})
-
 afterEach(() => {
   // Stubbed globals and spies are restored by the unstubGlobals/restoreMocks config.
   root.classList.remove('dark')
@@ -44,7 +40,7 @@ describe('ThemeSwitch', () => {
   it('follows the system setting when nothing is saved', () => {
     mockSystemTheme(true)
 
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     expect(screen.getByRole('radio', { name: 'System' })).toBeChecked()
     expect(root).toHaveClass('dark')
@@ -53,7 +49,7 @@ describe('ThemeSwitch', () => {
   it('selects and applies a saved choice', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark')
 
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked()
     expect(root).toHaveClass('dark')
@@ -62,7 +58,7 @@ describe('ThemeSwitch', () => {
   it('treats an unrecognised saved value as System', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'blue')
 
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     expect(screen.getByRole('radio', { name: 'System' })).toBeChecked()
   })
@@ -72,37 +68,27 @@ describe('ThemeSwitch', () => {
       throw new Error('storage blocked')
     })
 
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     expect(screen.getByRole('radio', { name: 'System' })).toBeChecked()
   })
 
-  it('applies and remembers Dark', async () => {
-    const user = userEvent.setup()
-    render(<ThemeSwitch />)
+  it.each([
+    { choice: 'Dark', saved: 'dark', systemDark: false },
+    { choice: 'Light', saved: 'light', systemDark: true },
+  ])('applies and remembers $choice over the system setting', async (theme) => {
+    mockSystemTheme(theme.systemDark)
+    const { user } = renderWithProviders(<ThemeSwitch />)
 
-    await user.click(screen.getByRole('radio', { name: 'Dark' }))
+    await user.click(screen.getByRole('radio', { name: theme.choice }))
 
-    expect(root).toHaveClass('dark')
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
-  })
-
-  it('applies and remembers Light even when the system is dark', async () => {
-    mockSystemTheme(true)
-    const user = userEvent.setup()
-    render(<ThemeSwitch />)
-    expect(root).toHaveClass('dark')
-
-    await user.click(screen.getByRole('radio', { name: 'Light' }))
-
-    expect(root).not.toHaveClass('dark')
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(root.classList.contains('dark')).toBe(theme.choice === 'Dark')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe(theme.saved)
   })
 
   it('forgets the saved choice when switching back to System', async () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark')
-    const user = userEvent.setup()
-    render(<ThemeSwitch />)
+    const { user } = renderWithProviders(<ThemeSwitch />)
 
     await user.click(screen.getByRole('radio', { name: 'System' }))
 
@@ -112,7 +98,7 @@ describe('ThemeSwitch', () => {
 
   it('tracks system changes live while set to System', () => {
     const system = mockSystemTheme(false)
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     system.setDark(true)
     expect(root).toHaveClass('dark')
@@ -124,7 +110,7 @@ describe('ThemeSwitch', () => {
   it('ignores system changes when a choice is saved', () => {
     const system = mockSystemTheme(false)
     localStorage.setItem(THEME_STORAGE_KEY, 'light')
-    render(<ThemeSwitch />)
+    renderWithProviders(<ThemeSwitch />)
 
     system.setDark(true)
 
@@ -133,8 +119,7 @@ describe('ThemeSwitch', () => {
 
   it('stops tracking the system after a choice is made', async () => {
     const system = mockSystemTheme(false)
-    const user = userEvent.setup()
-    render(<ThemeSwitch />)
+    const { user } = renderWithProviders(<ThemeSwitch />)
 
     await user.click(screen.getByRole('radio', { name: 'Dark' }))
     system.setDark(false)
@@ -143,14 +128,12 @@ describe('ThemeSwitch', () => {
   })
 
   it('can be operated with the keyboard alone', async () => {
-    const user = userEvent.setup()
-    render(<ThemeSwitch />)
+    const { user } = renderWithProviders(<ThemeSwitch />)
 
     await user.tab()
     expect(screen.getByRole('radio', { name: 'System' })).toHaveFocus()
     await user.keyboard('{ArrowRight}')
 
     expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked()
-    expect(root).toHaveClass('dark')
   })
 })

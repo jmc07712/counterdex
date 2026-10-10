@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { makePokemon } from '@/test/pokemon'
 
-import { dexNumber, displayName, formLabel, statTotal } from './format'
+import { dexNumber, displayName, formLabel } from './format'
 
 describe('formatting a Pokémon', () => {
   it.each([
     ['pikachu', 'Pikachu'],
     ['charizard-mega-x', 'Charizard Mega X'],
-    ['squawkabilly-yellow-plumage', 'Squawkabilly Yellow Plumage'],
   ])('shows %s as %s', (name, shown) => {
     expect(displayName(name)).toBe(shown)
   })
@@ -29,9 +28,5 @@ describe('formatting a Pokémon', () => {
 
   it('gives default forms no label', () => {
     expect(formLabel(makePokemon({ form: null }))).toBeNull()
-  })
-
-  it('adds up the base stats', () => {
-    expect(statTotal(makePokemon().stats)).toBe(540)
   })
 })

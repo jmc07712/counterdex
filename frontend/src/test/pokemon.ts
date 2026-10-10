@@ -14,9 +14,13 @@ export function makePokemon(overrides: Partial<Pokemon> = {}): Pokemon {
   }
 }
 
-export function makePage(names: string[], nextCursor: number | null = null): PokemonPage {
+/**
+ * A page of Pokémon with these names, numbered on from the cursor it was asked `after`. With
+ * `more`, its last Pokémon's id is the cursor to the next page, as the API's pages are.
+ */
+export function makePage(names: string[], { after = 0, more = false } = {}): PokemonPage {
   return {
-    items: names.map((name, index) => makePokemon({ id: index + 1, name })),
-    next_cursor: nextCursor,
+    items: names.map((name, index) => makePokemon({ id: after + index + 1, name })),
+    next_cursor: more ? after + names.length : null,
   }
 }
