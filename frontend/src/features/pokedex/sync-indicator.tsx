@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
+import { Info } from 'lucide-react'
 
 import { SyncStatus, type SyncRunSummary } from '@/api'
 import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
@@ -40,6 +41,8 @@ export function SyncIndicator() {
         <Button variant="outline" size="sm" className="shrink-0 rounded-full">
           <StatusLight failed={failed} />
           {failed ? 'Last sync failed' : `Synced ${age}`}
+          {/* Says there's more to see, which a status pill alone doesn't. */}
+          <Info className="text-muted-foreground" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">
