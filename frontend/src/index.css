@@ -147,4 +147,9 @@
   h3 {
     @apply font-heading tracking-tight text-balance;
     }
+  /* Tailwind v4 no longer gives buttons a pointer cursor; restore it (from its upgrade guide). */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+    }
 }
