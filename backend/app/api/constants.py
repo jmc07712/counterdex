@@ -13,14 +13,6 @@ API_TITLE = "Counterdex API"
 # The page runs this script, so it's pinned: a new Scalar release can't change the page unseen.
 SCALAR_JS_URL = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1"
 
-# --- Pagination ---
-
-DEFAULT_PAGE_SIZE = 50
-MAX_PAGE_SIZE = 200
-# Cursors are Pokémon ids, which Postgres stores as 32-bit integers; anything larger can't match
-# a row and would fail in the database instead of being rejected as bad input.
-MAX_CURSOR = 2**31 - 1
-
 # --- Caching ---
 
 # Pokémon only change when the sync runs (about daily). Browsers reuse a response for 5 minutes

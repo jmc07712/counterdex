@@ -5,9 +5,18 @@ API serves it. Descriptions are written for API users; they appear in the docs.
 from collections.abc import Mapping
 from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
-from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES
+from app.pokemon.constants import (
+    DEFAULT_PAGE_SIZE,
+    MAX_BASE_STAT,
+    MAX_CURSOR,
+    MAX_PAGE_SIZE,
+    MAX_SEARCH_LENGTH,
+    MAX_TYPES,
+    MIN_BASE_STAT,
+    MIN_TYPES,
+)
 from app.pokemon.enums import PokemonType
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
@@ -80,3 +89,53 @@ class PokemonPage(BaseModel):
         int | None,
         Field(description="Pass as `cursor` to get the next page; `null` on the last page."),
     ]
+
+
+SearchText = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, to_lower=True, min_length=1, max_length=MAX_SEARCH_LENGTH
+    ),
+]
+
+
+class PokemonQuery(BaseModel):
+    """Which Pokémon to list, and which page. A Pokémon must match every filter given."""
+
+    model_config = ConfigDict(frozen=True, validate_by_name=True)
+
+    q: Annotated[
+        SearchText | None,
+        Field(description="Part of a name, e.g. `char` or `mega x`. Case doesn't matter."),
+    ] = None
+    types: Annotated[
+        tuple[PokemonType, ...],
+        Field(
+            alias="type",
+            max_length=MAX_TYPES,
+            description="Only Pokémon of this type. Repeat it (`type=fire&type=flying`) to "
+            "require both.",
+        ),
+    ] = ()
+    forms: Annotated[
+        bool,
+        Field(description="Include alternate forms, such as Mega Evolutions and regional forms."),
+    ] = True
+    limit: Annotated[
+        int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many Pokémon per page.")
+    ] = DEFAULT_PAGE_SIZE
+    cursor: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            le=MAX_CURSOR,
+            description="Where to continue from: the previous page's `next_cursor`. Leave it out "
+            "for the first page.",
+        ),
+    ] = None
+
+    @field_validator("q")
+    @classmethod
+    def match_stored_names(cls, q: str | None) -> str | None:
+        # Names are stored lowercase and hyphenated ("charizard-mega-x"), so "Mega X" matches.
+        return None if q is None else "-".join(q.split())

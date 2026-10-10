@@ -108,3 +108,38 @@ def test_documents_every_type_a_pokemon_can_have(client: TestClient) -> None:
         "dark",
         "fairy",
     ]
+
+
+def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) -> None:
+    db_session.add_all(
+        [
+            make_pokemon(id=6, name="charizard", types=["fire", "flying"]),
+            make_pokemon(id=146, name="moltres", types=["fire", "flying"]),
+            make_pokemon(
+                id=10034, name="charizard-mega-x", types=["fire", "dragon"], is_default=False
+            ),
+        ]
+    )
+    db_session.flush()
+
+    params = {"q": "char", "type": ["fire", "flying"], "forms": "false"}
+    page = client.get("/api/pokemon", params=params).json()
+
+    assert [pokemon["name"] for pokemon in page["items"]] == ["charizard"]
+
+
+@pytest.mark.parametrize(
+    "params",
+    [{"type": "shadow"}, {"type": ["fire", "water", "grass"]}, {"q": ""}, {"forms": "maybe"}],
+)
+def test_rejects_filters_that_cannot_match(
+    client: TestClient, params: dict[str, str | list[str]]
+) -> None:
+    assert client.get("/api/pokemon", params=params).status_code == 422
+
+
+def test_documents_each_filter(client: TestClient) -> None:
+    operation = client.get("/api/openapi.json").json()["paths"]["/api/pokemon"]["get"]
+    described = {param["name"] for param in operation["parameters"] if param.get("description")}
+
+    assert {"q", "type", "forms", "limit", "cursor"} <= described

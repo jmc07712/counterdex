@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.pokemon.enums import PokemonType
-from app.pokemon.schemas import Pokemon, Stats
+from app.pokemon.schemas import Pokemon, PokemonQuery, Stats
 
 GYARADOS = Pokemon(
     id=130,
@@ -58,3 +58,18 @@ def test_rejects_anything_but_one_or_two_types(types: list[str]) -> None:
 def test_rejects_types_that_do_not_exist() -> None:
     with pytest.raises(ValidationError, match=r"types\.1"):
         Pokemon.from_columns(GYARADOS_COLUMNS | {"types": ["water", "shadow"]})
+
+
+def test_searches_names_as_they_are_stored() -> None:
+    assert PokemonQuery(q="  Charizard Mega X ").q == "charizard-mega-x"
+
+
+@pytest.mark.parametrize("q", ["", "x" * 51])
+def test_rejects_searches_that_are_empty_or_too_long(q: str) -> None:
+    with pytest.raises(ValidationError, match="q"):
+        PokemonQuery(q=q)
+
+
+def test_rejects_more_types_than_a_pokemon_can_have() -> None:
+    with pytest.raises(ValidationError, match="type"):
+        PokemonQuery(types=(PokemonType.FIRE, PokemonType.WATER, PokemonType.GRASS))

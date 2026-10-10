@@ -5,23 +5,32 @@ from app.pokemon import models, schemas
 from app.pokemon.constants import CDN_SPRITES_URL, GITHUB_SPRITES_URL
 
 
-def list_pokemon(session: Session, *, limit: int, cursor: int | None = None) -> schemas.PokemonPage:
-    """One page of the Pokémon PokéAPI still lists, by Pokédex number, after the cursor's id."""
-    query = (
+def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
+    """One page of the matching Pokémon PokéAPI still lists, by Pokédex number, after the cursor."""
+    statement = (
         select(models.Pokemon.__table__)
         .where(models.Pokemon.removed_at.is_(None))
         .order_by(models.Pokemon.id)
     )
-    if cursor is not None:
-        query = query.where(models.Pokemon.id > cursor)
+    if query.cursor is not None:
+        statement = statement.where(models.Pokemon.id > query.cursor)
+    if query.q is not None:
+        # Escaped, so a % or _ in the search matches itself rather than acting as a wildcard.
+        statement = statement.where(models.Pokemon.name.icontains(query.q, autoescape=True))
+    if query.types:
+        # Postgres's @> (contains): the Pokémon has every requested type.
+        types = [type_.value for type_ in query.types]
+        statement = statement.where(models.Pokemon.types.contains(types))
+    if not query.forms:
+        statement = statement.where(models.Pokemon.is_default.is_(True))
     # One extra row shows whether another page follows, without counting the rest.
-    rows = session.execute(query.limit(limit + 1)).mappings().all()
+    rows = session.execute(statement.limit(query.limit + 1)).mappings().all()
 
     items = [
         schemas.Pokemon.from_columns({**row, "sprite_url": cdn_sprite_url(row["sprite_url"])})
-        for row in rows[:limit]
+        for row in rows[: query.limit]
     ]
-    next_cursor = items[-1].id if len(rows) > limit else None
+    next_cursor = items[-1].id if len(rows) > query.limit else None
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
 
 
