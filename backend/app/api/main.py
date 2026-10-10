@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from app.api.constants import API_PREFIX, API_TITLE, OPENAPI_URL
+from app.api.cross_origin import CrossOriginProtection
 from app.api.routes import accounts, docs, health, pokemon, sync
 
 
@@ -18,6 +19,8 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
 )
+
+app.add_middleware(CrossOriginProtection)
 
 app.include_router(docs.router)
 app.include_router(health.router, prefix=API_PREFIX)
