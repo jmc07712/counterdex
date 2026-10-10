@@ -13,15 +13,22 @@ class Settings(BaseSettings):
 
     # Read from the environment only, never passed in code (init=False tells type checkers).
     database_url: str = Field(init=False)
+    # Neon's direct URL, set alongside database_url, which goes through its PgBouncer pooler.
+    database_url_unpooled: str | None = Field(default=None, init=False)
 
-    @field_validator("database_url")
+    @field_validator("database_url", "database_url_unpooled")
     @classmethod
-    def use_psycopg_driver(cls, url: str) -> str:
+    def use_psycopg_driver(cls, url: str | None) -> str | None:
         # Neon and Vercel provide postgres:// URLs; SQLAlchemy needs the driver in the scheme.
         for prefix in ("postgres://", "postgresql://"):
-            if url.startswith(prefix):
+            if url is not None and url.startswith(prefix):
                 return "postgresql+psycopg://" + url.removeprefix(prefix)
         return url
+
+    @property
+    def migration_database_url(self) -> str:
+        """Migrations skip the pooler when there is one: schema changes need a real session."""
+        return self.database_url_unpooled or self.database_url
 
 
 @lru_cache

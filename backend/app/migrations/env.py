@@ -1,4 +1,7 @@
-"""Alembic environment: migrates the database named by DATABASE_URL to match the models."""
+"""Alembic environment: migrates the database to match the models.
+
+Connects directly (DATABASE_URL_UNPOOLED) when there's a pooler in front, else DATABASE_URL.
+"""
 
 import logging
 
@@ -15,7 +18,7 @@ MODELS = (Pokemon, PokemonChange, SyncRun)
 
 config = context.config
 target_metadata = Base.metadata
-database_url = get_settings().database_url
+database_url = get_settings().migration_database_url
 
 if config.cmd_opts is not None:
     # Running from the alembic CLI: show which migrations run. Tests keep their own logging.
