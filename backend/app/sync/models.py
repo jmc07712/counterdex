@@ -44,6 +44,7 @@ class PokemonChange(Base):
     sync_run_id: Mapped[int] = mapped_column(ForeignKey("sync_runs.id"))
     detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     kind: Mapped[ChangeKind] = mapped_column(text_enum(ChangeKind, check_name="known_kind"))
-    # Snapshots of the tracked fields. A removal has no `after`.
-    before: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    after: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    # Snapshots of the tracked fields. A removal has no `after`, stored as SQL NULL (not JSON's
+    # null) so queries such as `after is null` find it.
+    before: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    after: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))

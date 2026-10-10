@@ -56,3 +56,17 @@ def test_reads_status_and_kind_back_as_enums(
 
     assert (run.status, stored_change.kind) == (SyncStatus.SUCCEEDED, ChangeKind.REMOVED)
     assert (type(run.status), type(stored_change.kind)) == (SyncStatus, ChangeKind)
+
+
+def test_stores_a_missing_snapshot_as_sql_null(
+    db_session: Session, run: SyncRun, gyarados: Pokemon
+) -> None:
+    removal = change(run, gyarados.id, kind=ChangeKind.REMOVED)
+    removal.before, removal.after = {"name": "gyarados"}, None
+    db_session.add(removal)
+    db_session.flush()
+
+    # JSON's null would slip past queries such as "removals: changes with no after".
+    found = db_session.scalars(select(PokemonChange).where(PokemonChange.after.is_(None))).all()
+
+    assert found == [removal]
