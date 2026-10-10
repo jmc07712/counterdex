@@ -2,13 +2,13 @@ import { format } from 'date-fns'
 
 import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
 import { displayName, formLabel, STAT_LABELS, STATS } from '@/components/pokemon/format'
-import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
-// What each kind of change means. A Record, so a kind the API adds needs a label.
-const KIND_LABELS: Record<ChangeKind, string> = {
-  updated: 'Updated',
-  removed: 'Removed from PokéAPI',
-  restored: 'Back in PokéAPI',
+// How each kind of change shows. A Record, so a kind the API adds needs one.
+const KINDS: Record<ChangeKind, { label: string; dot: string }> = {
+  updated: { label: 'Updated', dot: 'bg-primary' },
+  removed: { label: 'Removed from PokéAPI', dot: 'bg-destructive' },
+  restored: { label: 'Back in PokéAPI', dot: 'bg-led-green' },
 }
 
 type Field = {
@@ -36,13 +36,19 @@ export function ChangeHistory({ changes }: { changes: PokemonChange[] }) {
     return <p className="text-sm text-muted-foreground">No changes since it joined the Pokédex.</p>
   }
   return (
-    <ol aria-label="Changes" className="flex flex-col gap-3">
+    // A timeline: a line down the left, with a dot in each change's color.
+    <ol aria-label="Changes" className="ml-1.5 flex flex-col gap-4 border-l-2 pl-5">
       {changes.map((change) => (
-        <li key={`${change.detected_at}-${change.kind}`} className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <Badge variant={change.kind === 'removed' ? 'destructive' : 'secondary'}>
-              {KIND_LABELS[change.kind]}
-            </Badge>
+        <li key={`${change.detected_at}-${change.kind}`} className="relative flex flex-col gap-1.5">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'absolute top-1.5 -left-[27px] size-3 rounded-full ring-4 ring-popover',
+              KINDS[change.kind].dot,
+            )}
+          />
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-semibold">{KINDS[change.kind].label}</span>
             <time dateTime={change.detected_at} className="text-xs text-muted-foreground">
               {format(new Date(change.detected_at), 'PP')}
             </time>
