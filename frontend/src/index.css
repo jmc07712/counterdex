@@ -137,6 +137,10 @@
     }
   html {
     @apply font-sans;
+    color-scheme: light;
+    }
+  html.dark {
+    color-scheme: dark;
     }
   h1,
   h2,

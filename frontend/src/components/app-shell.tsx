@@ -2,6 +2,7 @@ import { CircleUserRound, LayoutGrid, type LucideIcon, UsersRound } from 'lucide
 import { NavLink, Outlet } from 'react-router'
 
 import { BrandMark } from '@/components/brand-mark'
+import { ThemeSwitch } from '@/components/theme-switch'
 import { cn } from '@/lib/utils'
 
 type NavItem = {
@@ -39,8 +40,11 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="ml-auto hidden h-full items-stretch md:flex">
-            <HeaderLink item={accountNav} />
+          <div className="ml-auto flex h-full items-center gap-4">
+            <ThemeSwitch />
+            <div className="hidden h-full items-stretch md:flex">
+              <HeaderLink item={accountNav} />
+            </div>
           </div>
         </div>
       </header>
