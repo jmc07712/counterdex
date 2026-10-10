@@ -14,7 +14,7 @@ from app.sync.constants import (
     RETRYABLE_STATUS_CODES,
 )
 from app.sync.exceptions import PokeApiError
-from app.sync.schemas import PokeApiListing, PokeApiPokemon
+from app.sync.pokeapi import PokeApiListing, PokeApiPokemon
 from app.sync.types import FetchResult
 
 logger = logging.getLogger(__name__)

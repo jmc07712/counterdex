@@ -7,7 +7,7 @@ from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import STAT_NAMES, Pokemon, Stats
 from app.sync.constants import POKEAPI_STAT_NAMES
 from app.sync.normalize import content_hash, normalize
-from app.sync.schemas import PokeApiPokemon
+from app.sync.pokeapi import PokeApiPokemon
 from tests.support.pokeapi import pokemon_response
 from tests.support.pokemon import with_columns
 

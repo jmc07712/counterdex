@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from app.pokemon.schemas import Pokemon
 from app.sync.constants import POKEAPI_STAT_NAMES
-from app.sync.schemas import PokeApiPokemon
+from app.sync.pokeapi import PokeApiPokemon
 
 
 def normalize(raw: PokeApiPokemon) -> Pokemon:

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from app.sync.enums import ChangeKind
-from app.sync.schemas import PokeApiPokemon
+from app.sync.pokeapi import PokeApiPokemon
 
 Clock = Callable[[], datetime]
 
