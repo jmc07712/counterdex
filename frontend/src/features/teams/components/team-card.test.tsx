@@ -13,13 +13,20 @@ describe('TeamCard', () => {
 
     renderWithProviders(<TeamCard to="/teams/1" name="Sky" members={members} />)
 
-    const types = screen.getByRole('list', { name: 'Types' })
-    expect(within(types).getAllByRole('listitem').map((type) => type.textContent)).toEqual([
-      'Fire',
-      'Flying',
-      'Water',
-      'Dragon',
-    ])
+    // Decoration, like the tiles: the link's name reads the types instead.
+    const types = screen.getByRole('list', { name: 'Types', hidden: true })
+    const badges = within(types).getAllByRole('listitem', { hidden: true })
+    expect(badges.map((type) => type.textContent)).toEqual(['Fire', 'Flying', 'Water', 'Dragon'])
+  })
+
+  it('names its link with the team’s name, size, types and power', () => {
+    const members = [catalog.charizard, catalog.vaporeon, catalog.dragonite].map(asMember)
+
+    renderWithProviders(<TeamCard to="/teams/1" name="Sky" members={members} note="by ash" />)
+
+    expect(screen.getByRole('link')).toHaveAccessibleName(
+      'Sky 3 of 6 by ash Types: Fire, Flying, Water, Dragon 1,620',
+    )
   })
 
   it('fills its power’s bar for a team past the most it measures against', () => {
@@ -39,6 +46,7 @@ describe('TeamCard', () => {
   it('shows no types for a team with no Pokémon', () => {
     renderWithProviders(<TeamCard to="/teams/1" name="Empty" members={[]} />)
 
-    expect(screen.queryByRole('list', { name: 'Types' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Types', hidden: true })).not.toBeInTheDocument()
+    expect(screen.getByRole('link')).toHaveAccessibleName('Empty 0 of 6 0')
   })
 })

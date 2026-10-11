@@ -5,7 +5,7 @@ import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { displayName } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatList } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -72,7 +72,18 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
             ]
           : [],
       )}
-      {types.length > 0 && <TypeBadges types={types} />}
+      {types.length > 0 && (
+        <>
+          <p className="sr-only">
+            {m.team_types({ types: formatList(types.map((type) => m.pokemon_type({ type }))) })}
+          </p>
+          {/* Hidden like the tiles: a list's label would stand in for its types in the link's
+              name, so the line above names them. */}
+          <div aria-hidden="true">
+            <TypeBadges types={types} />
+          </div>
+        </>
+      )}
       {/* At the card's bottom, level with the power bars of the other cards in its row. */}
       <TeamPower members={members} className="mt-auto" />
     </Link>
