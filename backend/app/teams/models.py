@@ -30,6 +30,8 @@ class Team(Base):
         ),
         # A user's teams, listed most recently changed first.
         Index("ix_teams_user_id_updated_at", "user_id", "updated_at"),
+        # Everyone's teams, listed newest first, a page at a time.
+        Index("ix_teams_created_at_id", "created_at", "id"),
     )
 
     # Chosen by the client, so a create that's sent twice makes one team.
