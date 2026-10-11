@@ -1,4 +1,6 @@
-import { Plus, Replace } from 'lucide-react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, Plus, Replace } from 'lucide-react'
 import {
   type ComponentProps,
   createContext,
@@ -159,9 +161,54 @@ type TeamSlotProps = {
  * number above its name, its base stat total below its types, and its base stats beside them.
  */
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
-  const headingId = useId()
   return (
     <MemberPanel member={member} className={cn(ROW, '@container rounded-2xl')}>
+      <SlotRow member={member} onOpen={onOpen}>
+        {children}
+      </SlotRow>
+    </MemberPanel>
+  )
+}
+
+/**
+ * A TeamSlot, inside SortableMembers, that can be dragged to another member's slot: by any part
+ * of it, or with the keyboard from the handle at its start.
+ */
+export function SortableTeamSlot({ member, onOpen, children }: TeamSlotProps) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: member.pokemon.id, attributes: { roleDescription: m.team_move_handle() } })
+  return (
+    <MemberPanel
+      ref={setNodeRef}
+      member={member}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={cn(ROW, '@container gap-2 rounded-2xl pl-1', isDragging && 'z-10 shadow-xl')}
+      {...listeners}
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        {...attributes}
+        aria-label={m.team_move({ name: displayName(member.pokemon.name) })}
+        // Over the open button, so it can be pressed on its own. A finger on it drags the slot
+        // rather than scrolling the page. On touch screens it takes touches 44px wide, from the
+        // slot's edge.
+        className="relative z-10 grid h-12 w-6 shrink-0 cursor-grab touch-none place-items-center rounded-lg transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current active:cursor-grabbing pointer-coarse:after:absolute pointer-coarse:after:inset-y-0 pointer-coarse:after:-right-4 pointer-coarse:after:-left-1 [&_svg]:size-4"
+      >
+        <GripVertical aria-hidden="true" />
+      </button>
+      <SlotRow member={member} onOpen={onOpen}>
+        {children}
+      </SlotRow>
+    </MemberPanel>
+  )
+}
+
+// What a TeamSlot's row holds, after anything at its start.
+function SlotRow({ member, onOpen, children }: TeamSlotProps) {
+  const headingId = useId()
+  return (
+    <>
       <SlotNumber slot={member.position} />
       <PanelSprite member={member} className="size-12 @min-[34rem]:size-16" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
@@ -188,7 +235,7 @@ export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
       {onOpen && <OpenButton labelledBy={headingId} onOpen={onOpen} />}
       {/* Over the open button, so it can be pressed on its own. */}
       {children && <div className="relative z-10 flex shrink-0 items-center">{children}</div>}
-    </MemberPanel>
+    </>
   )
 }
 
@@ -271,18 +318,20 @@ function EmptySlot({ slot, to }: { slot: number; to?: string }) {
   )
 }
 
-type MemberPanelProps = { member: TeamMember; className: string; children: ReactNode }
+type MemberPanelProps = { member: TeamMember } & ComponentProps<'li'>
 
 // A member's slot, painted in its main type, or neutral once it's no longer in the Pokédex.
-function MemberPanel({ member, className, children }: MemberPanelProps) {
+function MemberPanel({ member, style, className, children, ...props }: MemberPanelProps) {
   const colors = memberColors(member)
   const delay = useEnterDelay(member.position)
   return (
     <li
+      {...props}
       style={{
         backgroundColor: colors?.background,
         color: colors?.foreground,
         animationDelay: `${delay}ms`,
+        ...style,
       }}
       className={cn(
         'group/hop relative isolate overflow-hidden',

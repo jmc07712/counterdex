@@ -5,11 +5,13 @@ import type { TeamMember } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { m } from '@/paraglide/messages.js'
 
+import { useDroppedOrder } from '../hooks/use-dropped-order'
 import type { TeamEditor } from '../types'
 import { ChangedThisWeekAlert } from './changed-this-week'
 import { ReplaceBanner } from './replace-banner'
+import { SortableMembers } from './sortable-members'
 import { TeamNameField } from './team-name-field'
-import { EmptySlots, SlotButton, TeamSlot, TeamSlots } from './team-slots'
+import { EmptySlots, SlotButton, SortableTeamSlot, TeamSlots } from './team-slots'
 
 type TeamBuilderProps = {
   editor: TeamEditor
@@ -25,8 +27,9 @@ type TeamBuilderProps = {
 }
 
 /**
- * A team's name, edited in place, and its six slots, each member with a button to remove it. While
- * a member is being replaced, a box above the slots says so.
+ * A team's name, edited in place, and its six slots, each member with a button to remove it and a
+ * handle to drag it to another member's slot. While a member is being replaced, a box above the
+ * slots says so.
  */
 export function TeamBuilder({
   editor,
@@ -37,7 +40,13 @@ export function TeamBuilder({
   onCancelReplacing,
 }: TeamBuilderProps) {
   const { team } = editor
+  const [ordered, showOrder] = useDroppedOrder(team)
   const slots = useRef<HTMLOListElement>(null)
+
+  function reorder(pokemonIds: number[]) {
+    showOrder(pokemonIds)
+    void editor.reorder(pokemonIds)
+  }
 
   function cancelReplacing() {
     onCancelReplacing()
@@ -58,23 +67,25 @@ export function TeamBuilder({
       {replacing && (
         <ReplaceBanner member={replacing} onCancel={cancelReplacing} className="mb-3" />
       )}
-      <TeamSlots ref={slots}>
-        {team.members.map((member) => (
-          <TeamSlot
-            key={member.pokemon.id}
-            member={member}
-            onOpen={() => onOpenPokemon(member.pokemon.id)}
-          >
-            <SlotButton
-              aria-label={m.team_remove({ name: displayName(member.pokemon.name) })}
-              onClick={() => void editor.remove(member.pokemon.id)}
+      <SortableMembers members={ordered.members} onReorder={reorder}>
+        <TeamSlots ref={slots}>
+          {ordered.members.map((member) => (
+            <SortableTeamSlot
+              key={member.pokemon.id}
+              member={member}
+              onOpen={() => onOpenPokemon(member.pokemon.id)}
             >
-              <X />
-            </SlotButton>
-          </TeamSlot>
-        ))}
-        <EmptySlots filled={team.members.length} />
-      </TeamSlots>
+              <SlotButton
+                aria-label={m.team_remove({ name: displayName(member.pokemon.name) })}
+                onClick={() => void editor.remove(member.pokemon.id)}
+              >
+                <X />
+              </SlotButton>
+            </SortableTeamSlot>
+          ))}
+          <EmptySlots filled={ordered.members.length} />
+        </TeamSlots>
+      </SortableMembers>
     </div>
   )
 }
