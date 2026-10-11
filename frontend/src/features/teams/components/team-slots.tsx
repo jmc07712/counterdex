@@ -62,7 +62,7 @@ export function LeadSlot({ member, onOpen, children }: LeadSlotProps) {
   const headingId = useId()
   return (
     <MemberPanel member={member} className="flex flex-col gap-3 rounded-3xl p-5 md:p-6">
-      <div className="flex min-h-8 items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <p className="rounded-full border border-current px-2.5 py-0.5 text-xs font-bold">
           {m.team_lead()}
         </p>
