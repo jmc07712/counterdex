@@ -20,6 +20,7 @@ from sqlalchemy import (
     exists,
     func,
     insert,
+    or_,
     select,
     text,
     tuple_,
@@ -31,6 +32,7 @@ from sqlalchemy.orm import Session, aliased
 from app.accounts import models as accounts_models
 from app.pokemon import models as pokemon_models
 from app.pokemon.queries import pokemon_from_columns
+from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
 from app.teams.constants import MAX_TEAM_SIZE
 from app.teams.enums import TeamConflictReason
@@ -56,13 +58,31 @@ TeamWithOwner = Row[models.Team, str]
 def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     """One page of everyone's teams that have a Pokémon, newest first, after the cursor's team.
 
-    A cursor that no team has gives an empty page.
+    With a search, only the teams whose name, owner's username or a Pokémon's name contains it,
+    whatever the case. As in the Pokédex, a Pokémon's name is searched for the words joined by
+    hyphens: "mega x" finds charizard-mega-x. A cursor that no team has gives an empty page.
     """
     statement = (
         _with_owners()
         .where(exists().where(models.TeamMember.team_id == models.Team.id))
         .order_by(models.Team.created_at.desc(), models.Team.id.desc())
     )
+    if query.q is not None:
+        # Escaped, so a % or _ in the search matches itself rather than acting as a wildcard.
+        # A Pokémon is matched in a subquery, so a team with several matches is listed once.
+        # A Pokémon's name is searched as it's stored, with hyphens; the others as typed.
+        pokemon_on_team = exists().where(
+            models.TeamMember.team_id == models.Team.id,
+            models.TeamMember.pokemon_id == pokemon_models.Pokemon.id,
+            pokemon_models.Pokemon.name.icontains(as_stored_name(query.q), autoescape=True),
+        )
+        statement = statement.where(
+            or_(
+                models.Team.name.icontains(query.q, autoescape=True),
+                accounts_models.User.username.icontains(query.q, autoescape=True),
+                pokemon_on_team,
+            )
+        )
     if query.cursor is not None:
         # A row subquery, so Postgres can start scanning the (created_at, id) index at the
         # cursor's team. A cursor that no team has makes it null, which no row is less than.

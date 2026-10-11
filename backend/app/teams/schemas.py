@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
 from app.pokemon.constants import MAX_POKEMON_ID
-from app.pokemon.schemas import Pokemon
+from app.pokemon.schemas import Pokemon, SearchText
 from app.teams.constants import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
@@ -86,10 +86,17 @@ class TeamPreviewQuery(BaseModel):
 
 
 class TeamsQuery(BaseModel):
-    """Which page of everyone's teams to list."""
+    """Which of everyone's teams to list, and which page."""
 
     model_config = ConfigDict(frozen=True)
 
+    q: Annotated[
+        SearchText | None,
+        Field(
+            description="Part of a team's name, its owner's username or the name of a Pokémon on "
+            "it, e.g. `rain` or `char`. Case doesn't matter."
+        ),
+    ] = None
     limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
         DEFAULT_PAGE_SIZE
     )

@@ -38,6 +38,13 @@ def add_eevee_family(session: Session) -> None:
     add_species(session, 135, family=67, evolves_from=133, pokemon_ids=[135], name="jolteon")
 
 
+def add_mr_mime(session: Session) -> None:
+    """Mr. Mime (122), whose name has a hyphen, the only Pokémon of its own species and family."""
+    session.add(make_pokemon(id=122, name="mr-mime", types=["psychic", "fairy"]))
+    session.flush()
+    add_species(session, 122, family=52, pokemon_ids=[122], name="mr-mime")
+
+
 def make_team(session: Session, user_id: int, *pokemon_ids: int, name: str = "Team 1") -> Team:
     """Creates a team for the user with these Pokémon, in this order."""
     team, _ = service.create_team(

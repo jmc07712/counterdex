@@ -290,6 +290,13 @@ SearchText = Annotated[
 ]
 
 
+def as_stored_name(search: str) -> str:
+    """Search text as Pokémon names are stored: lowercase and hyphenated ("charizard-mega-x"),
+    so "Mega X" matches. The text must be lowercase already, as SearchText makes it.
+    """
+    return "-".join(search.split())
+
+
 class PokemonQuery(BaseModel):
     """Which Pokémon to list, and which page. A Pokémon must match every filter given."""
 
@@ -345,5 +352,4 @@ class PokemonQuery(BaseModel):
     @field_validator("q")
     @classmethod
     def match_stored_names(cls, q: str | None) -> str | None:
-        # Names are stored lowercase and hyphenated ("charizard-mega-x"), so "Mega X" matches.
-        return None if q is None else "-".join(q.split())
+        return None if q is None else as_stored_name(q)

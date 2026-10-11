@@ -1,9 +1,11 @@
 import uuid
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
+from app.accounts import service as accounts
 from app.accounts.types import SignedIn
 from app.pokemon.models import Pokemon
 from app.teams import service
@@ -16,8 +18,16 @@ from app.teams.exceptions import (
     UnknownPokemonError,
     UserNotFoundError,
 )
-from app.teams.schemas import NewTeam, TeamOwner
-from tests.support.teams import add_eevee_family, add_species_pokemon, make_team, member_ids
+from app.teams.schemas import NewTeam, TeamOwner, TeamPage, TeamsQuery
+from tests.support.accounts import BROCK
+from tests.support.teams import (
+    add_eevee_family,
+    add_mr_mime,
+    add_species_pokemon,
+    backdate,
+    make_team,
+    member_ids,
+)
 
 TEAM_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
 
@@ -144,6 +154,172 @@ def test_a_team_no_one_has_isnt_found(db_session: Session) -> None:
 
 def test_a_team_shows_its_owners_username(db_session: Session, ash: SignedIn) -> None:
     assert make_team(db_session, ash.user.id).owner == TeamOwner(username="ash")
+
+
+# --- Searching everyone's teams ---
+
+
+def team_names(page: TeamPage) -> list[str]:
+    return [team.name for team in page.items]
+
+
+def add_teams_to_search(session: Session, ash: SignedIn) -> None:
+    """Ash's "Rain Dance" team and Brock's "Sun" team, each with Pokémon 201, and Ash's "Fire"
+    team, with Charmander. Needs the charmander_family fixture.
+    """
+    brock = accounts.sign_up(session, BROCK)
+    add_species_pokemon(session, 201)
+    make_team(session, ash.user.id, 201, name="Rain Dance")
+    make_team(session, brock.user.id, 201, name="Sun")
+    make_team(session, ash.user.id, 4, name="Fire")
+
+
+@pytest.mark.parametrize(
+    ("q", "found"),
+    [
+        pytest.param("dance", ["Rain Dance"], id="team-name"),
+        pytest.param("rain dance", ["Rain Dance"], id="team-name-with-a-space"),
+        pytest.param("rock", ["Sun"], id="owner-username"),
+        pytest.param("charm", ["Fire"], id="pokemon-name"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_a_search_matches_a_teams_name_its_owner_or_a_pokemon_on_it(
+    db_session: Session, ash: SignedIn, q: str, found: list[str]
+) -> None:
+    add_teams_to_search(db_session, ash)
+
+    page = service.list_teams(db_session, TeamsQuery(q=q))
+
+    assert (team_names(page), page.next_cursor) == (found, None)
+
+
+@pytest.mark.parametrize(
+    ("q", "found"),
+    [
+        pytest.param("mr mime", ["Psychic"], id="mr-mime"),
+        pytest.param("mega x", ["Zard"], id="charizard-mega-x"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_a_search_with_spaces_matches_a_pokemons_hyphenated_name(
+    db_session: Session, ash: SignedIn, q: str, found: list[str]
+) -> None:
+    add_mr_mime(db_session)
+    make_team(db_session, ash.user.id, 122, name="Psychic")
+    make_team(db_session, ash.user.id, 10034, name="Zard")
+    make_team(db_session, ash.user.id, 4, name="Fire")
+
+    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+
+
+@pytest.mark.parametrize(
+    ("q", "found"),
+    [
+        pytest.param("DANCE", ["Rain Dance"], id="team-name"),
+        pytest.param("BROCK", ["Sun"], id="owner-username"),
+        pytest.param("CHARM", ["Fire"], id="pokemon-name"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_a_search_ignores_case(
+    db_session: Session, ash: SignedIn, q: str, found: list[str]
+) -> None:
+    add_teams_to_search(db_session, ash)
+
+    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+
+
+@pytest.mark.parametrize(
+    ("q", "found"),
+    [
+        pytest.param("%", ["100% sure"], id="percent"),
+        pytest.param("_", ["fire_team"], id="underscore"),
+    ],
+)
+def test_wildcards_in_a_search_match_themselves(
+    db_session: Session, ash: SignedIn, q: str, found: list[str]
+) -> None:
+    add_species_pokemon(db_session, 201)
+    for name in ["100% sure", "fire_team", "plain"]:
+        make_team(db_session, ash.user.id, 201, name=name)
+
+    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_team_with_two_matching_pokemon_is_found_once(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201, 202)
+    make_team(db_session, ash.user.id, 201, 202, name="Pair")
+    make_team(db_session, ash.user.id, 4, name="Other")
+
+    page = service.list_teams(db_session, TeamsQuery(q="pokemon-20"))
+
+    assert (team_names(page), page.next_cursor) == (["Pair"], None)
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_search_nothing_matches_gives_an_empty_page(db_session: Session, ash: SignedIn) -> None:
+    add_teams_to_search(db_session, ash)
+
+    page = service.list_teams(db_session, TeamsQuery(q="squirtle"))
+
+    assert page == TeamPage(items=[], next_cursor=None)
+
+
+@pytest.mark.parametrize(
+    ("q", "found"),
+    [
+        pytest.param("rain", ["Rain full"], id="name-matches"),
+        pytest.param("ash", [], id="owner-matches"),
+    ],
+)
+def test_a_search_never_finds_a_team_with_no_pokemon(
+    db_session: Session, ash: SignedIn, misty: SignedIn, q: str, found: list[str]
+) -> None:
+    add_species_pokemon(db_session, 201)
+    make_team(db_session, ash.user.id, name="Rain empty")
+    make_team(db_session, misty.user.id, 201, name="Rain full")
+    make_team(db_session, misty.user.id, 201, name="Sun")
+
+    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+
+
+def test_pages_through_a_search_without_repeating_or_skipping_a_team(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    # Fire teams at 1, 3, 5, 7 and 9 hours old, with other teams between them.
+    for hours in range(1, 10):
+        name = f"Fire {hours}h" if hours % 2 else f"Water {hours}h"
+        team = make_team(db_session, ash.user.id, 201, name=name)
+        backdate(db_session, team.id, timedelta(hours=hours))
+
+    first = service.list_teams(db_session, TeamsQuery(q="fire", limit=2))
+    second = service.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=first.next_cursor))
+    third = service.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=second.next_cursor))
+
+    assert [team_names(page) for page in (first, second, third)] == [
+        ["Fire 1h", "Fire 3h"],
+        ["Fire 5h", "Fire 7h"],
+        ["Fire 9h"],
+    ]
+    assert (first.next_cursor, second.next_cursor, third.next_cursor) == (
+        first.items[-1].id,
+        second.items[-1].id,
+        None,
+    )
+
+
+def test_a_search_with_a_cursor_no_team_has_gives_an_empty_page(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    make_team(db_session, ash.user.id, 201, name="Rain")
+
+    page = service.list_teams(db_session, TeamsQuery(q="rain", cursor=TEAM_ID))
+
+    assert page == TeamPage(items=[], next_cursor=None)
 
 
 # --- Locking a team to change it ---

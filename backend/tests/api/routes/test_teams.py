@@ -402,6 +402,53 @@ def test_a_cursor_no_team_has_gives_an_empty_page(
     assert (response.status_code, response.json()) == (200, {"items": [], "next_cursor": None})
 
 
+@pytest.mark.usefixtures("charmander_family")
+def test_searches_everyones_teams(
+    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    make_team(db_session, ash.user.id, 4, name="Rain dance")
+    make_team(db_session, misty.user.id, 5, name="Sun")
+
+    by_name = client.get("/api/teams", params={"q": "Rain"}).json()
+    by_owner = client.get("/api/teams", params={"q": "misty"}).json()
+    by_pokemon = client.get("/api/teams", params={"q": "charmel"}).json()
+
+    assert [
+        [team["name"] for team in page["items"]] for page in (by_name, by_owner, by_pokemon)
+    ] == [
+        ["Rain dance"],
+        ["Sun"],
+        ["Sun"],
+    ]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_pages_through_a_search(client: TestClient, db_session: Session, ash: SignedIn) -> None:
+    for hours, name in enumerate(["Fire 1", "Water 2", "Fire 3", "Water 4", "Fire 5"], start=1):
+        team = make_team(db_session, ash.user.id, 4, name=name)
+        backdate(db_session, team.id, timedelta(hours=hours))
+
+    first = client.get("/api/teams", params={"q": "fire", "limit": 2}).json()
+    second = client.get(
+        "/api/teams", params={"q": "fire", "limit": 2, "cursor": first["next_cursor"]}
+    ).json()
+
+    assert [team["name"] for team in first["items"] + second["items"]] == [
+        "Fire 1",
+        "Fire 3",
+        "Fire 5",
+    ]
+    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
+
+
+def test_documents_what_a_search_matches(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/teams"]["get"]
+    search = next(param for param in operation["parameters"] if param["name"] == "q")
+
+    assert "username" in search["description"]
+    assert "Pokémon" in search["description"]
+
+
 @pytest.mark.parametrize("limit", [1, 60])
 def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None:
     assert client.get("/api/teams", params={"limit": limit}).status_code == 200
@@ -413,6 +460,9 @@ def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None
         pytest.param({"limit": 0}, id="limit-0"),
         pytest.param({"limit": 61}, id="limit-61"),
         pytest.param({"cursor": "6"}, id="cursor-not-a-uuid"),
+        pytest.param({"q": ""}, id="q-empty"),
+        pytest.param({"q": "   "}, id="q-blank"),
+        pytest.param({"q": "x" * 51}, id="q-too-long"),
     ],
 )
 def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:

@@ -1200,6 +1200,12 @@ export type ListTeamsData = {
     path?: never;
     query?: {
         /**
+         * Q
+         *
+         * Part of a team's name, its owner's username or the name of a Pokémon on it, e.g. `rain` or `char`. Case doesn't matter.
+         */
+        q?: string | null;
+        /**
          * Limit
          *
          * How many teams per page.
