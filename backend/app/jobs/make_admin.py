@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def main(argv: Sequence[str], sessions: Callable[[], Session]) -> int:
     """Run the job with these command-line arguments; return the process exit code.
 
-    Making an admin who is one already, or taking admin from someone who isn't, changes nothing.
+    Running it again with the same arguments changes nothing more.
     """
     parser = argparse.ArgumentParser(
         prog="python -m app.jobs.make_admin", description="Make a user an admin, or take that away."
