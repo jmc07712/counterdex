@@ -1,8 +1,8 @@
 """Teams and the Pokémon on them.
 
-Anyone can see a team; only its owner can change it. Every change locks the team's row first, so
-changes to one team happen one at a time and each sees the result of the one before. Nothing here
-commits: the caller owns the transaction.
+Anyone can see a team; only its owner can change it. Every change takes a team that lock_owned_team
+has locked, so changes to one team happen one at a time and each sees the result of the one before.
+Nothing here commits: the caller owns the transaction.
 """
 
 import uuid
@@ -154,34 +154,50 @@ def create_team(
     return _shown_one(session, team), True
 
 
-def rename_team(session: Session, user_id: int, team_id: uuid.UUID, name: str) -> schemas.Team:
-    """Renames the user's team. Raises as _locked does."""
-    team = _locked(session, user_id, team_id)
+def lock_owned_team(session: Session, user_id: int, team_id: uuid.UUID) -> models.Team:
+    """The user's team, its row locked until the transaction ends: other changes to the team
+    wait for this one. Raises TeamNotFoundError if no team has this id, or NotTeamOwnerError if
+    the team is someone else's.
+    """
+    team = session.scalars(
+        select(models.Team)
+        .where(models.Team.id == team_id)
+        .with_for_update()
+        # Reloaded, so the lock's read replaces anything the session read before it.
+        .execution_options(populate_existing=True)
+    ).one_or_none()
+    if team is None:
+        raise TeamNotFoundError(team_id)
+    if team.user_id != user_id:
+        raise NotTeamOwnerError(team_id)
+    return team
+
+
+def rename_team(session: Session, team: models.Team, name: str) -> schemas.Team:
+    """Renames the team."""
     team.name = name
     return _changed(session, team)
 
 
-def delete_team(session: Session, user_id: int, team_id: uuid.UUID) -> None:
-    """Deletes the user's team and its members. Raises as _locked does."""
-    team = _locked(session, user_id, team_id)
+def delete_team(session: Session, team: models.Team) -> None:
+    """Deletes the team and its members."""
     session.delete(team)
     session.flush()
 
 
-def add_member(session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int) -> schemas.Team:
+def add_member(session: Session, team: models.Team, pokemon_id: int) -> schemas.Team:
     """Puts a Pokémon in the team's next free slot.
 
-    Raises as _locked does, UnknownPokemonError, or TeamConflictError: SPECIES_ON_TEAM if the
-    species is on the team already, TEAM_FULL if the team has six members, or POKEMON_REMOVED if
-    PokéAPI no longer lists the Pokémon.
+    Raises UnknownPokemonError, or TeamConflictError: SPECIES_ON_TEAM if the species is on the
+    team already, TEAM_FULL if the team has six members, or POKEMON_REMOVED if PokéAPI no longer
+    lists the Pokémon.
     """
-    team = _locked(session, user_id, team_id)
     _append(session, team.id, pokemon_id)
     return _changed(session, team)
 
 
 def replace_member(
-    session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int, new_pokemon_id: int
+    session: Session, team: models.Team, pokemon_id: int, new_pokemon_id: int
 ) -> schemas.Team:
     """Puts another Pokémon in a member's slot, such as Charizard in Charmander's. If the new
     Pokémon is on the team already, it moves into the slot and the gap it leaves closes.
@@ -189,7 +205,6 @@ def replace_member(
     Raises MemberNotFoundError if `pokemon_id` isn't on the team, and raises as add_member does,
     except that the team may be full.
     """
-    team = _locked(session, user_id, team_id)
     members = _members(session, team.id)
     replaced = _find(members, pokemon_id)
     if replaced is None:
@@ -212,14 +227,11 @@ def replace_member(
     return _changed(session, team)
 
 
-def remove_member(
-    session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int
-) -> schemas.Team:
+def remove_member(session: Session, team: models.Team, pokemon_id: int) -> schemas.Team:
     """Takes a Pokémon off the team; the members after it move up a slot.
 
-    Raises as _locked does, or MemberNotFoundError if the Pokémon isn't on the team.
+    Raises MemberNotFoundError if the Pokémon isn't on the team.
     """
-    team = _locked(session, user_id, team_id)
     removed = _find(_members(session, team.id), pokemon_id)
     if removed is None:
         raise MemberNotFoundError(pokemon_id)
@@ -228,15 +240,12 @@ def remove_member(
     return _changed(session, team)
 
 
-def reorder(
-    session: Session, user_id: int, team_id: uuid.UUID, pokemon_ids: Sequence[int]
-) -> schemas.Team:
+def reorder(session: Session, team: models.Team, pokemon_ids: Sequence[int]) -> schemas.Team:
     """Puts the team's members in this order, given as every member's Pokémon id, each once.
 
-    Raises as _locked does, or TeamConflictError (ORDER_OUT_OF_DATE) if the ids aren't exactly
-    the members, e.g. because a change made elsewhere came first.
+    Raises TeamConflictError (ORDER_OUT_OF_DATE) if the ids aren't exactly the members, e.g.
+    because a change made elsewhere came first.
     """
-    team = _locked(session, user_id, team_id)
     members = {member.pokemon_id: member for member in _members(session, team.id)}
     if sorted(pokemon_ids) != sorted(members):
         raise TeamConflictError(TeamConflictReason.ORDER_OUT_OF_DATE)
@@ -248,25 +257,6 @@ def reorder(
         )
     _check_slots(session)
     return _changed(session, team)
-
-
-def _locked(session: Session, user_id: int, team_id: uuid.UUID) -> models.Team:
-    """The user's team, its row locked until the transaction ends: other changes to the team
-    wait for this one. Raises TeamNotFoundError if no team has this id, or NotTeamOwnerError if
-    the team is someone else's.
-    """
-    team = session.scalars(
-        select(models.Team)
-        .where(models.Team.id == team_id)
-        .with_for_update()
-        # Reloaded, so the lock's read replaces anything the session read before it.
-        .execution_options(populate_existing=True)
-    ).one_or_none()
-    if team is None:
-        raise TeamNotFoundError(team_id)
-    if team.user_id != user_id:
-        raise NotTeamOwnerError(team_id)
-    return team
 
 
 def _members(session: Session, team_id: uuid.UUID) -> Sequence[Member]:

@@ -944,18 +944,6 @@
         ],
         "parameters": [
           {
-            "name": "team_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "The team's `id`: a UUID its creator chose.",
-              "title": "Team Id"
-            },
-            "description": "The team's `id`: a UUID its creator chose."
-          },
-          {
             "name": "pokemon_id",
             "in": "path",
             "required": true,
@@ -967,6 +955,18 @@
               "title": "Pokemon Id"
             },
             "description": "The member's Pokémon `id`, e.g. 6."
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
           }
         ],
         "requestBody": {
@@ -1035,18 +1035,6 @@
         ],
         "parameters": [
           {
-            "name": "team_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "The team's `id`: a UUID its creator chose.",
-              "title": "Team Id"
-            },
-            "description": "The team's `id`: a UUID its creator chose."
-          },
-          {
             "name": "pokemon_id",
             "in": "path",
             "required": true,
@@ -1058,6 +1046,18 @@
               "title": "Pokemon Id"
             },
             "description": "The member's Pokémon `id`, e.g. 6."
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
           }
         ],
         "responses": {

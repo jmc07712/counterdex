@@ -1,5 +1,6 @@
 """Changes to one team from two places at once: the second waits for the first to commit, then
-sees what it did.
+sees what it did. Each locks the team with lock_owned_team first, as require_team_owner does for a
+request.
 """
 
 import time
@@ -12,13 +13,16 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
 from app.pokemon.models import SpeciesVariety
-from app.teams import service
+from app.teams import models, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import TeamConflictError
 from app.teams.schemas import NewTeam
 from tests.support.accounts import ASH
 from tests.support.pokemon import make_pokemon
 from tests.support.teams import add_species_pokemon
+
+# A change to a team, made once lock_owned_team has locked it.
+Change = Callable[[Session, models.Team], object]
 
 
 def wait_until_a_session_waits_for_a_lock(engine: Engine) -> None:
@@ -50,12 +54,14 @@ def setup_team(sessions: sessionmaker[Session], *pokemon_ids: int) -> tuple[int,
 
 
 def second_change(
-    sessions: sessionmaker[Session], change: Callable[[Session], object]
+    sessions: sessionmaker[Session], user_id: int, team_id: uuid.UUID, change: Change
 ) -> TeamConflictReason | None:
-    """Makes a change in a new session and commits it: None if it was made, or why it wasn't."""
+    """Locks the user's team in a new session, makes a change and commits it: None if it was
+    made, or why it wasn't.
+    """
     with sessions() as session:
         try:
-            change(session)
+            change(session, service.lock_owned_team(session, user_id, team_id))
         except TeamConflictError as error:
             return error.reason
         session.commit()
@@ -65,15 +71,18 @@ def second_change(
 def race(
     sessions: sessionmaker[Session],
     engine: Engine,
-    first: Callable[[Session], object],
-    second: Callable[[Session], object],
+    user_id: int,
+    team_id: uuid.UUID,
+    first: Change,
+    second: Change,
 ) -> TeamConflictReason | None:
-    """Makes `first` and holds it uncommitted while `second` starts, waits until `second` is
-    waiting for a lock, then commits `first`. Returns what became of `second`.
+    """Locks the user's team and makes `first`, holding it uncommitted while `second` starts;
+    waits until `second` is waiting for a lock, then commits `first`. Returns what became of
+    `second`.
     """
     with sessions() as first_session, ThreadPoolExecutor(1) as pool:
-        first(first_session)
-        later = pool.submit(second_change, sessions, second)
+        first(first_session, service.lock_owned_team(first_session, user_id, team_id))
+        later = pool.submit(second_change, sessions, user_id, team_id, second)
         wait_until_a_session_waits_for_a_lock(engine)
         first_session.commit()
         return later.result(timeout=10)
@@ -87,8 +96,10 @@ def test_a_second_add_to_a_team_of_five_finds_it_full(
     outcome = race(
         committing_sessions,
         migrated_engine,
-        lambda session: service.add_member(session, user_id, team_id, 206),
-        lambda session: service.add_member(session, user_id, team_id, 207),
+        user_id,
+        team_id,
+        lambda session, team: service.add_member(session, team, 206),
+        lambda session, team: service.add_member(session, team, 207),
     )
 
     assert outcome is TeamConflictReason.TEAM_FULL
@@ -102,8 +113,10 @@ def test_a_second_add_of_the_same_species_finds_it_on_the_team(
     outcome = race(
         committing_sessions,
         migrated_engine,
-        lambda session: service.add_member(session, user_id, team_id, 201),
-        lambda session: service.add_member(session, user_id, team_id, 10201),
+        user_id,
+        team_id,
+        lambda session, team: service.add_member(session, team, 201),
+        lambda session, team: service.add_member(session, team, 10201),
     )
 
     assert outcome is TeamConflictReason.SPECIES_ON_TEAM
@@ -117,8 +130,10 @@ def test_a_reorder_made_before_a_removal_is_out_of_date(
     outcome = race(
         committing_sessions,
         migrated_engine,
-        lambda session: service.remove_member(session, user_id, team_id, 201),
-        lambda session: service.reorder(session, user_id, team_id, [203, 202, 201]),
+        user_id,
+        team_id,
+        lambda session, team: service.remove_member(session, team, 201),
+        lambda session, team: service.reorder(session, team, [203, 202, 201]),
     )
 
     assert outcome is TeamConflictReason.ORDER_OUT_OF_DATE

@@ -100,8 +100,9 @@ def test_lists_a_users_teams_most_recently_changed_first(
     older = make_team(db_session, ash.user.id, name="Older")
     newer = make_team(db_session, ash.user.id, name="Newer")
     make_team(db_session, misty.user.id, name="Misty's")
+    locked = service.lock_owned_team(db_session, ash.user.id, older.id)
 
-    service.rename_team(db_session, ash.user.id, older.id, "Renamed")
+    service.rename_team(db_session, locked, "Renamed")
 
     assert [team.name for team in service.list_user_teams(db_session, "ash")] == [
         "Renamed",
@@ -157,13 +158,31 @@ def test_branches_of_one_family_arent_related(db_session: Session, ash: SignedIn
     assert related == {134: [133], 135: [133], 133: [134, 135]}
 
 
+# --- Locking a team to change it ---
+
+
+def test_a_team_no_one_has_cant_be_locked(db_session: Session, ash: SignedIn) -> None:
+    with pytest.raises(TeamNotFoundError):
+        service.lock_owned_team(db_session, ash.user.id, TEAM_ID)
+
+
+def test_only_a_teams_owner_can_lock_it(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    team = make_team(db_session, misty.user.id)
+
+    with pytest.raises(NotTeamOwnerError):
+        service.lock_owned_team(db_session, ash.user.id, team.id)
+
+
 # --- Renaming and deleting ---
 
 
 def test_renaming_changes_the_name_and_when_it_changed(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    renamed = service.rename_team(db_session, ash.user.id, team.id, "Rain")
+    renamed = service.rename_team(db_session, locked, "Rain")
 
     assert renamed.name == "Rain"
     assert renamed.updated_at > team.updated_at
@@ -172,44 +191,11 @@ def test_renaming_changes_the_name_and_when_it_changed(db_session: Session, ash:
 @pytest.mark.usefixtures("charmander_family")
 def test_deleting_removes_the_team(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 4)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    service.delete_team(db_session, ash.user.id, team.id)
+    service.delete_team(db_session, locked)
 
     assert service.list_user_teams(db_session, "ash") == []
-
-
-def test_changing_a_team_no_one_has_fails(db_session: Session, ash: SignedIn) -> None:
-    with pytest.raises(TeamNotFoundError):
-        service.rename_team(db_session, ash.user.id, TEAM_ID, "Rain")
-
-
-def test_you_cant_rename_or_delete_another_users_team(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    team = make_team(db_session, misty.user.id)
-
-    with pytest.raises(NotTeamOwnerError):
-        service.rename_team(db_session, ash.user.id, team.id, "Mine now")
-    with pytest.raises(NotTeamOwnerError):
-        service.delete_team(db_session, ash.user.id, team.id)
-    assert service.get_team(db_session, team.id) == team
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_you_cant_change_the_pokemon_on_another_users_team(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    team = make_team(db_session, misty.user.id, 4, 5)
-
-    with pytest.raises(NotTeamOwnerError):
-        service.add_member(db_session, ash.user.id, team.id, 6)
-    with pytest.raises(NotTeamOwnerError):
-        service.replace_member(db_session, ash.user.id, team.id, 4, 6)
-    with pytest.raises(NotTeamOwnerError):
-        service.remove_member(db_session, ash.user.id, team.id, 4)
-    with pytest.raises(NotTeamOwnerError):
-        service.reorder(db_session, ash.user.id, team.id, [5, 4])
-    assert service.get_team(db_session, team.id) == team
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -231,8 +217,9 @@ def test_creates_a_full_team(db_session: Session, ash: SignedIn) -> None:
 @pytest.mark.usefixtures("charmander_family")
 def test_adding_fills_the_next_slot(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 6)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    added = service.add_member(db_session, ash.user.id, team.id, 4)
+    added = service.add_member(db_session, locked, 4)
 
     assert member_ids(added) == [6, 4]
     assert added.updated_at > team.updated_at
@@ -241,9 +228,10 @@ def test_adding_fills_the_next_slot(db_session: Session, ash: SignedIn) -> None:
 @pytest.mark.usefixtures("charmander_family")
 def test_adding_a_species_already_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 6)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.add_member(db_session, ash.user.id, team.id, 10034)
+        service.add_member(db_session, locked, 10034)
 
     assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
 
@@ -251,9 +239,10 @@ def test_adding_a_species_already_on_the_team_fails(db_session: Session, ash: Si
 def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206, 207)
     team = make_team(db_session, ash.user.id, 201, 202, 203, 204, 205, 206)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.add_member(db_session, ash.user.id, team.id, 207)
+        service.add_member(db_session, locked, 207)
 
     assert conflict.value.reason is TeamConflictReason.TEAM_FULL
 
@@ -265,8 +254,9 @@ def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None
 def test_replacing_keeps_the_slot(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201)
     team = make_team(db_session, ash.user.id, 4, 201)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+    replaced = service.replace_member(db_session, locked, 4, 6)
 
     assert member_ids(replaced) == [6, 201]
 
@@ -275,8 +265,9 @@ def test_replacing_keeps_the_slot(db_session: Session, ash: SignedIn) -> None:
 def test_replacing_with_a_member_moves_it_into_the_slot(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201)
     team = make_team(db_session, ash.user.id, 4, 201, 6)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+    replaced = service.replace_member(db_session, locked, 4, 6)
 
     assert member_ids(replaced) == [6, 201]
     assert [member.position for member in replaced.members] == [0, 1]
@@ -286,8 +277,9 @@ def test_replacing_with_a_member_moves_it_into_the_slot(db_session: Session, ash
 def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201, 202, 203, 204, 205)
     team = make_team(db_session, ash.user.id, 4, 201, 202, 203, 204, 205)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+    replaced = service.replace_member(db_session, locked, 4, 6)
 
     assert member_ids(replaced) == [6, 201, 202, 203, 204, 205]
 
@@ -295,16 +287,18 @@ def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
 @pytest.mark.usefixtures("charmander_family")
 def test_a_member_can_be_replaced_by_its_other_form(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 6)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    assert member_ids(service.replace_member(db_session, ash.user.id, team.id, 6, 10034)) == [10034]
+    assert member_ids(service.replace_member(db_session, locked, 6, 10034)) == [10034]
 
 
 @pytest.mark.usefixtures("charmander_family")
 def test_replacing_cant_break_the_species_clause(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 4, 6)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.replace_member(db_session, ash.user.id, team.id, 4, 10034)
+        service.replace_member(db_session, locked, 4, 10034)
 
     assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
 
@@ -312,9 +306,10 @@ def test_replacing_cant_break_the_species_clause(db_session: Session, ash: Signe
 @pytest.mark.usefixtures("charmander_family")
 def test_replacing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 4)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(MemberNotFoundError):
-        service.replace_member(db_session, ash.user.id, team.id, 5, 6)
+        service.replace_member(db_session, locked, 5, 6)
 
 
 # --- Removing ---
@@ -323,8 +318,9 @@ def test_replacing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: Sig
 def test_removing_closes_the_gap(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201, 202, 203)
     team = make_team(db_session, ash.user.id, 201, 202, 203)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    removed = service.remove_member(db_session, ash.user.id, team.id, 201)
+    removed = service.remove_member(db_session, locked, 201)
 
     assert [(member.position, member.pokemon.id) for member in removed.members] == [
         (0, 202),
@@ -334,9 +330,10 @@ def test_removing_closes_the_gap(db_session: Session, ash: SignedIn) -> None:
 
 def test_removing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(MemberNotFoundError):
-        service.remove_member(db_session, ash.user.id, team.id, 201)
+        service.remove_member(db_session, locked, 201)
 
 
 # --- Reordering ---
@@ -345,8 +342,9 @@ def test_removing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: Sign
 def test_reorders(db_session: Session, ash: SignedIn) -> None:
     add_species_pokemon(db_session, 201, 202, 203)
     team = make_team(db_session, ash.user.id, 201, 202, 203)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    reordered = service.reorder(db_session, ash.user.id, team.id, [203, 201, 202])
+    reordered = service.reorder(db_session, locked, [203, 201, 202])
 
     assert member_ids(reordered) == [203, 201, 202]
 
@@ -357,9 +355,10 @@ def test_an_order_that_isnt_the_members_is_out_of_date(
 ) -> None:
     add_species_pokemon(db_session, 201, 202, 203, 204)
     team = make_team(db_session, ash.user.id, 201, 202, 203)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.reorder(db_session, ash.user.id, team.id, order)
+        service.reorder(db_session, locked, order)
 
     assert conflict.value.reason is TeamConflictReason.ORDER_OUT_OF_DATE
 

@@ -3,13 +3,13 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
 from app.api.tags import TEAM_MEMBERS, TEAMS
 from app.pokemon.constants import MAX_POKEMON_ID
-from app.teams import service
+from app.teams import models, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
@@ -71,6 +71,20 @@ def conflict_detail(reason: TeamConflictReason) -> str:
             return "Another team already has this id. Choose a new UUID."
 
 
+def require_team_owner(session: SessionDep, user: CurrentUser, team_id: TeamId) -> models.Team:
+    """FastAPI dependency: the team in the path if the signed-in user owns it, or a 404 or 403.
+
+    Its row stays locked until the request's transaction ends, so other changes to the team wait
+    for the route's.
+    """
+    try:
+        return service.lock_owned_team(session, user.id, team_id)
+    except TeamNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, TEAM_NOT_FOUND) from None
+    except NotTeamOwnerError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_TEAM_OWNER) from None
+
+
 @contextmanager
 def team_errors() -> Iterator[None]:
     """Turns the teams service's errors into the HTTP errors the routes document."""
@@ -78,8 +92,6 @@ def team_errors() -> Iterator[None]:
         yield
     except TeamNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, TEAM_NOT_FOUND) from None
-    except NotTeamOwnerError:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_TEAM_OWNER) from None
     except UserNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, USER_NOT_FOUND) from None
     except MemberNotFoundError:
@@ -175,11 +187,12 @@ def get_team(session: SessionDep, team_id: TeamId) -> Team:
     },
 )
 def rename_team(
-    session: SessionDep, user: CurrentUser, team_id: TeamId, rename: TeamRename
+    session: SessionDep,
+    team: Annotated[models.Team, Depends(require_team_owner)],
+    rename: TeamRename,
 ) -> Team:
     """Gives one of your teams a new name."""
-    with team_errors():
-        renamed = service.rename_team(session, user.id, team_id, rename.name)
+    renamed = service.rename_team(session, team, rename.name)
     session.commit()
     return renamed
 
@@ -194,10 +207,11 @@ def rename_team(
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
     },
 )
-def delete_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> None:
+def delete_team(
+    session: SessionDep, team: Annotated[models.Team, Depends(require_team_owner)]
+) -> None:
     """Deletes one of your teams."""
-    with team_errors():
-        service.delete_team(session, user.id, team_id)
+    service.delete_team(session, team)
     session.commit()
 
 
@@ -215,15 +229,17 @@ def delete_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> None
     },
 )
 def add_team_member(
-    session: SessionDep, user: CurrentUser, team_id: TeamId, member: NewMember
+    session: SessionDep,
+    team: Annotated[models.Team, Depends(require_team_owner)],
+    member: NewMember,
 ) -> Team:
     """Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:
     Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
     """
     with team_errors():
-        team = service.add_member(session, user.id, team_id, member.pokemon_id)
+        added = service.add_member(session, team, member.pokemon_id)
     session.commit()
-    return team
+    return added
 
 
 @members_router.put(
@@ -241,8 +257,7 @@ def add_team_member(
 )
 def replace_team_member(
     session: SessionDep,
-    user: CurrentUser,
-    team_id: TeamId,
+    team: Annotated[models.Team, Depends(require_team_owner)],
     pokemon_id: MemberId,
     member: NewMember,
 ) -> Team:
@@ -251,9 +266,9 @@ def replace_team_member(
     with no Pokémon is a 422.
     """
     with team_errors():
-        team = service.replace_member(session, user.id, team_id, pokemon_id, member.pokemon_id)
+        replaced = service.replace_member(session, team, pokemon_id, member.pokemon_id)
     session.commit()
-    return team
+    return replaced
 
 
 @members_router.delete(
@@ -266,13 +281,15 @@ def replace_team_member(
     },
 )
 def remove_team_member(
-    session: SessionDep, user: CurrentUser, team_id: TeamId, pokemon_id: MemberId
+    session: SessionDep,
+    team: Annotated[models.Team, Depends(require_team_owner)],
+    pokemon_id: MemberId,
 ) -> Team:
     """Takes a Pokémon off the team; the members after it move up a slot."""
     with team_errors():
-        team = service.remove_member(session, user.id, team_id, pokemon_id)
+        removed = service.remove_member(session, team, pokemon_id)
     session.commit()
-    return team
+    return removed
 
 
 @members_router.put(
@@ -288,11 +305,13 @@ def remove_team_member(
         },
     },
 )
-def reorder_team(session: SessionDep, user: CurrentUser, team_id: TeamId, order: TeamOrder) -> Team:
+def reorder_team(
+    session: SessionDep, team: Annotated[models.Team, Depends(require_team_owner)], order: TeamOrder
+) -> Team:
     """Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
     the team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.
     """
     with team_errors():
-        team = service.reorder(session, user.id, team_id, order.pokemon_ids)
+        reordered = service.reorder(session, team, order.pokemon_ids)
     session.commit()
-    return team
+    return reordered

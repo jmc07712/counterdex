@@ -1526,17 +1526,17 @@ export type RemoveTeamMemberData = {
     body?: never;
     path: {
         /**
-         * Team Id
-         *
-         * The team's `id`: a UUID its creator chose.
-         */
-        team_id: string;
-        /**
          * Pokemon Id
          *
          * The member's Pokémon `id`, e.g. 6.
          */
         pokemon_id: number;
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
     };
     query?: never;
     url: '/api/teams/{team_id}/members/{pokemon_id}';
@@ -1576,17 +1576,17 @@ export type ReplaceTeamMemberData = {
     body: NewMember;
     path: {
         /**
-         * Team Id
-         *
-         * The team's `id`: a UUID its creator chose.
-         */
-        team_id: string;
-        /**
          * Pokemon Id
          *
          * The member's Pokémon `id`, e.g. 6.
          */
         pokemon_id: number;
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
     };
     query?: never;
     url: '/api/teams/{team_id}/members/{pokemon_id}';
