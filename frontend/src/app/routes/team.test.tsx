@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
+import { displayName } from '@/components/pokemon/format'
 import {
   holdTeamChanges,
   holdTeamFetches,
@@ -20,7 +21,7 @@ import { ASH, MISTY } from '@/test/users'
 
 import { TeamPage } from './team'
 
-const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, eevee } = catalog
+const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee } = catalog
 const CATALOG = Object.values(catalog)
 
 function renderTeam(teamId = TEAM_ID) {
@@ -99,7 +100,7 @@ describe('TeamPage, for the team’s owner', () => {
     expect(await screen.findByText('Added Pikachu to Team 1')).toBeInTheDocument()
     // The team is already in view beside the browser.
     expect(screen.queryByRole('button', { name: 'View' })).not.toBeInTheDocument()
-    expect(within(browser).getByText('On the team')).toBeInTheDocument()
+    expect(within(browser).getByText('Its family is on the team')).toBeInTheDocument()
     expect(within(browser).getByRole('button', { name: 'Add Snorlax' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add Pokémon' })).not.toBeInTheDocument()
   })
@@ -120,19 +121,6 @@ describe('TeamPage, for the team’s owner', () => {
     expect(screen.getByRole('dialog', { name: 'Add Pokémon' })).toBeInTheDocument()
   })
 
-  it('replaces an earlier stage from the toast, over the sheet on phones', async () => {
-    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
-    browse([charizard])
-    const { user } = renderTeam()
-
-    await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
-    await user.click(await within(sheet).findByRole('button', { name: 'Add Charizard' }))
-    await user.click(await screen.findByRole('button', { name: 'Replace Charmander' }))
-
-    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([6]))
-  })
-
   it('closes the sheet to show the team from the toast’s View', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu])
@@ -149,27 +137,33 @@ describe('TeamPage, for the team’s owner', () => {
     expect(slotRows()[1]).toHaveTextContent('Pikachu')
   })
 
-  it('says why a Pokémon can’t be added, in place of its Add button', async () => {
-    onWideScreen()
-    serveAsh([makeTeam({ pokemon: [charizard] })])
-    browse([charizardMegaX])
-    renderTeam()
+  it.each([
+    ['a later stage', charizard],
+    ['another form of a later stage', charizardMegaX],
+  ])(
+    'says why a Pokémon from a family on the team can’t be added, in place of its Add button: %s',
+    async (_, pokemon) => {
+      onWideScreen()
+      serveAsh([makeTeam({ pokemon: [charmander] })])
+      browse([pokemon])
+      renderTeam()
 
-    const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    const row = (await within(browser).findByText('Charizard Mega X')).closest('li')
+      const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+      const row = (await within(browser).findByText(displayName(pokemon.name))).closest('li')
 
-    expect(row).toHaveTextContent('On the team')
-    expect(within(row!).queryByRole('button')).not.toBeInTheDocument()
-  })
+      expect(row).toHaveTextContent('Its family is on the team')
+      expect(within(row!).queryByRole('button')).not.toBeInTheDocument()
+    },
+  )
 
   it('says when the team is full', async () => {
     onWideScreen()
-    serveAsh([makeTeam({ pokemon: [charmander, pikachu, snorlax, gengar, eevee, charizardMegaX] })])
-    browse([catalog.vaporeon])
+    serveAsh([makeTeam({ pokemon: [charmander, pikachu, snorlax, gengar, eevee, lapras] })])
+    browse([catalog.dragonite])
     renderTeam()
 
     const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    const row = (await within(browser).findByText('Vaporeon')).closest('li')
+    const row = (await within(browser).findByText('Dragonite')).closest('li')
 
     expect(row).toHaveTextContent('Team is full')
     expect(within(row!).queryByRole('button')).not.toBeInTheDocument()
@@ -203,18 +197,6 @@ describe('TeamPage, for the team’s owner', () => {
     mockAllIsIntersecting(true)
 
     expect(await within(browser).findByText('Snorlax')).toBeInTheDocument()
-  })
-
-  it('offers to replace an earlier stage of the evolution line', async () => {
-    onWideScreen()
-    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
-    browse([charizard])
-    const { user } = renderTeam()
-
-    await user.click(await screen.findByRole('button', { name: 'Add Charizard' }))
-    await user.click(await screen.findByRole('button', { name: 'Replace Charmander' }))
-
-    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([6]))
   })
 
   it('removes a Pokémon at once, before the API answers', async () => {

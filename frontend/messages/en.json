@@ -71,8 +71,6 @@
   "team_build_your_own_description": "Pick up to six Pokémon and put them in battle order.",
   "team_added": "Added {name} to {team}",
   "team_view": "View",
-  "team_related_notice": "{related} is already on {team}, from the same evolution line.",
-  "team_replace": "Replace {name}",
   "team_cant_add": [
     {
       "declarations": [
@@ -83,7 +81,7 @@
       ],
       "match": {
         "reason=team_full": "Team is full",
-        "reason=species_on_team": "On the team",
+        "reason=family_on_team": "Its family is on the team",
         "reason=*": "{reason}"
       }
     }
@@ -98,7 +96,7 @@
       ],
       "match": {
         "problem=team_full": "That team is full.",
-        "problem=species_on_team": "That species is already on the team.",
+        "problem=family_on_team": "That team already has a Pokémon from this evolution family.",
         "problem=order_out_of_date": "This team changed somewhere else, so it’s been reloaded.",
         "problem=pokemon_removed": "That Pokémon is no longer in the Pokédex.",
         "problem=team_id_taken": "That team couldn’t be created. Try again.",

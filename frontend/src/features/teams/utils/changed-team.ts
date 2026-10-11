@@ -7,14 +7,11 @@ function pokemonOf(team: TeamShape): Pokemon[] {
 }
 
 // The team with these Pokémon as its members, in this order: each member as it was, or new,
-// numbered by slot, with only the relatives still on the team.
+// numbered by slot.
 function withMembers<T extends TeamShape>(team: T, pokemon: Pokemon[]): T {
-  const ids = pokemon.map((each) => each.id)
   const members = pokemon.map((each, position): TeamMember => {
     const member = team.members.find((other) => other.pokemon.id === each.id)
-    if (!member) return { position, pokemon: each, removed_at: null, related_pokemon_ids: [] }
-    const related = member.related_pokemon_ids.filter((id) => ids.includes(id))
-    return { ...member, position, related_pokemon_ids: related }
+    return member ? { ...member, position } : { position, pokemon: each, removed_at: null }
   })
   return { ...team, members }
 }

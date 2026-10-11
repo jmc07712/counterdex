@@ -5,19 +5,24 @@ import { asMember, catalog } from '@/test/teams'
 
 import { cantAdd } from './can-add'
 
-const { charizard, charizardMegaX, pikachu, snorlax, gengar, eevee, charmander } = catalog
+const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee } = catalog
 
 describe('cantAdd', () => {
-  it('allows a species not on the team', () => {
+  it('allows a Pokémon whose evolution family isn’t on the team', () => {
     expect(cantAdd([asMember(pikachu, 0)], charizard)).toBeNull()
   })
 
-  it('refuses a second of one species, in any form', () => {
-    expect(cantAdd([asMember(charizard, 0)], charizardMegaX)).toBe(TeamConflictReason.SPECIES_ON_TEAM)
+  it.each([
+    ['the same Pokémon', charmander, charmander],
+    ['a later stage', charmander, charizard],
+    ['an earlier stage', catalog.vaporeon, eevee],
+    ['another form of its species', charizard, charizardMegaX],
+  ])('refuses a second from one evolution family: %s', (_, member, pokemon) => {
+    expect(cantAdd([asMember(member, 0)], pokemon)).toBe(TeamConflictReason.FAMILY_ON_TEAM)
   })
 
   it('refuses a seventh member', () => {
-    const six = [pikachu, snorlax, gengar, eevee, charmander, charizardMegaX].map(asMember)
-    expect(cantAdd(six, catalog.vaporeon)).toBe(TeamConflictReason.TEAM_FULL)
+    const six = [pikachu, snorlax, gengar, lapras, eevee, charmander].map(asMember)
+    expect(cantAdd(six, catalog.dragonite)).toBe(TeamConflictReason.TEAM_FULL)
   })
 })

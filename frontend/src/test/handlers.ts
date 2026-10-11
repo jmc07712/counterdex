@@ -15,7 +15,6 @@ import {
 
 import { makeDetails, makePage } from './pokemon'
 import { server } from './server'
-import { EVOLUTION_LINES } from './teams'
 import { ASH } from './users'
 
 // Answers GET requests to `path` with `respond`'s JSON. Returns each request's query string, in
@@ -145,24 +144,9 @@ function conflict(reason: TeamConflictReason) {
   return HttpResponse.json({ detail: 'Refused.', reason }, { status: 409 })
 }
 
-// Two Pokémon are related when they're different species in one evolution line.
-function related(one: Pokemon, other: Pokemon) {
-  return (
-    one.species_id !== other.species_id &&
-    EVOLUTION_LINES.some(
-      (line) => line.includes(one.species_id ?? -1) && line.includes(other.species_id ?? -1),
-    )
-  )
-}
-
-// These Pokémon as a team's members, in this order, each with its relatives among them.
+// These Pokémon as a team's members, in this order.
 function asMembers(pokemon: Pokemon[]): TeamMember[] {
-  return pokemon.map((each, position) => ({
-    position,
-    pokemon: each,
-    removed_at: null,
-    related_pokemon_ids: pokemon.filter((other) => related(each, other)).map((other) => other.id),
-  }))
+  return pokemon.map((each, position) => ({ position, pokemon: each, removed_at: null }))
 }
 
 // Newest first, as the API lists everyone's teams.
@@ -174,7 +158,8 @@ function newestFirst(one: Team, other: Team) {
  * Stands in for the API's teams and remembers them: `teams` to begin with, then each change.
  * `catalog` is every Pokémon it knows, and `signedIn` whoever sends the changes. Like the API,
  * it lists everyone's teams that have a Pokémon, `pageSize` at a time; lets only a team's owner
- * change it; and refuses a seventh member, a second of a species and an out-of-date order.
+ * change it; and refuses a seventh member, a second Pokémon from one evolution family and an
+ * out-of-date order.
  * Returns the changes it was asked for, in order, and its teams as they now are, most recently
  * changed first.
  */
@@ -286,8 +271,8 @@ export function serveTeams({
       const added = pokemon(Number(body?.pokemon_id))
       if (!added) return refusal(422)
       const members = found.members.map((member) => member.pokemon)
-      if (members.some((member) => member.species_id === added.species_id)) {
-        return conflict(TeamConflictReason.SPECIES_ON_TEAM)
+      if (members.some((member) => member.family_id === added.family_id)) {
+        return conflict(TeamConflictReason.FAMILY_ON_TEAM)
       }
       if (members.length >= 6) return conflict(TeamConflictReason.TEAM_FULL)
       return HttpResponse.json(save(found, [...members, added]))
@@ -301,9 +286,11 @@ export function serveTeams({
       const members = found.members.map((member) => member.pokemon)
       if (!members.some((member) => member.id === replacedId)) return refusal(404)
       if (!added) return refusal(422)
-      const replaced = members
-        .filter((member) => member.id !== added.id)
-        .map((member) => (member.id === replacedId ? added : member))
+      const others = members.filter((member) => member.id !== replacedId)
+      if (others.some((member) => member.family_id === added.family_id)) {
+        return conflict(TeamConflictReason.FAMILY_ON_TEAM)
+      }
+      const replaced = members.map((member) => (member.id === replacedId ? added : member))
       return HttpResponse.json(save(found, replaced))
     }),
     http.delete('/api/teams/:teamId/members/:pokemonId', async ({ request, params }) => {

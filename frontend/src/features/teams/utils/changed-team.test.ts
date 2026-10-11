@@ -23,28 +23,20 @@ describe('withAdded', () => {
       [1, 25],
       [2, 143],
     ])
-    expect(changed.members[2]).toEqual({
-      position: 2,
-      pokemon: snorlax,
-      removed_at: null,
-      related_pokemon_ids: [],
-    })
+    expect(changed.members[2]).toEqual({ position: 2, pokemon: snorlax, removed_at: null })
   })
 })
 
 describe('withRemoved', () => {
-  it('moves the members after it up a slot, keeping only relatives still on the team', () => {
-    const team = makeTeam({ pokemon: [charmander, pikachu, charizard] })
-    team.members[0].related_pokemon_ids = [6]
-    team.members[2].related_pokemon_ids = [4]
+  it('moves the members after it up a slot', () => {
+    const team = makeTeam({ pokemon: [charmander, pikachu, snorlax] })
 
     const changed = withRemoved(team, 4)
 
     expect(slots(changed)).toEqual([
       [0, 25],
-      [1, 6],
+      [1, 143],
     ])
-    expect(changed.members[1].related_pokemon_ids).toEqual([])
   })
 })
 
