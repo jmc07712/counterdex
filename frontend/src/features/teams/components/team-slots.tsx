@@ -69,7 +69,7 @@ export function LeadSlot({ member, onOpen }: LeadSlotProps) {
           <MemberName
             id={headingId}
             member={member}
-            className="text-3xl font-extrabold break-words md:text-4xl"
+            className="text-2xl font-extrabold break-words sm:text-3xl md:text-4xl"
           />
           <MemberTypes member={member} />
         </div>
