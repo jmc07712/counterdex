@@ -3,6 +3,7 @@ import {
   type ComponentProps,
   createContext,
   type ReactNode,
+  type Ref,
   type RefObject,
   use,
   useId,
@@ -39,12 +40,23 @@ const ROW = 'flex min-h-16 items-center gap-3 py-2 pr-3 pl-4'
 // Whether the slots are on their first render, when they enter one after another.
 const Entering = createContext<RefObject<boolean>>({ current: false })
 
+type TeamSlotsProps = {
+  // The list, which focus can be moved to.
+  ref?: Ref<HTMLOListElement>
+  children: ReactNode
+}
+
 /** A team's six slots, stacked in battle order: its members' slots, then EmptySlots. */
-export function TeamSlots({ children }: { children: ReactNode }) {
+export function TeamSlots({ ref, children }: TeamSlotsProps) {
   const entering = useFirstRender()
   return (
     <Entering value={entering}>
-      <ol aria-label={m.team_slots()} className="flex flex-col gap-2">
+      <ol
+        ref={ref}
+        tabIndex={-1}
+        aria-label={m.team_slots()}
+        className="flex flex-col gap-2 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
         {children}
       </ol>
     </Entering>

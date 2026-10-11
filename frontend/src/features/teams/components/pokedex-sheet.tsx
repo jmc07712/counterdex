@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { type ReactNode, useRef } from 'react'
 
+import type { TeamMember } from '@/api'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -12,20 +13,34 @@ import {
 } from '@/components/ui/sheet'
 import { m } from '@/paraglide/messages.js'
 
+import { ReplaceBanner } from './replace-banner'
+
 type PokedexSheetProps = {
   teamName: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  // The member a Pokémon is being chosen to replace, if any.
+  replacing?: TeamMember
+  onCancelReplacing: () => void
   // What the sheet holds: the Pokédex.
   children: ReactNode
 }
 
 /**
  * A floating Add Pokémon button that opens a sheet as tall as the screen, to add Pokémon from. It
- * stays open as they're added, until Done.
+ * stays open as they're added, until Done. While a member is being replaced, a box at its top says
+ * so.
  */
-export function PokedexSheet({ teamName, open, onOpenChange, children }: PokedexSheetProps) {
+export function PokedexSheet({
+  teamName,
+  open,
+  onOpenChange,
+  replacing,
+  onCancelReplacing,
+  children,
+}: PokedexSheetProps) {
   const sheet = useRef<HTMLDivElement>(null)
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
@@ -67,6 +82,9 @@ export function PokedexSheet({ teamName, open, onOpenChange, children }: Pokedex
           </SheetClose>
         </div>
         <div className="px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+          {replacing && (
+            <ReplaceBanner member={replacing} onCancel={onCancelReplacing} className="mb-3" />
+          )}
           {children}
         </div>
       </SheetContent>

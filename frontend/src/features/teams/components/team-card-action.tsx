@@ -1,7 +1,7 @@
 import { Check, Plus, Replace } from 'lucide-react'
 import { type ReactNode, useId } from 'react'
 
-import { type Pokemon, TeamConflictReason } from '@/api'
+import { type Pokemon, TeamConflictReason, type TeamMember } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { Button } from '@/components/ui/button'
 import { m } from '@/paraglide/messages.js'
@@ -10,14 +10,20 @@ import type { TeamEditor } from '../types'
 import { addToTeam } from '../utils/add-to-team'
 import { cantAdd, familyMember } from '../utils/can-add'
 
-type TeamCardActionProps = { editor: TeamEditor; pokemon: Pokemon }
+type TeamCardActionProps = {
+  editor: TeamEditor
+  pokemon: Pokemon
+  // The member a Pokémon is being chosen to replace, if any.
+  replacing?: TeamMember
+}
 
 /**
  * On a Pokémon's card, what it can do for the team: join it, or take the place of the member from
- * its evolution family; or why not, when it's on the team or the team is full. It's the same
- * button throughout, so focus stays on it as the team changes.
+ * its evolution family, or of the member being replaced; or why not, when it's on the team, the
+ * team is full, or another member is from its family. It's the same button throughout, so focus
+ * stays on it as the team changes.
  */
-export function TeamCardAction({ editor, pokemon }: TeamCardActionProps) {
+export function TeamCardAction({ editor, pokemon, replacing }: TeamCardActionProps) {
   const { members } = editor.team
   const name = displayName(pokemon.name)
   const relative = familyMember(members, pokemon)
@@ -26,6 +32,34 @@ export function TeamCardAction({ editor, pokemon }: TeamCardActionProps) {
     return (
       <CardButton label={m.team_on_team_named({ name })} icon={<Check />}>
         {m.team_on_team()}
+      </CardButton>
+    )
+  }
+  if (replacing) {
+    const member = displayName(replacing.pokemon.name)
+    // It may be from the replaced member's own family, but not from another member's.
+    const blocking = familyMember(
+      members.filter((each) => each !== replacing),
+      pokemon,
+    )
+    if (blocking) {
+      return (
+        <CardButton
+          label={m.team_replace_with({ member, name })}
+          note={m.team_family_on_team({ member: displayName(blocking.pokemon.name) })}
+          icon={<Replace />}
+        >
+          {m.team_replace_named({ name: member })}
+        </CardButton>
+      )
+    }
+    return (
+      <CardButton
+        label={m.team_replace_with({ member, name })}
+        icon={<Replace />}
+        onPress={() => void editor.replace(replacing.pokemon.id, pokemon)}
+      >
+        {m.team_replace_named({ name: member })}
       </CardButton>
     )
   }

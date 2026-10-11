@@ -18,6 +18,9 @@ export type PokedexFilters = {
   view: PokedexView
 }
 
+// The params the filters are kept in.
+const FILTER_PARAMS = ['q', 'type', 'forms', 'status']
+
 export const NO_FILTERS: PokedexFilters = {
   search: '',
   types: [],
@@ -40,14 +43,21 @@ export function usePokedexFilters() {
   }
 
   function setFilters({ search, types, forms, view }: PokedexFilters) {
-    const next = new URLSearchParams()
-    if (search) next.set('q', search)
-    // A Pokémon has at most two types: picking a third drops the oldest.
-    for (const type of types.slice(-MAX_TYPES)) next.append('type', type)
-    if (forms !== FormFilter.ALL) next.set('forms', forms)
-    if (view !== ListingStatus.LISTED) next.set('status', view)
-    // Replace rather than push, so typing a search doesn't add a history entry per keystroke.
-    setParams(next, { replace: true })
+    // The page's other params, such as an open Pokémon's, stay as they are.
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        for (const filter of FILTER_PARAMS) next.delete(filter)
+        if (search) next.set('q', search)
+        // A Pokémon has at most two types: picking a third drops the oldest.
+        for (const type of types.slice(-MAX_TYPES)) next.append('type', type)
+        if (forms !== FormFilter.ALL) next.set('forms', forms)
+        if (view !== ListingStatus.LISTED) next.set('status', view)
+        return next
+      },
+      // Replace rather than push, so typing a search doesn't add a history entry per keystroke.
+      { replace: true },
+    )
   }
 
   return [filters, setFilters] as const
