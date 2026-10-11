@@ -58,8 +58,8 @@ def conflict_detail(reason: TeamConflictReason) -> str:
     match reason:
         case TeamConflictReason.TEAM_FULL:
             return "The team already has six Pokémon."
-        case TeamConflictReason.SPECIES_ON_TEAM:
-            return "The team already has this Pokémon's species, in this or another form."
+        case TeamConflictReason.FAMILY_ON_TEAM:
+            return "A team can have only one Pokémon from each evolution family."
         case TeamConflictReason.ORDER_OUT_OF_DATE:
             return (
                 "The order must list every Pokémon on the team, each once. Get the team again: "
@@ -233,8 +233,9 @@ def add_team_member(
     team: Annotated[models.Team, Depends(require_team_owner)],
     member: NewMember,
 ) -> Team:
-    """Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:
-    Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
+    """Puts a Pokémon in the team's next free slot. A team holds up to six, one from each
+    evolution family: Charmander, Charizard and Mega Charizard X can't share one. An `id` with no
+    Pokémon is a 422.
     """
     with team_errors():
         added = service.add_member(session, team, member.pokemon_id)

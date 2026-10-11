@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 from app.accounts.types import SignedIn
 from app.api.routes.teams import conflict_detail
 from app.teams.enums import TeamConflictReason
-from tests.support.teams import add_species_pokemon, backdate, make_team
+from tests.support.teams import add_eevee_family, add_species_pokemon, backdate, make_team
 
 TEAM_ID = "00000000-0000-4000-8000-000000000001"
 TEAM = f"/api/teams/{TEAM_ID}"
-SPECIES_ON_TEAM = {
-    "detail": "The team already has this Pokémon's species, in this or another form.",
-    "reason": "species_on_team",
+FAMILY_ON_TEAM = {
+    "detail": "A team can have only one Pokémon from each evolution family.",
+    "reason": "family_on_team",
 }
 
 
@@ -41,13 +41,15 @@ def test_anyone_can_see_teams_without_signing_in(
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_creating_a_team_twice_makes_one(ash_client: TestClient) -> None:
-    first = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 6]})
-    again = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 6]})
+def test_creating_a_team_twice_makes_one(ash_client: TestClient, db_session: Session) -> None:
+    add_species_pokemon(db_session, 201)
+
+    first = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 201]})
+    again = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 201]})
 
     assert (first.status_code, again.status_code) == (201, 200)
     assert again.json() == first.json()
-    assert member_ids(first.json()) == [4, 6]
+    assert member_ids(first.json()) == [4, 201]
     assert [team["id"] for team in ash_client.get("/api/users/ash/teams").json()] == [
         first.json()["id"]
     ]
@@ -60,15 +62,17 @@ def test_a_team_shows_its_owner_by_username_only(ash_client: TestClient) -> None
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_a_team_shows_its_members_and_their_relatives(ash_client: TestClient) -> None:
-    team = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 6]}).json()
+def test_a_team_shows_its_members(ash_client: TestClient) -> None:
+    team = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [10034]}).json()
 
-    assert team["members"][0] == {
-        "position": 0,
-        "pokemon": team["members"][0]["pokemon"] | {"id": 4, "species_id": 4},
-        "removed_at": None,
-        "related_pokemon_ids": [6],
-    }
+    assert team["members"] == [
+        {
+            "position": 0,
+            "pokemon": team["members"][0]["pokemon"]
+            | {"id": 10034, "species_id": 6, "family_id": 2},
+            "removed_at": None,
+        }
+    ]
     assert ash_client.get(TEAM).json() == team
 
 
@@ -87,7 +91,7 @@ def test_a_team_no_one_has_is_not_found(ash_client: TestClient) -> None:
         pytest.param("POST", "/members", {"pokemon_id": 6}, id="add"),
         pytest.param("PUT", "/members/4", {"pokemon_id": 6}, id="replace"),
         pytest.param("DELETE", "/members/4", None, id="remove"),
-        pytest.param("PUT", "/order", {"pokemon_ids": [5, 4]}, id="reorder"),
+        pytest.param("PUT", "/order", {"pokemon_ids": [201, 4]}, id="reorder"),
     ],
 )
 @pytest.mark.usefixtures("charmander_family")
@@ -99,7 +103,8 @@ def test_only_a_teams_owner_can_change_it(
     path: str,
     body: dict[str, Any] | None,
 ) -> None:
-    url = f"/api/teams/{make_team(db_session, misty.user.id, 4, 5).id}"
+    add_species_pokemon(db_session, 201)
+    url = f"/api/teams/{make_team(db_session, misty.user.id, 4, 201).id}"
     before = ash_client.get(url).json()
 
     response = ash_client.request(method, f"{url}{path}", json=body)
@@ -129,9 +134,9 @@ def test_an_id_another_user_has_is_taken(
 
 @pytest.mark.usefixtures("charmander_family")
 def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
-    response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6, 10034]})
+    response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 6]})
 
-    assert (response.status_code, response.json()) == (409, SPECIES_ON_TEAM)
+    assert (response.status_code, response.json()) == (409, FAMILY_ON_TEAM)
     assert ash_client.get("/api/users/ash/teams").json() == []
 
 
@@ -197,25 +202,37 @@ def test_team_responses_are_never_cached(ash_client: TestClient) -> None:
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_adds_replaces_removes_and_reorders(ash_client: TestClient) -> None:
+def test_adds_replaces_removes_and_reorders(ash_client: TestClient, db_session: Session) -> None:
+    add_species_pokemon(db_session, 201)
     ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4]})
 
-    assert member_ids(ash_client.post(f"{TEAM}/members", json={"pokemon_id": 5}).json()) == [4, 5]
-    assert member_ids(ash_client.put(f"{TEAM}/members/4", json={"pokemon_id": 6}).json()) == [6, 5]
-    assert member_ids(ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5, 6]}).json()) == [
-        5,
-        6,
-    ]
-    assert member_ids(ash_client.delete(f"{TEAM}/members/5").json()) == [6]
+    added = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 201})
+    assert member_ids(added.json()) == [4, 201]
+    # Charizard takes Charmander's slot: they're one family, so that's allowed.
+    replaced = ash_client.put(f"{TEAM}/members/4", json={"pokemon_id": 6})
+    assert member_ids(replaced.json()) == [6, 201]
+    reordered = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [201, 6]})
+    assert member_ids(reordered.json()) == [201, 6]
+    assert member_ids(ash_client.delete(f"{TEAM}/members/201").json()) == [6]
 
 
 @pytest.mark.usefixtures("charmander_family")
 def test_a_conflict_says_why(ash_client: TestClient) -> None:
     ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6]})
 
-    response = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 10034})
+    response = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 4})
 
-    assert (response.status_code, response.json()) == (409, SPECIES_ON_TEAM)
+    assert (response.status_code, response.json()) == (409, FAMILY_ON_TEAM)
+
+
+def test_branches_of_one_family_cant_share_a_team(
+    ash_client: TestClient, db_session: Session
+) -> None:
+    add_eevee_family(db_session)
+
+    response = ash_client.put(TEAM, json={"name": "Eevees", "pokemon_ids": [134, 135]})
+
+    assert (response.status_code, response.json()) == (409, FAMILY_ON_TEAM)
 
 
 @pytest.mark.parametrize("reason", list(TeamConflictReason))
@@ -235,10 +252,11 @@ def test_a_pokemon_not_on_the_team_is_not_found(ash_client: TestClient) -> None:
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient) -> None:
-    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 5]})
+def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient, db_session: Session) -> None:
+    add_species_pokemon(db_session, 201)
+    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 201]})
 
-    response = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5]})
+    response = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [201]})
 
     assert (response.status_code, response.json()) == (
         409,

@@ -14,9 +14,14 @@ from app.pokemon.enums import FormFilter, ListingStatus
 def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
     """One page of the matching Pokémon, by Pokédex number, after the cursor."""
     statement = (
-        select(models.Pokemon.__table__, models.SpeciesVariety.species_id)
+        select(
+            models.Pokemon.__table__,
+            models.SpeciesVariety.species_id,
+            models.Species.evolution_chain_id.label("family_id"),
+        )
         # Outer, as a Pokémon is listed before a sync has stored its species.
         .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+        .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
         .order_by(models.Pokemon.id)
     )
     if query.status is ListingStatus.LISTED:
@@ -56,8 +61,13 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     """
     row = (
         session.execute(
-            select(models.Pokemon.__table__, models.SpeciesVariety.species_id)
+            select(
+                models.Pokemon.__table__,
+                models.SpeciesVariety.species_id,
+                models.Species.evolution_chain_id.label("family_id"),
+            )
             .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+            .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
             .where(models.Pokemon.id == pokemon_id)
         )
         .mappings()
@@ -128,8 +138,13 @@ def _listed_forms(
     number.
     """
     rows = session.execute(
-        select(models.Pokemon.__table__, models.SpeciesVariety.species_id)
+        select(
+            models.Pokemon.__table__,
+            models.SpeciesVariety.species_id,
+            models.Species.evolution_chain_id.label("family_id"),
+        )
         .join(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+        .join(models.Species, models.Species.id == models.SpeciesVariety.species_id)
         .where(
             models.SpeciesVariety.species_id.in_(species_ids),
             models.Pokemon.removed_at.is_(None),
@@ -141,8 +156,8 @@ def _listed_forms(
 
 def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
     """A Pokémon as the API serves it, from the pokemon table's columns and, where they include
-    it, its species' id: its sprite from the CDN, and whether a sync changed it lately (a change's
-    snapshots have no such column).
+    them, its species' and family's ids: its sprite from the CDN, and whether a sync changed it
+    lately (a change's snapshots have no such column).
     """
     pokemon = schemas.Pokemon.from_columns(
         {**columns, "sprite_url": cdn_sprite_url(columns["sprite_url"])}
@@ -150,7 +165,11 @@ def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
     changed_at = columns.get("last_changed_at")
     recently = changed_at is not None and changed_at >= datetime.now(UTC) - RECENTLY_CHANGED
     return pokemon.model_copy(
-        update={"changed_recently": recently, "species_id": columns.get("species_id")}
+        update={
+            "changed_recently": recently,
+            "species_id": columns.get("species_id"),
+            "family_id": columns.get("family_id"),
+        }
     )
 
 

@@ -340,6 +340,31 @@ def test_details_give_the_pokemons_species(db_session: Session, charmander_famil
     assert {form.id: form.species_id for form in charizard.forms} == {6: 6, 10034: 6}
 
 
+@pytest.mark.usefixtures("charmander_family", "gyarados")
+def test_lists_each_pokemons_family(db_session: Session) -> None:
+    page = list_pokemon(db_session, PokemonQuery())
+
+    # Gyarados has no stored species, so no family.
+    assert {each.id: each.family_id for each in page.items} == {
+        4: 2,
+        5: 2,
+        6: 2,
+        130: None,
+        10034: 2,
+    }
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_details_give_the_family_of_each_pokemon(db_session: Session) -> None:
+    charizard = details(db_session, 10034)
+
+    assert charizard.pokemon.family_id == 2
+    assert [form.family_id for form in charizard.forms] == [2, 2]
+    assert charizard.evolution is not None
+    assert charizard.evolution.pokemon is not None
+    assert charizard.evolution.pokemon.family_id == 2
+
+
 @pytest.mark.usefixtures("gyarados")
 def test_gets_a_pokemon_whose_species_no_sync_has_stored_yet(db_session: Session) -> None:
     gyarados = details(db_session, 130)

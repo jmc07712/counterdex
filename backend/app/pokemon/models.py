@@ -70,6 +70,10 @@ class Species(Base):
     """
 
     __tablename__ = "species"
+    __table_args__ = (
+        # Lets a team member refer to a species and its family together, in one foreign key.
+        UniqueConstraint("id", "evolution_chain_id", name="uq_species_id_evolution_chain_id"),
+    )
 
     # PokéAPI's id, which is the species' Pokédex number.
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)

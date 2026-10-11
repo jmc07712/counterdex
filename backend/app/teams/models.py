@@ -59,14 +59,23 @@ class TeamMember(Base):
             deferrable=True,
             initially="DEFERRED",
         ),
-        # One of each species: Charizard and Mega Charizard X can't share a team.
-        UniqueConstraint("team_id", "species_id", name="uq_team_members_team_id_species_id"),
+        # One Pokémon from each evolution family: Charmander, Charizard and Mega Charizard X
+        # can't share a team. This also keeps a team to one of each species.
+        UniqueConstraint("team_id", "family_id", name="uq_team_members_team_id_family_id"),
         # The species is this Pokémon's. If PokéAPI moves a Pokémon to another species, its
         # slots follow.
         ForeignKeyConstraint(
             ["pokemon_id", "species_id"],
             ["species_varieties.pokemon_id", "species_varieties.species_id"],
             name="fk_team_members_pokemon_id_species_varieties",
+            onupdate="CASCADE",
+        ),
+        # The family is this species'. If PokéAPI moves a species to another family, its slots
+        # follow.
+        ForeignKeyConstraint(
+            ["species_id", "family_id"],
+            ["species.id", "species.evolution_chain_id"],
+            name="fk_team_members_species_id_species",
             onupdate="CASCADE",
         ),
     )
@@ -76,3 +85,5 @@ class TeamMember(Base):
     position: Mapped[int] = mapped_column(SmallInteger)
     pokemon_id: Mapped[int]
     species_id: Mapped[int]
+    # The species' evolution_chain_id.
+    family_id: Mapped[int]

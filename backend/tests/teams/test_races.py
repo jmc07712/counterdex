@@ -12,13 +12,12 @@ from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
-from app.pokemon.models import SpeciesVariety
 from app.teams import models, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import TeamConflictError
 from app.teams.schemas import NewTeam
 from tests.support.accounts import ASH
-from tests.support.pokemon import make_pokemon
+from tests.support.pokemon import add_species, make_pokemon
 from tests.support.teams import add_species_pokemon
 
 # A change to a team, made once lock_owned_team has locked it.
@@ -37,13 +36,13 @@ def wait_until_a_session_waits_for_a_lock(engine: Engine) -> None:
 def setup_team(sessions: sessionmaker[Session], *pokemon_ids: int) -> tuple[int, uuid.UUID]:
     """Ash with a team of these Pokémon, committed. Returns Ash's id and the team's.
 
-    Pokémon 201 to 207 exist, and 10201 is a second form of 201's species.
+    Pokémon 201 to 207 exist, each of its own family, and 208 evolves from 201, in 201's family.
     """
     with sessions() as session:
         add_species_pokemon(session, 201, 202, 203, 204, 205, 206, 207)
-        session.add(make_pokemon(id=10201, name="pokemon-201-other-form", is_default=False))
+        session.add(make_pokemon(id=208, name="pokemon-208"))
         session.flush()
-        session.add(SpeciesVariety(pokemon_id=10201, species_id=201))
+        add_species(session, 208, family=1201, evolves_from=201, pokemon_ids=[208])
         user_id = accounts.sign_up(session, ASH).user.id
         team_id = uuid.uuid4()
         service.create_team(
@@ -105,7 +104,7 @@ def test_a_second_add_to_a_team_of_five_finds_it_full(
     assert outcome is TeamConflictReason.TEAM_FULL
 
 
-def test_a_second_add_of_the_same_species_finds_it_on_the_team(
+def test_a_second_add_from_the_same_family_finds_it_on_the_team(
     committing_sessions: sessionmaker[Session], migrated_engine: Engine
 ) -> None:
     user_id, team_id = setup_team(committing_sessions, 202)
@@ -116,10 +115,10 @@ def test_a_second_add_of_the_same_species_finds_it_on_the_team(
         user_id,
         team_id,
         lambda session, team: service.add_member(session, team, 201),
-        lambda session, team: service.add_member(session, team, 10201),
+        lambda session, team: service.add_member(session, team, 208),
     )
 
-    assert outcome is TeamConflictReason.SPECIES_ON_TEAM
+    assert outcome is TeamConflictReason.FAMILY_ON_TEAM
 
 
 def test_a_reorder_made_before_a_removal_is_out_of_date(

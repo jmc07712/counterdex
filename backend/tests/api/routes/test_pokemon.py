@@ -38,6 +38,7 @@ def test_serves_a_page_of_pokemon_with_their_public_fields(client: TestClient) -
                 "form": None,
                 "changed_recently": False,
                 "species_id": None,
+                "family_id": None,
             }
         ],
         "next_cursor": None,

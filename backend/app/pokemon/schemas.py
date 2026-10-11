@@ -59,7 +59,7 @@ STAT_NAMES = tuple(Stats.model_fields)
 
 # Fields that aren't the pokemon table's columns: stats are spread over six columns, and the rest
 # are worked out from other columns.
-NOT_COLUMNS = {"stats", "form", "changed_recently", "species_id"}
+NOT_COLUMNS = {"stats", "form", "changed_recently", "species_id", "family_id"}
 
 
 # The sync detects changes by hashing exactly these fields, so adding one changes every stored
@@ -118,6 +118,16 @@ class Pokemon(BaseModel):
         int | None,
         Field(
             description="Its species' id, which is the species' Pokédex number; `null` until a "
+            "sync has stored its species."
+        ),
+    ] = None
+
+    # Looked up by the queries in species, through species_varieties, so, like `form`, it's never
+    # stored or hashed.
+    family_id: Annotated[
+        int | None,
+        Field(
+            description="Its evolution family's id (PokéAPI's evolution chain); `null` until a "
             "sync has stored its species."
         ),
     ] = None

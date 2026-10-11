@@ -206,8 +206,9 @@ export const previewTeam = <ThrowOnError extends boolean = false>(options?: Opti
 /**
  * Add a Pokémon to a team
  *
- * Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:
- * Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
+ * Puts a Pokémon in the team's next free slot. A team holds up to six, one from each
+ * evolution family: Charmander, Charizard and Mega Charizard X can't share one. An `id` with no
+ * Pokémon is a 422.
  */
 export const addTeamMember = <ThrowOnError extends boolean = false>(options: Options<AddTeamMemberData, ThrowOnError>): RequestResult<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError> => (options.client ?? client).post<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError>({
     security: [{

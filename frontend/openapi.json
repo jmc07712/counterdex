@@ -855,7 +855,7 @@
           "Team members"
         ],
         "summary": "Add a Pokémon to a team",
-        "description": "Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:\nCharizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.",
+        "description": "Puts a Pokémon in the team's next free slot. A team holds up to six, one from each\nevolution family: Charmander, Charizard and Mega Charizard X can't share one. An `id` with no\nPokémon is a 422.",
         "operationId": "add_team_member",
         "security": [
           {
@@ -1634,7 +1634,7 @@
             "type": "array",
             "maxItems": 6,
             "title": "Pokemon Ids",
-            "description": "Up to six Pokémon `id`s, in slot order, one of each species."
+            "description": "Up to six Pokémon `id`s, in slot order, one from each evolution family."
           }
         },
         "type": "object",
@@ -1714,6 +1714,18 @@
             ],
             "title": "Species Id",
             "description": "Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species."
+          },
+          "family_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Id",
+            "description": "Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species."
           }
         },
         "type": "object",
@@ -2166,7 +2178,7 @@
         "type": "string",
         "enum": [
           "team_full",
-          "species_on_team",
+          "family_on_team",
           "order_out_of_date",
           "pokemon_removed",
           "team_id_taken"
@@ -2196,22 +2208,13 @@
             ],
             "title": "Removed At",
             "description": "When PokéAPI stopped listing it, or `null` while it's listed. It stays on the team."
-          },
-          "related_pokemon_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "title": "Related Pokemon Ids",
-            "description": "The other members that are an earlier or later stage of its evolution line, such as\nCharmander for Charizard. Branches of one family, such as Vaporeon and Jolteon, aren't."
           }
         },
         "type": "object",
         "required": [
           "position",
           "pokemon",
-          "removed_at",
-          "related_pokemon_ids"
+          "removed_at"
         ],
         "title": "TeamMember",
         "description": "A Pokémon on a team."

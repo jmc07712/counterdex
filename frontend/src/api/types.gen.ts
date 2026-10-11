@@ -321,7 +321,7 @@ export type NewTeam = {
     /**
      * Pokemon Ids
      *
-     * Up to six Pokémon `id`s, in slot order, one of each species.
+     * Up to six Pokémon `id`s, in slot order, one from each evolution family.
      */
     pokemon_ids?: Array<number>;
 };
@@ -379,6 +379,12 @@ export type Pokemon = {
      * Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species.
      */
     species_id?: number | null;
+    /**
+     * Family Id
+     *
+     * Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species.
+     */
+    family_id?: number | null;
 };
 
 /**
@@ -720,7 +726,7 @@ export type TeamConflict = {
  */
 export const TeamConflictReason = {
     TEAM_FULL: 'team_full',
-    SPECIES_ON_TEAM: 'species_on_team',
+    FAMILY_ON_TEAM: 'family_on_team',
     ORDER_OUT_OF_DATE: 'order_out_of_date',
     POKEMON_REMOVED: 'pokemon_removed',
     TEAM_ID_TAKEN: 'team_id_taken'
@@ -752,13 +758,6 @@ export type TeamMember = {
      * When PokéAPI stopped listing it, or `null` while it's listed. It stays on the team.
      */
     removed_at: string | null;
-    /**
-     * Related Pokemon Ids
-     *
-     * The other members that are an earlier or later stage of its evolution line, such as
-     * Charmander for Charizard. Branches of one family, such as Vaporeon and Jolteon, aren't.
-     */
-    related_pokemon_ids: Array<number>;
 };
 
 /**

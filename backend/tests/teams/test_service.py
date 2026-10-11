@@ -26,14 +26,22 @@ TEAM_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
 
 @pytest.mark.usefixtures("charmander_family")
 def test_creates_a_team_with_its_pokemon_in_order(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201)
+
     team, created = service.create_team(
-        db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[6, 4])
+        db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[10034, 201])
     )
 
     assert created is True
     assert (team.id, team.name) == (TEAM_ID, "Fire")
-    assert [(member.position, member.pokemon.id) for member in team.members] == [(0, 6), (1, 4)]
-    assert [member.pokemon.species_id for member in team.members] == [6, 4]
+    assert [(member.position, member.pokemon.id) for member in team.members] == [
+        (0, 10034),
+        (1, 201),
+    ]
+    assert [(member.pokemon.species_id, member.pokemon.family_id) for member in team.members] == [
+        (6, 2),
+        (201, 1201),
+    ]
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -65,13 +73,13 @@ def test_an_id_another_user_has_is_taken(
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_creating_follows_the_species_clause(db_session: Session, ash: SignedIn) -> None:
+def test_creating_follows_the_family_clause(db_session: Session, ash: SignedIn) -> None:
     with pytest.raises(TeamConflictError) as conflict:
         service.create_team(
-            db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[6, 10034])
+            db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[4, 6])
         )
 
-    assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
+    assert conflict.value.reason is TeamConflictReason.FAMILY_ON_TEAM
 
 
 def test_creating_with_an_unknown_pokemon_fails(db_session: Session, ash: SignedIn) -> None:
@@ -138,26 +146,6 @@ def test_a_team_shows_its_owners_username(db_session: Session, ash: SignedIn) ->
     assert make_team(db_session, ash.user.id).owner == TeamOwner(username="ash")
 
 
-# --- Relatives ---
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_earlier_and_later_stages_are_related(db_session: Session, ash: SignedIn) -> None:
-    team = make_team(db_session, ash.user.id, 4, 5, 10034)
-
-    related = {member.pokemon.id: member.related_pokemon_ids for member in team.members}
-    assert related == {4: [5, 10034], 5: [4, 10034], 10034: [4, 5]}
-
-
-def test_branches_of_one_family_arent_related(db_session: Session, ash: SignedIn) -> None:
-    add_eevee_family(db_session)
-
-    team = make_team(db_session, ash.user.id, 134, 135, 133)
-
-    related = {member.pokemon.id: member.related_pokemon_ids for member in team.members}
-    assert related == {134: [133], 135: [133], 133: [134, 135]}
-
-
 # --- Locking a team to change it ---
 
 
@@ -198,9 +186,10 @@ def test_deleting_removes_the_team(db_session: Session, ash: SignedIn) -> None:
     assert service.list_user_teams(db_session, "ash") == []
 
 
-@pytest.mark.usefixtures("charmander_family")
 def test_member_ids_lists_slot_order(db_session: Session, ash: SignedIn) -> None:
-    assert member_ids(make_team(db_session, ash.user.id, 6, 4, 5)) == [6, 4, 5]
+    add_species_pokemon(db_session, 201, 202, 203)
+
+    assert member_ids(make_team(db_session, ash.user.id, 203, 201, 202)) == [203, 201, 202]
 
 
 def test_creates_a_full_team(db_session: Session, ash: SignedIn) -> None:
@@ -216,24 +205,47 @@ def test_creates_a_full_team(db_session: Session, ash: SignedIn) -> None:
 
 @pytest.mark.usefixtures("charmander_family")
 def test_adding_fills_the_next_slot(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201)
     team = make_team(db_session, ash.user.id, 6)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    added = service.add_member(db_session, locked, 4)
+    added = service.add_member(db_session, locked, 201)
 
-    assert member_ids(added) == [6, 4]
+    assert member_ids(added) == [6, 201]
     assert added.updated_at > team.updated_at
 
 
+@pytest.mark.parametrize(
+    "pokemon_id",
+    [
+        pytest.param(4, id="earlier-stage"),
+        pytest.param(5, id="middle-stage"),
+        pytest.param(10034, id="other-form"),
+    ],
+)
 @pytest.mark.usefixtures("charmander_family")
-def test_adding_a_species_already_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
+def test_adding_a_pokemon_whose_family_is_on_the_team_fails(
+    db_session: Session, ash: SignedIn, pokemon_id: int
+) -> None:
     team = make_team(db_session, ash.user.id, 6)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.add_member(db_session, locked, 10034)
+        service.add_member(db_session, locked, pokemon_id)
 
-    assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
+    assert conflict.value.reason is TeamConflictReason.FAMILY_ON_TEAM
+
+
+def test_branches_of_one_family_cant_share_a_team(db_session: Session, ash: SignedIn) -> None:
+    # Vaporeon and Jolteon both evolve from Eevee.
+    add_eevee_family(db_session)
+    team = make_team(db_session, ash.user.id, 134)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
+
+    with pytest.raises(TeamConflictError) as conflict:
+        service.add_member(db_session, locked, 135)
+
+    assert conflict.value.reason is TeamConflictReason.FAMILY_ON_TEAM
 
 
 def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None:
@@ -263,13 +275,13 @@ def test_replacing_keeps_the_slot(db_session: Session, ash: SignedIn) -> None:
 
 @pytest.mark.usefixtures("charmander_family")
 def test_replacing_with_a_member_moves_it_into_the_slot(db_session: Session, ash: SignedIn) -> None:
-    add_species_pokemon(db_session, 201)
-    team = make_team(db_session, ash.user.id, 4, 201, 6)
+    add_species_pokemon(db_session, 201, 202)
+    team = make_team(db_session, ash.user.id, 4, 201, 202)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    replaced = service.replace_member(db_session, locked, 4, 6)
+    replaced = service.replace_member(db_session, locked, 4, 202)
 
-    assert member_ids(replaced) == [6, 201]
+    assert member_ids(replaced) == [202, 201]
     assert [member.position for member in replaced.members] == [0, 1]
 
 
@@ -285,6 +297,14 @@ def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
 
 
 @pytest.mark.usefixtures("charmander_family")
+def test_a_member_can_be_replaced_by_a_later_stage(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 4)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
+
+    assert member_ids(service.replace_member(db_session, locked, 4, 6)) == [6]
+
+
+@pytest.mark.usefixtures("charmander_family")
 def test_a_member_can_be_replaced_by_its_other_form(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 6)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
@@ -292,15 +312,30 @@ def test_a_member_can_be_replaced_by_its_other_form(db_session: Session, ash: Si
     assert member_ids(service.replace_member(db_session, locked, 6, 10034)) == [10034]
 
 
+def test_a_member_can_be_replaced_by_another_branch_of_its_family(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_eevee_family(db_session)
+    team = make_team(db_session, ash.user.id, 134)
+    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
+
+    replaced = service.replace_member(db_session, locked, 134, 135)
+
+    assert [(member.pokemon.id, member.pokemon.family_id) for member in replaced.members] == [
+        (135, 67)
+    ]
+
+
 @pytest.mark.usefixtures("charmander_family")
-def test_replacing_cant_break_the_species_clause(db_session: Session, ash: SignedIn) -> None:
-    team = make_team(db_session, ash.user.id, 4, 6)
+def test_replacing_cant_break_the_family_clause(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201)
+    team = make_team(db_session, ash.user.id, 4, 201)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
     with pytest.raises(TeamConflictError) as conflict:
-        service.replace_member(db_session, locked, 4, 10034)
+        service.replace_member(db_session, locked, 201, 6)
 
-    assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
+    assert conflict.value.reason is TeamConflictReason.FAMILY_ON_TEAM
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -368,7 +403,9 @@ def test_an_order_that_isnt_the_members_is_out_of_date(
 
 @pytest.mark.usefixtures("charmander_family")
 def test_previews_pokemon_as_members_in_the_order_given(db_session: Session) -> None:
-    members = service.preview(db_session, [6, 9999, 4])
+    add_species_pokemon(db_session, 201)
 
-    assert [(member.position, member.pokemon.id) for member in members] == [(0, 6), (1, 4)]
-    assert [member.related_pokemon_ids for member in members] == [[4], [6]]
+    members = service.preview(db_session, [6, 9999, 201])
+
+    assert [(member.position, member.pokemon.id) for member in members] == [(0, 6), (1, 201)]
+    assert [member.pokemon.family_id for member in members] == [2, 1201]
