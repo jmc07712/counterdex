@@ -123,3 +123,21 @@ async def test_fails_a_sync_that_would_give_a_team_two_pokemon_from_one_family(
         (2, [SyncStatus.SUCCEEDED, SyncStatus.FAILED]),
     )
     assert members(committing_sessions) == [(6, 6, 2), (25, 25, 10)]
+
+
+async def test_fails_a_sync_that_moves_a_pokemon_into_the_family_of_another_on_its_team(
+    committing_sessions: sessionmaker[Session],
+) -> None:
+    # Charizard moves into Raichu's species, in Pikachu's family, and Pikachu is on its team.
+    # The sync fails and is rolled back, so Charizard stays in its own species and family.
+    await sync_with_a_team(committing_sessions, 6, 25)
+
+    exit_code = await sync_pokemon(
+        fake_pokeapi(edit=charizard_joins_raichus_species), committing_sessions
+    )
+
+    assert (exit_code, counts(committing_sessions)) == (
+        1,
+        (2, [SyncStatus.SUCCEEDED, SyncStatus.FAILED]),
+    )
+    assert members(committing_sessions) == [(6, 6, 2), (25, 25, 10)]
