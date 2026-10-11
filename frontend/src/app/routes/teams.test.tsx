@@ -215,6 +215,7 @@ describe('TeamsPage, signed in', () => {
 
     expect(await screen.findByText('No teams yet', ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByText('Pick up to six Pokémon and put them in battle order.')).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('No teams yet')
     // Only the empty state's New team, not the header's as well.
     expect(screen.getAllByRole('button', { name: 'New team' })).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Browse everyone’s teams' }))
@@ -504,6 +505,7 @@ describe('TeamsPage, everyone’s teams', () => {
 
     expect(await screen.findByText('No teams yet', ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByText('Teams show here once they have a Pokémon on them.')).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('No teams yet')
   })
 
   it('says when the teams couldn’t load, and tries again', async () => {
