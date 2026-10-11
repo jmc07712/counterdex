@@ -602,6 +602,7 @@
     }
   ],
   "sync_last_failed": "Last sync failed",
+  "sync_failed_short": "Failed",
   "sync_synced_ago": "Synced {ago}",
   "sync_title": "Pokédex data",
   "sync_failed_description": "The latest sync with PokéAPI failed, so this is the data from {ago}.",

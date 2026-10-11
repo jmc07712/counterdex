@@ -48,6 +48,15 @@ describe('SyncIndicator', () => {
     expect(within(button).getByText('3h ago')).toBeInTheDocument()
   })
 
+  it('says a sync failed in words on small screens too, not by color alone', async () => {
+    serveSyncStatus(syncedThreeHoursAgo({ status: 'failed' }))
+
+    renderWithProviders(<SyncIndicator />)
+
+    const button = await screen.findByRole('button', { name: 'Last sync failed' })
+    expect(within(button).getByText('Failed')).toBeInTheDocument()
+  })
+
   it('opens the details of the latest sync', async () => {
     serveSyncStatus(syncedThreeHoursAgo())
     const { user } = renderWithProviders(<SyncIndicator />)
