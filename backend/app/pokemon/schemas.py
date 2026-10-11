@@ -293,8 +293,8 @@ SearchText = Annotated[
 
 
 def as_stored_name(search: str) -> str:
-    """Search text as Pokémon names are stored: lowercase and hyphenated ("charizard-mega-x"),
-    so "Mega X" matches. The text must be lowercase already, as SearchText makes it.
+    """Search text with its words joined by hyphens, as Pokémon names are stored: "mega x" becomes
+    "mega-x".
     """
     return "-".join(search.split())
 
