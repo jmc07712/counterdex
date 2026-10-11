@@ -13,6 +13,7 @@ from app.counter.constants import (
     POWER_WEIGHT,
     SCORE_DECIMALS,
     SPEED_POINTS,
+    STAT_TOTAL_STEP,
 )
 from app.counter.enums import Rating, RelativeSpeed
 from app.counter.types import Attack, Matchup, Profile, TypeChart
@@ -64,7 +65,7 @@ def matchup(pokemon: Profile, opponent: Profile, chart: TypeChart) -> Matchup:
     score = round(
         points(attack.multiplier)
         - points(opponent_attack.multiplier)
-        + POWER_WEIGHT * difference / 100
+        + POWER_WEIGHT * difference / STAT_TOTAL_STEP
         + _speed_points(speed),
         SCORE_DECIMALS,
     )

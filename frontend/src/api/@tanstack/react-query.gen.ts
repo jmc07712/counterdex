@@ -629,8 +629,10 @@ export const findCounterTeamQueryKey = (options: Options<FindCounterTeamData>) =
  *
  * Each of our Pokémon is scored against each of theirs from types and base stats alone: how
  * effective its best type is against theirs, how effective their best type is against it,
- * which has the higher base stat total, and which is faster. Types decide, and stats break
- * close calls. Each matchup is rated `good`, `even` or `bad`.
+ * which has the higher base stat total, and which is faster. Types count in whole points, and
+ * stats a quarter point for each 100 of base stat total between them and a quarter point for
+ * Speed, so a big enough gap in stats can outweigh a type: each matchup's `score` says how.
+ * Each matchup is rated `good`, `even` or `bad`.
  *
  * The team is chosen one Pokémon at a time, each the one that most raises our best scores
  * against theirs, with a penalty for three or more of ours being weak to one of their types.
@@ -662,7 +664,8 @@ export const listTeamThreatsQueryKey = (options: Options<ListTeamThreatsData>) =
  *
  * Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,
  * each with its matchup against each of the team's Pokémon. The highest total score comes
- * first, and each evolution family appears once, by its best.
+ * first, and each evolution family appears once, by its best. Each matchup is scored from the
+ * threat's side, so a threat's `good` rating is good for the threat and bad for the team.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
  * with no Pokémon is a 422.

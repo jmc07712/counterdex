@@ -11,15 +11,19 @@ MAX_THREATS = 12
 # A matchup is scored from one Pokémon's side as offense + defense + power + speed. Offense is
 # the points for its best attacking type's multiplier against the opponent; defense is the
 # points for the opponent's best type against it, turned around. Types move the score by whole
-# points and stats by fractions of one, so types decide and stats break close calls.
+# points; stats move it by POWER_WEIGHT for each STAT_TOTAL_STEP of base stat total between the
+# two, so a big enough gap can outweigh a type, and by SPEED_POINTS for Speed.
 
 # An attacking type's points are log2 of its multiplier: 4x is +2, 2x +1, 1x 0, 1/2x -1 and
 # 1/4x -2. A type that has no effect gets these points.
 NO_EFFECT_POINTS = -3
-# Points for each 100 of base stat total the Pokémon has over its opponent, or less for each
-# 100 it has under.
+# Power counts base stat total in steps of this many.
+STAT_TOTAL_STEP = 100
+# Power: +POWER_WEIGHT for each STAT_TOTAL_STEP of base stat total the Pokémon has over its
+# opponent, and -POWER_WEIGHT for each it has under.
 POWER_WEIGHT = 0.25
-# Points for a higher base Speed than the opponent's. A lower one takes as many off.
+# Speed: +SPEED_POINTS for a higher base Speed than the opponent's, -SPEED_POINTS for a lower
+# one, and 0 for the same.
 SPEED_POINTS = 0.25
 
 # Scores, and the sums of them the search compares, are rounded to this many decimals: float

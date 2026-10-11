@@ -346,7 +346,7 @@ export type Matchup = {
     /**
      * Score
      *
-     * How well it matches up against the opponent: offense + defense + power + speed. Offense is the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and 1/4x -2, and no effect -3. Defense is the points for the opponent's attack, turned around. Power is 0.25 for each 100 of base stat total it has over the opponent, or less for each 100 under. Speed is 0.25 if it's faster, as much less if it's slower, and 0 on a tie. The opponent's side of the matchup scores the opposite.
+     * How well it matches up against the opponent: offense + defense + power + speed. Offense is the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and 1/4x -2, and no effect -3. Defense is the points for the opponent's attack, turned around. Power is +0.25 for each 100 of base stat total it has over the opponent and -0.25 for each 100 under. Speed is +0.25 if it's faster, -0.25 if it's slower and 0 on a tie. The opponent's side of the matchup scores the opposite.
      */
     score: number;
     /**

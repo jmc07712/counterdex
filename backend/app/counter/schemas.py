@@ -12,6 +12,7 @@ from app.counter.constants import (
     NO_EFFECT_POINTS,
     POWER_WEIGHT,
     SPEED_POINTS,
+    STAT_TOTAL_STEP,
 )
 from app.counter.enums import Rating, RelativeSpeed
 from app.pokemon.enums import PokemonType
@@ -63,9 +64,10 @@ SCORE = (
     "How well it matches up against the opponent: offense + defense + power + speed. Offense is "
     "the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and "
     f"1/4x -2, and no effect {NO_EFFECT_POINTS}. Defense is the points for the opponent's attack, "
-    f"turned around. Power is {POWER_WEIGHT} for each 100 of base stat total it has over the "
-    f"opponent, or less for each 100 under. Speed is {SPEED_POINTS} if it's faster, as much "
-    "less if it's slower, and 0 on a tie. The opponent's side of the matchup scores the opposite."
+    f"turned around. Power is +{POWER_WEIGHT} for each {STAT_TOTAL_STEP} of base stat total it "
+    f"has over the opponent and -{POWER_WEIGHT} for each {STAT_TOTAL_STEP} under. Speed is "
+    f"+{SPEED_POINTS} if it's faster, -{SPEED_POINTS} if it's slower and 0 on a tie. The "
+    "opponent's side of the matchup scores the opposite."
 )
 RATING = (
     f"`good` for a score of {GOOD_SCORE} or more, `bad` for {BAD_SCORE} or less, and otherwise "

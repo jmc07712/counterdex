@@ -1320,7 +1320,7 @@
           "Counter team"
         ],
         "summary": "Find a counter team",
-        "description": "A team as big as the given one that matches up well against it, for a saved team or a\nguest's draft.\n\nEach of our Pokémon is scored against each of theirs from types and base stats alone: how\neffective its best type is against theirs, how effective their best type is against it,\nwhich has the higher base stat total, and which is faster. Types decide, and stats break\nclose calls. Each matchup is rated `good`, `even` or `bad`.\n\nThe team is chosen one Pokémon at a time, each the one that most raises our best scores\nagainst theirs, with a penalty for three or more of ours being weak to one of their types.\nIt has one Pokémon from each evolution family, so it can be saved as a team. It comes in\nbattle order: our lead scores best against their lead, and the rest follow the order of the\nPokémon they score best against.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their\nteam may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no\nPokémon is a 422.",
+        "description": "A team as big as the given one that matches up well against it, for a saved team or a\nguest's draft.\n\nEach of our Pokémon is scored against each of theirs from types and base stats alone: how\neffective its best type is against theirs, how effective their best type is against it,\nwhich has the higher base stat total, and which is faster. Types count in whole points, and\nstats a quarter point for each 100 of base stat total between them and a quarter point for\nSpeed, so a big enough gap in stats can outweigh a type: each matchup's `score` says how.\nEach matchup is rated `good`, `even` or `bad`.\n\nThe team is chosen one Pokémon at a time, each the one that most raises our best scores\nagainst theirs, with a penalty for three or more of ours being weak to one of their types.\nIt has one Pokémon from each evolution family, so it can be saved as a team. It comes in\nbattle order: our lead scores best against their lead, and the rest follow the order of the\nPokémon they score best against.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their\nteam may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no\nPokémon is a 422.",
         "operationId": "find_counter_team",
         "parameters": [
           {
@@ -1403,7 +1403,7 @@
           "Counter team"
         ],
         "summary": "List the threats to a team",
-        "description": "Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,\neach with its matchup against each of the team's Pokémon. The highest total score comes\nfirst, and each evolution family appears once, by its best.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`\nwith no Pokémon is a 422.",
+        "description": "Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,\neach with its matchup against each of the team's Pokémon. The highest total score comes\nfirst, and each evolution family appears once, by its best. Each matchup is scored from the\nthreat's side, so a threat's `good` rating is good for the threat and bad for the team.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`\nwith no Pokémon is a 422.",
         "operationId": "list_team_threats",
         "parameters": [
           {
@@ -1949,7 +1949,7 @@
           "score": {
             "type": "number",
             "title": "Score",
-            "description": "How well it matches up against the opponent: offense + defense + power + speed. Offense is the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and 1/4x -2, and no effect -3. Defense is the points for the opponent's attack, turned around. Power is 0.25 for each 100 of base stat total it has over the opponent, or less for each 100 under. Speed is 0.25 if it's faster, as much less if it's slower, and 0 on a tie. The opponent's side of the matchup scores the opposite."
+            "description": "How well it matches up against the opponent: offense + defense + power + speed. Offense is the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and 1/4x -2, and no effect -3. Defense is the points for the opponent's attack, turned around. Power is +0.25 for each 100 of base stat total it has over the opponent and -0.25 for each 100 under. Speed is +0.25 if it's faster, -0.25 if it's slower and 0 on a tie. The opponent's side of the matchup scores the opposite."
           },
           "rating": {
             "$ref": "#/components/schemas/Rating",
