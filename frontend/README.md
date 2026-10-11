@@ -100,8 +100,9 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
 
 - **Teams** (`/`) lists everyone's teams, with each card saying whose it is, or, for someone
   signed in, their own, empty ones too (`?scope=mine`), searchable and filterable by type and by
-  "Changed this week". Each card shows the team as party tiles, its types and its power, and says
-  which members a sync changed this week and which was removed from PokéAPI and when.
+  "Changed this week", newest first or, with `?sort=power`, the most powerful first. Each card
+  shows the team as party tiles, its types and its power, and says which members a sync changed
+  this week and which was removed from PokéAPI and when.
 - **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
   order, each slot in its main type's color with its stats, and the team's power, the sum of its
   members' base stat totals. Opening a member shows its details. A line above the slots names the
