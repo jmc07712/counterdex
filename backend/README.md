@@ -246,6 +246,17 @@ no cron), so production is synced by running it by hand with production's `DATAB
 day is the natural cadence, given PokéAPI's 24-hour cache. Tests never reach PokéAPI: they use a
 fake, described under [Tests and checks](#tests-and-checks).
 
+### Admins and the run history
+
+`users.is_admin` marks admins, and `GET /api/session` includes it. `GET /api/sync/runs` lists every
+sync run, newest first, a page at a time (`page`, `page_size`), with the total so a page can say
+"Page 2 of 5". Its `require_admin` dependency answers 401 to visitors and 403 to users who aren't
+admins. Admin is granted, or taken away with `--revoke`, from the command line:
+
+```bash
+uv run --env-file ../.env python -m app.jobs.make_admin USERNAME
+```
+
 ## Migrations
 
 ```bash
