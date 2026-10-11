@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 
 import { AppLayout } from '@/app/app-layout'
+import { AdminPage } from '@/app/routes/admin'
 import { NotFoundPage } from '@/app/routes/not-found'
 import { PokedexPage } from '@/app/routes/pokedex'
 import { SignInPage } from '@/app/routes/sign-in'
@@ -21,6 +22,7 @@ export const routes: RouteObject[] = [
       { path: paths.pokedex.path, Component: PokedexPage },
       { path: paths.signIn.path, Component: SignInPage },
       { path: paths.signUp.path, Component: SignUpPage },
+      { path: paths.admin.path, Component: AdminPage },
       { path: '*', Component: NotFoundPage },
     ],
   },

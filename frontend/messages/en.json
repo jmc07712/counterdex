@@ -653,5 +653,43 @@
   "sync_updated": "Updated",
   "sync_removed": "Removed",
   "sync_restored": "Restored",
-  "sync_failed": "Couldn’t sync"
+  "sync_failed": "Couldn’t sync",
+  "admin_title": "Admin",
+  "admin_description": "Tools for the people who run Counterdex.",
+  "admin_only": "This page is for admins",
+  "admin_go_to_teams": "Go to the Teams page",
+  "admin_session_check_failed": "Couldn’t check whether you’re signed in",
+  "admin_runs_title": "Sync runs",
+  "admin_runs_description": "A sync run fetches every Pokémon from PokéAPI and saves what changed.",
+  "admin_runs_loading": "Loading sync runs",
+  "admin_runs_load_failed": "Couldn’t load the sync runs",
+  "admin_runs_empty_title": "No sync has run yet",
+  "admin_runs_empty_description": "Each sync with PokéAPI shows here once it has run.",
+  "admin_runs_past_end_title": "No runs on page {page}",
+  "admin_runs_past_end_description": "The last page is page {last}.",
+  "admin_runs_go_to_last": "Go to the last page",
+  "admin_runs_status_heading": "Status",
+  "admin_runs_started": "Started",
+  "admin_runs_duration": "Duration",
+  "admin_runs_error": "Error",
+  "admin_runs_pages": "Sync run pages",
+  "admin_runs_page": "Page {page}",
+  "admin_runs_page_of": "Page {page} of {total}",
+  "admin_runs_previous": "Previous",
+  "admin_runs_next": "Next",
+  "admin_run_status": [
+    {
+      "declarations": [
+        "input status"
+      ],
+      "selectors": [
+        "status"
+      ],
+      "match": {
+        "status=succeeded": "Succeeded",
+        "status=failed": "Failed",
+        "status=*": "{status}"
+      }
+    }
+  ]
 }

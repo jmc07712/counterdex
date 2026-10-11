@@ -8,6 +8,7 @@ import {
   PokemonForm,
   PokemonType,
   RelativePhysicalStats,
+  SyncStatus,
   TeamConflictReason,
   TimeOfDay,
 } from '@/api'
@@ -43,6 +44,7 @@ describe.each<[string, string[], (value: string) => string]>([
     [...Object.values(TeamConflictReason), 'signed_out', 'not_owner', 'not_found', 'failed'],
     (problem) => m.team_problem({ problem }),
   ],
+  ['admin_run_status', Object.values(SyncStatus), (status) => m.admin_run_status({ status })],
 ])('%s', (_, values, word) => {
   it.each(values)('words %s', (value) => {
     expect(word(value)).not.toBe(value)

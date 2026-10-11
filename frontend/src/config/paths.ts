@@ -15,6 +15,12 @@ export const paths = {
     },
   },
   pokedex: { path: '/pokedex', getHref: () => '/pokedex' },
+  admin: {
+    path: '/admin',
+    // `page` is the page of sync runs, counting from 1; page 1 is left out.
+    getHref: ({ page = 1 }: { page?: number } = {}) =>
+      page === 1 ? '/admin' : `/admin?${new URLSearchParams({ page: `${page}` })}`,
+  },
   signIn: { path: '/sign-in', getHref: (next?: string) => withNext('/sign-in', next) },
   signUp: { path: '/sign-up', getHref: (next?: string) => withNext('/sign-up', next) },
 }

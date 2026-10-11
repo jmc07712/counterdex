@@ -19,6 +19,12 @@ describe('routes', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Teams' })).toBeInTheDocument()
   })
 
+  it('shows the Admin page at /admin', async () => {
+    renderRoutes(routes, { path: '/admin' })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Admin' })).toBeInTheDocument()
+  })
+
   it('shows Page not found at /explore', async () => {
     renderRoutes(routes, { path: '/explore' })
 

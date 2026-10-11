@@ -7,3 +7,10 @@ export function termsAndDefinitions(container: HTMLElement) {
     .getAllByRole('term')
     .map((term, index) => [term.textContent, definitions[index].textContent])
 }
+
+/** Each row of `table`, headers too, as its cells' text. */
+export function cellsByRow(table: HTMLElement) {
+  return within(table)
+    .getAllByRole('row')
+    .map((row) => Array.from(row.querySelectorAll('th, td'), (cell) => cell.textContent))
+}
