@@ -430,6 +430,13 @@
   "team_against_answers": "Your best answer to each of theirs",
   "team_against_answer": "Best answer: {name}",
   "team_added": "Added {name} to {team}",
+  "team_show": "Show team",
+  "team_add_to": "Add to team",
+  "team_add_to_named": "Add to team: {name}",
+  "team_add_to_yours": "Your teams",
+  "team_add_to_loading": "Loading your teams…",
+  "team_add_to_load_failed": "Couldn’t load your teams",
+  "team_add_to_signed_out": "Teams are saved to your account, so you’ll need to sign in.",
   "team_problem": [
     {
       "declarations": [

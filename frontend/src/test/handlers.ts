@@ -426,6 +426,43 @@ export function holdTeamFetches() {
   return { release }
 }
 
+/**
+ * Holds every fetch of a trainer's teams until `release` is called, then lets the stand-in from
+ * serveTeams answer them. `arrived` counts the fetches the app has sent so far. Call it after
+ * serveTeams, so it comes first.
+ */
+export function holdUserTeams() {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let arrived = 0
+  server.use(
+    http.get('/api/users/:username/teams', async () => {
+      arrived += 1
+      await released
+    }),
+  )
+  return { release, arrived: () => arrived }
+}
+
+/**
+ * Holds every request to create a team until `release` is called, then lets the stand-in from
+ * serveTeams answer them. Call it after serveTeams, so it comes first.
+ */
+export function holdNewTeams() {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  server.use(
+    http.put('/api/teams/:teamId', async () => {
+      await released
+    }),
+  )
+  return { release }
+}
+
 /** How a Pokémon matches up against the Pokémon `opponentId`, for a stand-in to answer with. */
 export type MatchupOf = (pokemon: Pokemon, opponentId: number) => Matchup
 
