@@ -4,6 +4,7 @@ import {
   type Challenger,
   type CredentialsWritable,
   type FindCounterTeamResponse,
+  type ListTeamThreatsResponse,
   type Matchup,
   type Pokemon,
   type PokemonChange,
@@ -460,6 +461,31 @@ export function serveCounterTeam({
         .slice(0, theirs.length)
       const counter: FindCounterTeamResponse = challengers(picks, theirs, matchup)
       return HttpResponse.json(counter)
+    }),
+  )
+  return requests
+}
+
+/**
+ * Stands in for the API's threats to a team: answers a team with up to 12 of `threats`, those not
+ * on it, in order, each with its `matchup` against each of the team's; or, given `refuse`, with
+ * that status instead. Returns each request's query string, in the order they came.
+ */
+export function serveTeamThreats({
+  threats = [],
+  matchup = evenMatchup,
+  refuse,
+}: { threats?: Pokemon[]; matchup?: MatchupOf; refuse?: number } = {}) {
+  const requests: string[] = []
+  server.use(
+    http.get('/api/team-threats', ({ request }) => {
+      const query = new URL(request.url).searchParams
+      requests.push(query.toString())
+      if (refuse) return refusal(refuse)
+      const theirs = query.getAll('pokemon_id').map(Number)
+      const listed = threats.filter((pokemon) => !theirs.includes(pokemon.id)).slice(0, 12)
+      const answer: ListTeamThreatsResponse = challengers(listed, theirs, matchup)
+      return HttpResponse.json(answer)
     }),
   )
   return requests

@@ -4,9 +4,9 @@ import { Rating } from '@/api'
 import { makeChallenger, makeMatchup } from '@/test/matchups'
 import { catalog } from '@/test/teams'
 
-import { bestAnswer, coverage, pickReason } from './matchup-summary'
+import { bestAnswer, coverage, pickReason, threatReason } from './matchup-summary'
 
-const { charizard, pikachu, gengar, lapras, snorlax, vaporeon } = catalog
+const { charizard, pikachu, gengar, lapras, snorlax, dragonite, vaporeon } = catalog
 const { GOOD, EVEN, BAD } = Rating
 
 // Their team, in battle order.
@@ -39,6 +39,26 @@ describe('pickReason', () => {
 
   it('is null without matchups', () => {
     expect(pickReason([], THEIRS)).toBeNull()
+  })
+})
+
+describe('threatReason', () => {
+  it('names the members a threat is rated good against, in battle order', () => {
+    const threat = makeChallenger(dragonite, THEIRS, [GOOD, EVEN, GOOD])
+
+    expect(threatReason(threat.matchups, THEIRS)).toBe('Beats Charizard and Gengar')
+  })
+
+  it('names those it holds its own against, if it beats none', () => {
+    const threat = makeChallenger(dragonite, THEIRS, [EVEN, BAD, EVEN])
+
+    expect(threatReason(threat.matchups, THEIRS)).toBe(
+      'Holds its own against Charizard and Gengar',
+    )
+  })
+
+  it('is null without matchups', () => {
+    expect(threatReason([], THEIRS)).toBeNull()
   })
 })
 

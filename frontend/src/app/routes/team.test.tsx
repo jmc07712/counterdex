@@ -18,6 +18,7 @@ import {
   servePokemonDetails,
   serveSession,
   serveTeams,
+  serveTeamThreats,
 } from '@/test/handlers'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
@@ -37,9 +38,11 @@ const CHANGED_ON = '2026-10-09T09:00:00Z'
 const VIEW = `/teams/${TEAM_ID}`
 const EDIT = `/teams/${TEAM_ID}/edit`
 
-// Someone else's team shows how to beat it, which these tests leave to team-matchups.test.tsx.
+// Someone else's team shows how to beat it, and your own what threatens it, which these tests
+// leave to team-matchups.test.tsx.
 beforeEach(() => {
   serveCounterTeam()
+  serveTeamThreats()
 })
 
 function renderTeam(path = VIEW) {

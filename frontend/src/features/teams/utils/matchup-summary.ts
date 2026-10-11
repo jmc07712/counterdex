@@ -17,6 +17,16 @@ export function pickReason(matchups: Matchup[], opponents: Pokemon[]) {
 }
 
 /**
+ * What a threat does to a team, from its `matchups` against the team's `members`: "Beats
+ * Charizard and Pidgeot", naming those it's rated good against; failing that, those it holds its
+ * own against; failing that, those it struggles against. Null without matchups.
+ */
+export function threatReason(matchups: Matchup[], members: Pokemon[]) {
+  const best = bestRated(matchups, members)
+  return best && m.team_threat_reason({ rating: best.rating, names: andList(best.names) })
+}
+
+/**
  * Whether each of `opponents` has a pick rated good against it: "Every Pokémon on their team has
  * a good answer", or "Nothing here clearly beats Charizard", naming those that don't.
  */

@@ -3,16 +3,30 @@ import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
-import { type Matchup, type Pokemon, PokemonType, Rating, RelativeSpeed, type Team } from '@/api'
+import {
+  type Matchup,
+  type Pokemon,
+  PokemonType,
+  Rating,
+  RelativeSpeed,
+  type Team,
+  type User,
+} from '@/api'
 import { Toaster } from '@/components/layout/toaster'
+import { displayName } from '@/components/pokemon/format'
 import {
   holdCounterTeams,
   type MatchupOf,
   serveCounterTeam,
+  servePokemon,
+  servePokemonChanges,
+  servePokemonDetails,
   serveSession,
   serveTeams,
+  serveTeamThreats,
 } from '@/test/handlers'
 import { makeMatchup } from '@/test/matchups'
+import { makeDetails } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -75,6 +89,21 @@ const matchupOf: MatchupOf = (pokemon, opponentId) =>
 const alwaysGood: MatchupOf = (_, opponentId) =>
   makeMatchup({ opponent_id: opponentId, rating: GOOD, score: 1 })
 
+// What the threats stand-in lists for Ash's team: Dragonite, Lapras and Snorlax.
+const THREATS = [dragonite, lapras, snorlax]
+
+// How each threat matches up against each of the team's, from the threat's side; even unless
+// listed here.
+const THREAT_RATINGS: Record<number, Record<number, Rating>> = {
+  [dragonite.id]: { [charizard.id]: GOOD, [pikachu.id]: GOOD, [gengar.id]: GOOD },
+  [lapras.id]: { [charizard.id]: GOOD },
+}
+
+const threatMatchupOf: MatchupOf = (pokemon, opponentId) => {
+  const rating = THREAT_RATINGS[pokemon.id]?.[opponentId]
+  return makeMatchup({ opponent_id: opponentId, ...(rating && { rating, score: 1 }) })
+}
+
 function renderTeam(path = VIEW) {
   return renderWithProviders(
     <>
@@ -88,8 +117,8 @@ function renderTeam(path = VIEW) {
   )
 }
 
-// Misty, or someone signed out, looking at their team.
-function serveTheirs({ viewer = MISTY, team = THEIRS }: { viewer?: typeof MISTY | null; team?: Team } = {}) {
+// Ash's team, with `viewer` signed in: Misty unless given, or Ash, or nobody.
+function serveTheirs({ viewer = MISTY, team = THEIRS }: { viewer?: User | null; team?: Team } = {}) {
   serveSession({ signedIn: viewer })
   return serveTeams({ teams: [team], catalog: CATALOG, signedIn: viewer })
 }
@@ -98,8 +127,12 @@ async function findSection() {
   return screen.findByRole('region', { name: 'How to beat this team' })
 }
 
+async function findThreats() {
+  return screen.findByRole('region', { name: 'Threats to this team' })
+}
+
 function names(pokemon: Pokemon[]) {
-  return pokemon.map((each) => each.name.charAt(0).toUpperCase() + each.name.slice(1))
+  return pokemon.map((each) => displayName(each.name))
 }
 
 describe('TeamPage, how to beat someone else’s team', () => {
@@ -383,11 +416,146 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('isn’t shown to the team’s owner', async () => {
     serveTheirs({ viewer: ASH })
     const counters = serveCounterTeam({ catalog: PICKS })
+    serveTeamThreats()
     renderTeam()
 
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
 
     expect(screen.queryByRole('region', { name: 'How to beat this team' })).not.toBeInTheDocument()
     expect(counters).toEqual([])
+  })
+
+  it('shows no threats to the team', async () => {
+    serveTheirs()
+    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    const threats = serveTeamThreats({ threats: THREATS })
+    renderTeam()
+
+    await within(await findSection()).findByRole('table')
+
+    expect(screen.queryByRole('region', { name: 'Threats to this team' })).not.toBeInTheDocument()
+    expect(threats).toEqual([])
+  })
+})
+
+describe('TeamPage, threats to your own team', () => {
+  it('lists what threatens it below its party, each with what it beats', async () => {
+    serveTheirs({ viewer: ASH })
+    serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    renderTeam()
+
+    const section = await findThreats()
+    const slots = screen.getByRole('list', { name: 'Team, in battle order' })
+    expect(slots.compareDocumentPosition(section)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    const list = await within(section).findByRole('list', { name: 'Threats, the biggest first' })
+    const tiles = within(list).getAllByRole('listitem')
+    expect(tiles.map((tile) => within(tile).getByRole('heading').textContent)).toEqual(
+      names(THREATS),
+    )
+    expect(tiles[0]).toHaveTextContent('Beats Charizard, Pikachu and Gengar')
+    expect(tiles[1]).toHaveTextContent('Beats Charizard')
+    expect(tiles[2]).toHaveTextContent('Holds its own against Charizard, Pikachu and Gengar')
+  })
+
+  it('opens a threat’s Pokédex details', async () => {
+    serveTheirs({ viewer: ASH })
+    serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    servePokemonDetails((id) => makeDetails({ pokemon: CATALOG.find((each) => each.id === id) }))
+    servePokemonChanges()
+    const { user, router } = renderTeam()
+
+    const section = await findThreats()
+    const dragoniteTile = await within(section).findByRole('button', { name: 'Dragonite' })
+    expect(dragoniteTile).toHaveAccessibleDescription('Beats Charizard, Pikachu and Gengar')
+    await user.click(dragoniteTile)
+
+    expect(await screen.findByRole('dialog', { name: 'Dragonite' })).toBeInTheDocument()
+    expect(router.state.location.search).toBe(`?pokemon=${dragonite.id}`)
+  })
+
+  it('finds threats among alternate forms and legendaries once they’re turned on', async () => {
+    serveTheirs({ viewer: ASH })
+    const threats = serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    const { user, router } = renderTeam()
+
+    const section = await findThreats()
+    await within(section).findByRole('list', { name: 'Threats, the biggest first' })
+    await user.click(within(section).getByRole('button', { name: 'Alternate forms' }))
+    await within(section).findByRole('list', { name: 'Threats, the biggest first' })
+
+    const ids = `pokemon_id=${charizard.id}&pokemon_id=${pikachu.id}&pokemon_id=${gengar.id}`
+    expect(threats).toEqual([ids, `${ids}&forms=true`])
+    expect(router.state.location.search).toBe('?forms=true')
+  })
+
+  it('shows its skeleton while threats load', async () => {
+    serveTheirs({ viewer: ASH })
+    server.use(http.get('/api/team-threats', () => new Promise<never>(() => {})))
+    renderTeam()
+
+    expect(
+      within(await findThreats()).getByRole('status', { name: 'Finding threats to this team' }),
+    ).toBeInTheDocument()
+  })
+
+  it('says threats need a Pokédex sync first', async () => {
+    serveTheirs({ viewer: ASH })
+    serveTeamThreats({ refuse: 503 })
+    renderTeam()
+
+    const section = await findThreats()
+
+    expect(
+      await within(section).findByText('Threats need a Pokédex sync first'),
+    ).toBeInTheDocument()
+    expect(within(section).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('says when threats couldn’t load, and tries again', async () => {
+    serveTheirs({ viewer: ASH })
+    const threats = serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    server.use(
+      http.get(
+        '/api/team-threats',
+        () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 }),
+        { once: true },
+      ),
+    )
+    const { user } = renderTeam()
+
+    const section = await findThreats()
+    expect(
+      await within(section).findByText('Couldn’t find threats to this team'),
+    ).toBeInTheDocument()
+
+    await user.click(within(section).getByRole('button', { name: 'Try again' }))
+
+    expect(
+      await within(section).findByRole('list', { name: 'Threats, the biggest first' }),
+    ).toBeInTheDocument()
+    expect(threats).toHaveLength(1)
+  })
+
+  it('isn’t shown for a team with no Pokémon', async () => {
+    serveTheirs({ viewer: ASH, team: makeTeam() })
+    const threats = serveTeamThreats({ threats: THREATS })
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+
+    expect(screen.queryByRole('region', { name: 'Threats to this team' })).not.toBeInTheDocument()
+    expect(threats).toEqual([])
+  })
+
+  it('isn’t shown while editing', async () => {
+    serveTheirs({ viewer: ASH })
+    servePokemon({ items: [], next_cursor: null })
+    const threats = serveTeamThreats({ threats: THREATS })
+    renderTeam(`${VIEW}/edit`)
+
+    await screen.findByRole('textbox', { name: 'Team name' })
+
+    expect(screen.queryByRole('region', { name: 'Threats to this team' })).not.toBeInTheDocument()
+    expect(threats).toEqual([])
   })
 })

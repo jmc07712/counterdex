@@ -54,6 +54,11 @@ describe.each<[string, string[], (value: string) => string]>([
     (rating) => m.team_matchup_reason({ rating, names: 'Charizard' }),
   ],
   [
+    'team_threat_reason',
+    Object.values(Rating),
+    (rating) => m.team_threat_reason({ rating, names: 'Charizard' }),
+  ],
+  [
     'team_matchup_speed',
     Object.values(RelativeSpeed),
     (speed) => m.team_matchup_speed({ speed, pokemon: 'Golem', opponent: 'Charizard' }),

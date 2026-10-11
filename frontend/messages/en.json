@@ -375,6 +375,29 @@
   "team_counter_build": "Build this counter",
   "team_counter_load_failed": "Couldn’t find a counter to this team",
   "team_counter_loading": "Finding a counter to this team",
+  "team_threat_reason": [
+    {
+      "declarations": [
+        "input rating",
+        "input names"
+      ],
+      "selectors": [
+        "rating"
+      ],
+      "match": {
+        "rating=good": "Beats {names}",
+        "rating=even": "Holds its own against {names}",
+        "rating=bad": "Struggles against {names}",
+        "rating=*": "{rating}"
+      }
+    }
+  ],
+  "team_threats_title": "Threats to this team",
+  "team_threats_description": "The Pokémon that match up best against it, scored on types, base stats and Speed.",
+  "team_threats_list": "Threats, the biggest first",
+  "team_threats_loading": "Finding threats to this team",
+  "team_threats_needs_sync": "Threats need a Pokédex sync first",
+  "team_threats_load_failed": "Couldn’t find threats to this team",
   "team_added": "Added {name} to {team}",
   "team_problem": [
     {
