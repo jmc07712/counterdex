@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getCurrentUser, getPokemon, health, listPokemon, listPokemonChanges, type Options, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, type Options, renameTeam, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -281,6 +281,106 @@ export const signInMutation = (options?: Partial<Options<SignInData>>): UseMutat
     const mutationOptions: UseMutationOptions<SignInResponse, SignInError, Options<SignInData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await signIn({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listTeamsQueryKey = (options?: Options<ListTeamsData>) => createQueryKey('listTeams', options);
+
+/**
+ * List your teams
+ *
+ * Your teams, most recently changed first, each with its Pokémon in slot order.
+ */
+export const listTeamsOptions = (options?: Options<ListTeamsData>) => queryOptions<ListTeamsResponse, DefaultError, ListTeamsResponse, ReturnType<typeof listTeamsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listTeams({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listTeamsQueryKey(options)
+});
+
+/**
+ * Delete a team
+ *
+ * Deletes one of your teams.
+ */
+export const deleteTeamMutation = (options?: Partial<Options<DeleteTeamData>>): UseMutationOptions<DeleteTeamResponse, DeleteTeamError, Options<DeleteTeamData>> => {
+    const mutationOptions: UseMutationOptions<DeleteTeamResponse, DeleteTeamError, Options<DeleteTeamData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteTeam({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getTeamQueryKey = (options: Options<GetTeamData>) => createQueryKey('getTeam', options);
+
+/**
+ * Get a team
+ *
+ * One of your teams, with its Pokémon in slot order.
+ */
+export const getTeamOptions = (options: Options<GetTeamData>) => queryOptions<GetTeamResponse, GetTeamError, GetTeamResponse, ReturnType<typeof getTeamQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getTeam({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getTeamQueryKey(options)
+});
+
+/**
+ * Rename a team
+ *
+ * Gives one of your teams a new name.
+ */
+export const renameTeamMutation = (options?: Partial<Options<RenameTeamData>>): UseMutationOptions<RenameTeamResponse, RenameTeamError, Options<RenameTeamData>> => {
+    const mutationOptions: UseMutationOptions<RenameTeamResponse, RenameTeamError, Options<RenameTeamData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await renameTeam({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Create a team
+ *
+ * Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.
+ *
+ * Sending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so
+ * a create that's retried can't make two teams. An `id` someone else has is a 409.
+ */
+export const createTeamMutation = (options?: Partial<Options<CreateTeamData>>): UseMutationOptions<CreateTeamResponse, CreateTeamError, Options<CreateTeamData>> => {
+    const mutationOptions: UseMutationOptions<CreateTeamResponse, CreateTeamError, Options<CreateTeamData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createTeam({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

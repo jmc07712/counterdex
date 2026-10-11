@@ -392,6 +392,245 @@
           }
         }
       }
+    },
+    "/api/teams": {
+      "get": {
+        "summary": "List your teams",
+        "description": "Your teams, most recently changed first, each with its Pokémon in slot order.",
+        "operationId": "list_teams",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Team"
+                  },
+                  "type": "array",
+                  "title": "Response List Teams"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          }
+        }
+      }
+    },
+    "/api/teams/{team_id}": {
+      "put": {
+        "summary": "Create a team",
+        "description": "Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.\n\nSending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so\na create that's retried can't make two teams. An `id` someone else has is a 409.",
+        "operationId": "create_team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTeam"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The team was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "409": {
+            "description": "The change can't be made to the team as it is now; `reason` says why.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No Pokémon has this id. Or invalid input."
+          }
+        }
+      },
+      "get": {
+        "summary": "Get a team",
+        "description": "One of your teams, with its Pokémon in slot order.",
+        "operationId": "get_team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Rename a team",
+        "description": "Gives one of your teams a new name.",
+        "operationId": "rename_team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRename"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a team",
+        "description": "Deletes one of your teams.",
+        "operationId": "delete_team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -818,6 +1057,34 @@
         ],
         "title": "NewAccount",
         "description": "A username and password, for signing up."
+      },
+      "NewTeam": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "description": "1 to 40 characters, not counting spaces at either end."
+          },
+          "pokemon_ids": {
+            "items": {
+              "type": "integer",
+              "maximum": 2147483647.0,
+              "minimum": 1.0
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Pokemon Ids",
+            "description": "Up to six Pokémon `id`s, in slot order, one of each species."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "NewTeam",
+        "description": "A team to create: its name, and any Pokémon to start with."
       },
       "Pokemon": {
         "properties": {
@@ -1269,6 +1536,132 @@
           "failed"
         ],
         "title": "SyncStatus"
+      },
+      "Team": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "When the team or its members last changed."
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array",
+            "title": "Members",
+            "description": "In slot order."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at",
+          "members"
+        ],
+        "title": "Team",
+        "description": "A team of up to six Pokémon."
+      },
+      "TeamConflict": {
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/TeamConflictReason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "TeamConflict",
+        "description": "Why the change can't be made to the team as it is now."
+      },
+      "TeamConflictReason": {
+        "type": "string",
+        "enum": [
+          "team_full",
+          "species_on_team",
+          "order_out_of_date",
+          "pokemon_removed",
+          "team_id_taken"
+        ],
+        "title": "TeamConflictReason",
+        "description": "Why a change can't be made to a team as it is now."
+      },
+      "TeamMember": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "description": "Its slot, from 0."
+          },
+          "pokemon": {
+            "$ref": "#/components/schemas/Pokemon"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At",
+            "description": "When PokéAPI stopped listing it, or `null` while it's listed. It stays on the team."
+          },
+          "related_pokemon_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Related Pokemon Ids",
+            "description": "The other members that are an earlier or later stage of its evolution line, such as\nCharmander for Charizard. Branches of one family, such as Vaporeon and Jolteon, aren't."
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "pokemon",
+          "removed_at",
+          "related_pokemon_ids"
+        ],
+        "title": "TeamMember",
+        "description": "A Pokémon on a team."
+      },
+      "TeamRename": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "description": "1 to 40 characters, not counting spaces at either end."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "TeamRename",
+        "description": "A team's new name."
       },
       "TimeOfDay": {
         "type": "string",

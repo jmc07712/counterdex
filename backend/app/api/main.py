@@ -4,8 +4,20 @@ from fastapi.routing import APIRoute
 
 from app.api.constants import API_PREFIX, API_TITLE, OPENAPI_URL
 from app.api.cross_origin import CrossOriginProtection
-from app.api.errors import validation_error
-from app.api.routes import accounts, docs, health, pokemon, sync
+from app.api.errors import (
+    member_not_found,
+    team_conflict,
+    team_not_found,
+    unknown_pokemon,
+    validation_error,
+)
+from app.api.routes import accounts, docs, health, pokemon, sync, teams
+from app.teams.exceptions import (
+    MemberNotFoundError,
+    TeamConflictError,
+    TeamNotFoundError,
+    UnknownPokemonError,
+)
 
 
 def operation_id(route: APIRoute) -> str:
@@ -20,7 +32,13 @@ app = FastAPI(
     # routes/docs.py serves Scalar instead of FastAPI's built-in Swagger UI and ReDoc.
     docs_url=None,
     redoc_url=None,
-    exception_handlers={RequestValidationError: validation_error},
+    exception_handlers={
+        RequestValidationError: validation_error,
+        TeamNotFoundError: team_not_found,
+        MemberNotFoundError: member_not_found,
+        UnknownPokemonError: unknown_pokemon,
+        TeamConflictError: team_conflict,
+    },
 )
 
 app.add_middleware(CrossOriginProtection)
@@ -30,3 +48,4 @@ app.include_router(health.router, prefix=API_PREFIX)
 app.include_router(pokemon.router, prefix=API_PREFIX)
 app.include_router(sync.router, prefix=API_PREFIX)
 app.include_router(accounts.router, prefix=API_PREFIX)
+app.include_router(teams.router, prefix=API_PREFIX)

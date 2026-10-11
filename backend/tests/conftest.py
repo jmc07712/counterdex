@@ -13,7 +13,7 @@ from app.accounts.types import SignedIn
 from app.core.config import get_settings
 from app.core.db import get_engine, get_session
 from app.pokemon import models
-from tests.support.accounts import ASH
+from tests.support.accounts import ASH, MISTY
 from tests.support.pokemon import LEVEL_16, LEVEL_36, add_species, make_pokemon
 
 # Same major version as production (Neon) and docker-compose.yml.
@@ -151,3 +151,9 @@ def charmander_family(db_session: Session) -> None:
 def ash(db_session: Session) -> SignedIn:
     """Ash, signed up and so signed in, with the password in tests.support.accounts.ASH."""
     return service.sign_up(db_session, ASH)
+
+
+@pytest.fixture
+def misty(db_session: Session) -> SignedIn:
+    """Misty, signed up and so signed in: a second user."""
+    return service.sign_up(db_session, MISTY)

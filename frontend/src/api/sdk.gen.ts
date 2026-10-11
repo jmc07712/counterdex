@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -97,6 +97,58 @@ export const getCurrentUser = <ThrowOnError extends boolean = false>(options?: O
  */
 export const signIn = <ThrowOnError extends boolean = false>(options: Options<SignInData, ThrowOnError>): RequestResult<SignInResponses, SignInErrors, ThrowOnError> => (options.client ?? client).post<SignInResponses, SignInErrors, ThrowOnError>({
     url: '/api/session',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List your teams
+ *
+ * Your teams, most recently changed first, each with its Pokémon in slot order.
+ */
+export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({ url: '/api/teams', ...options });
+
+/**
+ * Delete a team
+ *
+ * Deletes one of your teams.
+ */
+export const deleteTeam = <ThrowOnError extends boolean = false>(options: Options<DeleteTeamData, ThrowOnError>): RequestResult<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError> => (options.client ?? client).delete<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError>({ url: '/api/teams/{team_id}', ...options });
+
+/**
+ * Get a team
+ *
+ * One of your teams, with its Pokémon in slot order.
+ */
+export const getTeam = <ThrowOnError extends boolean = false>(options: Options<GetTeamData, ThrowOnError>): RequestResult<GetTeamResponses, GetTeamErrors, ThrowOnError> => (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>({ url: '/api/teams/{team_id}', ...options });
+
+/**
+ * Rename a team
+ *
+ * Gives one of your teams a new name.
+ */
+export const renameTeam = <ThrowOnError extends boolean = false>(options: Options<RenameTeamData, ThrowOnError>): RequestResult<RenameTeamResponses, RenameTeamErrors, ThrowOnError> => (options.client ?? client).patch<RenameTeamResponses, RenameTeamErrors, ThrowOnError>({
+    url: '/api/teams/{team_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Create a team
+ *
+ * Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.
+ *
+ * Sending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so
+ * a create that's retried can't make two teams. An `id` someone else has is a 409.
+ */
+export const createTeam = <ThrowOnError extends boolean = false>(options: Options<CreateTeamData, ThrowOnError>): RequestResult<CreateTeamResponses, CreateTeamErrors, ThrowOnError> => (options.client ?? client).put<CreateTeamResponses, CreateTeamErrors, ThrowOnError>({
+    url: '/api/teams/{team_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -293,6 +293,26 @@ export type NewAccount = {
 };
 
 /**
+ * NewTeam
+ *
+ * A team to create: its name, and any Pokémon to start with.
+ */
+export type NewTeam = {
+    /**
+     * Name
+     *
+     * 1 to 40 characters, not counting spaces at either end.
+     */
+    name: string;
+    /**
+     * Pokemon Ids
+     *
+     * Up to six Pokémon `id`s, in slot order, one of each species.
+     */
+    pokemon_ids?: Array<number>;
+};
+
+/**
  * Pokemon
  *
  * A Pokémon: its Pokédex number, name, types, base stats and sprite.
@@ -624,6 +644,109 @@ export const SyncStatus = { SUCCEEDED: 'succeeded', FAILED: 'failed' } as const;
  * SyncStatus
  */
 export type SyncStatus = typeof SyncStatus[keyof typeof SyncStatus];
+
+/**
+ * Team
+ *
+ * A team of up to six Pokémon.
+ */
+export type Team = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     *
+     * When the team or its members last changed.
+     */
+    updated_at: string;
+    /**
+     * Members
+     *
+     * In slot order.
+     */
+    members: Array<TeamMember>;
+};
+
+/**
+ * TeamConflict
+ *
+ * Why the change can't be made to the team as it is now.
+ */
+export type TeamConflict = {
+    reason: TeamConflictReason;
+};
+
+/**
+ * TeamConflictReason
+ *
+ * Why a change can't be made to a team as it is now.
+ */
+export const TeamConflictReason = {
+    TEAM_FULL: 'team_full',
+    SPECIES_ON_TEAM: 'species_on_team',
+    ORDER_OUT_OF_DATE: 'order_out_of_date',
+    POKEMON_REMOVED: 'pokemon_removed',
+    TEAM_ID_TAKEN: 'team_id_taken'
+} as const;
+
+/**
+ * TeamConflictReason
+ *
+ * Why a change can't be made to a team as it is now.
+ */
+export type TeamConflictReason = typeof TeamConflictReason[keyof typeof TeamConflictReason];
+
+/**
+ * TeamMember
+ *
+ * A Pokémon on a team.
+ */
+export type TeamMember = {
+    /**
+     * Position
+     *
+     * Its slot, from 0.
+     */
+    position: number;
+    pokemon: Pokemon;
+    /**
+     * Removed At
+     *
+     * When PokéAPI stopped listing it, or `null` while it's listed. It stays on the team.
+     */
+    removed_at: string | null;
+    /**
+     * Related Pokemon Ids
+     *
+     * The other members that are an earlier or later stage of its evolution line, such as
+     * Charmander for Charizard. Branches of one family, such as Vaporeon and Jolteon, aren't.
+     */
+    related_pokemon_ids: Array<number>;
+};
+
+/**
+ * TeamRename
+ *
+ * A team's new name.
+ */
+export type TeamRename = {
+    /**
+     * Name
+     *
+     * 1 to 40 characters, not counting spaces at either end.
+     */
+    name: string;
+};
 
 /**
  * TimeOfDay
@@ -997,3 +1120,192 @@ export type SignInResponses = {
 };
 
 export type SignInResponse = SignInResponses[keyof SignInResponses];
+
+export type ListTeamsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/teams';
+};
+
+export type ListTeamsErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+};
+
+export type ListTeamsResponses = {
+    /**
+     * Response List Teams
+     *
+     * Successful Response
+     */
+    200: Array<Team>;
+};
+
+export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
+
+export type DeleteTeamData = {
+    body?: never;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}';
+};
+
+export type DeleteTeamErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteTeamError = DeleteTeamErrors[keyof DeleteTeamErrors];
+
+export type DeleteTeamResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteTeamResponse = DeleteTeamResponses[keyof DeleteTeamResponses];
+
+export type GetTeamData = {
+    body?: never;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}';
+};
+
+export type GetTeamErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetTeamError = GetTeamErrors[keyof GetTeamErrors];
+
+export type GetTeamResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type GetTeamResponse = GetTeamResponses[keyof GetTeamResponses];
+
+export type RenameTeamData = {
+    body: TeamRename;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}';
+};
+
+export type RenameTeamErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenameTeamError = RenameTeamErrors[keyof RenameTeamErrors];
+
+export type RenameTeamResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type RenameTeamResponse = RenameTeamResponses[keyof RenameTeamResponses];
+
+export type CreateTeamData = {
+    body: NewTeam;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}';
+};
+
+export type CreateTeamErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * The change can't be made to the team as it is now; `reason` says why.
+     */
+    409: TeamConflict;
+    /**
+     * No Pokémon has this id. Or invalid input.
+     */
+    422: unknown;
+};
+
+export type CreateTeamError = CreateTeamErrors[keyof CreateTeamErrors];
+
+export type CreateTeamResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+    /**
+     * The team was created.
+     */
+    201: Team;
+};
+
+export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
