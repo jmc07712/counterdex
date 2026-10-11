@@ -29,6 +29,30 @@ describe('TeamCard', () => {
     )
   })
 
+  it('holds an action beside its link, not in it, and next in focus order', async () => {
+    const members = [catalog.charizard, catalog.vaporeon, catalog.dragonite].map(asMember)
+
+    const { user } = renderWithProviders(
+      <TeamCard
+        to="/teams/1"
+        name="Sky"
+        members={members}
+        note="by ash"
+        action={<button type="button">Act</button>}
+      />,
+    )
+
+    const card = screen.getByRole('article', { name: 'Sky' })
+    const link = within(card).getByRole('link')
+    const action = within(card).getByRole('button', { name: 'Act' })
+    expect(link).not.toContainElement(action)
+    expect(link).toHaveAccessibleName('Sky 3 of 6 by ash Types: Fire, Flying, Water, Dragon 1,620')
+    await user.tab()
+    expect(link).toHaveFocus()
+    await user.tab()
+    expect(action).toHaveFocus()
+  })
+
   it('fills its power’s bar for a team past the most it measures against', () => {
     // 780 each, as Mega Mewtwo X's.
     const stats = { hp: 106, attack: 190, defense: 100, sp_attack: 154, sp_defense: 100, speed: 130 }

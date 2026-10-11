@@ -145,8 +145,8 @@ describe('TeamsPage, signed in', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Teams' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'My teams' })).toBeChecked()
     const list = await screen.findByRole('list', { name: 'My teams' })
-    const cards = within(list).getAllByRole('link')
-    expect(cards.map((card) => card.getAttribute('href'))).toEqual([
+    const cards = within(list).getAllByRole('article')
+    expect(cards.map((card) => within(card).getByRole('link').getAttribute('href'))).toEqual([
       `/teams/${FIRE.id}`,
       `/teams/${DRAFT.id}`,
     ])
@@ -160,7 +160,7 @@ describe('TeamsPage, signed in', () => {
     const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
     const { user, router } = await renderTeams()
     const everyones = await screen.findByRole('list', { name: 'Everyone’s teams' })
-    expect(within(everyones).getAllByRole('link').map((card) => card.textContent)).toEqual([
+    expect(within(everyones).getAllByRole('article').map((card) => card.textContent)).toEqual([
       expect.stringContaining('by misty'),
       expect.stringContaining('by ash'),
     ])
@@ -202,7 +202,7 @@ describe('TeamsPage, signed in', () => {
 
     await renderTeams()
 
-    const card = await screen.findByRole('link', { name: /Team 1/ })
+    const card = await screen.findByRole('article', { name: 'Team 1' })
     // Each catalog Pokémon's base stats add up to 540.
     expect(within(card).getByRole('meter', { name: 'Team power' })).toHaveAttribute(
       'aria-valuetext',
@@ -233,7 +233,7 @@ describe('TeamsPage, signed in', () => {
     expect(screen.getAllByRole('button', { name: 'New team' })).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Browse everyone’s teams' }))
 
-    expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Rain' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Everyone' })).toBeChecked()
     expect(router.state.location.search).toBe('')
   })
@@ -303,35 +303,40 @@ describe('TeamsPage, everyone’s teams', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Teams' })).toBeInTheDocument()
     const list = await screen.findByRole('list', { name: 'Everyone’s teams' })
-    const cards = within(list).getAllByRole('link')
-    expect(cards.map((card) => card.getAttribute('href'))).toEqual([
-      `/teams/${RAIN.id}`,
-      `/teams/${FIRE.id}`,
+    expect(within(list).getAllByRole('article')).toEqual([
+      screen.getByRole('article', { name: 'Rain' }),
+      screen.getByRole('article', { name: 'Fire' }),
     ])
-    expect(cards[0]).toHaveTextContent('by misty')
-    expect(cards[1]).toHaveTextContent('by ash')
+    expect(screen.getByRole('link', { name: /^Rain 1 of 6 by misty/ })).toHaveAttribute(
+      'href',
+      `/teams/${RAIN.id}`,
+    )
+    expect(screen.getByRole('link', { name: /^Fire 1 of 6 by ash/ })).toHaveAttribute(
+      'href',
+      `/teams/${FIRE.id}`,
+    )
   })
 
   it('loads the next page of teams', async () => {
     serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
     const { user } = await renderTeams()
 
-    await screen.findByRole('link', { name: /Rain/ })
+    await screen.findByRole('article', { name: 'Rain' })
     await user.click(screen.getByRole('button', { name: 'Load more' }))
 
-    expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Rain/ })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Rain' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
   it('loads more teams as the end of the list scrolls into view', async () => {
     serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
     await renderTeams()
-    await screen.findByRole('link', { name: /Rain/ })
+    await screen.findByRole('article', { name: 'Rain' })
 
     mockAllIsIntersecting(true)
 
-    expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
   })
 
   it('sends the search once you pause typing, and keeps it in the URL', async () => {
@@ -446,7 +451,7 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(await screen.findByText('No teams match these filters', ON_SCREEN)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
 
-    expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Rain' })).toBeInTheDocument()
     // Straight to every team, without asking for the old search on its own on the way.
     expect(queries).toEqual(['q=zzz&type=fire', ''])
     expect(router.state.location.search).toBe('')
@@ -470,7 +475,7 @@ describe('TeamsPage, everyone’s teams', () => {
 
     // Not the search box, which would open the keyboard over the results.
     expect(screen.getByRole('region', { name: 'Results' })).toHaveFocus()
-    expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Rain' })).toBeInTheDocument()
   })
 
   it('says when no team has changed this week', async () => {
