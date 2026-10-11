@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from 'usehooks-ts'
 
+import type { Pokemon } from '@/api'
 import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
 import { BaseStats } from '@/components/pokemon/base-stats'
 import { statTotal } from '@/components/pokemon/format'
@@ -34,9 +35,16 @@ type PokemonDetailsDialogProps = {
   pokemonId: number | null
   onSelect: (pokemonId: number) => void
   onClose: () => void
+  // Under the hero of a Pokémon PokéAPI lists, such as a menu to add it to a team.
+  action?: (pokemon: Pokemon) => ReactNode
 }
 
-export function PokemonDetailsDialog({ pokemonId, onSelect, onClose }: PokemonDetailsDialogProps) {
+export function PokemonDetailsDialog({
+  pokemonId,
+  onSelect,
+  onClose,
+  action,
+}: PokemonDetailsDialogProps) {
   const asDialog = useMediaQuery(DIALOG_FROM)
   // Keeps showing the last Pokémon while the dialog animates closed.
   const [shownId, setShownId] = useState(pokemonId)
@@ -48,7 +56,9 @@ export function PokemonDetailsDialog({ pokemonId, onSelect, onClose }: PokemonDe
   const content = (
     <>
       <CloseButton />
-      {shownId !== null && <PokemonDetails pokemonId={shownId} onSelect={onSelect} />}
+      {shownId !== null && (
+        <PokemonDetails pokemonId={shownId} onSelect={onSelect} action={action} />
+      )}
     </>
   )
 
@@ -74,13 +84,13 @@ export function PokemonDetailsDialog({ pokemonId, onSelect, onClose }: PokemonDe
   )
 }
 
-function PokemonDetails({
-  pokemonId,
-  onSelect,
-}: {
+type PokemonDetailsProps = {
   pokemonId: number
   onSelect: (pokemonId: number) => void
-}) {
+  action?: (pokemon: Pokemon) => ReactNode
+}
+
+function PokemonDetails({ pokemonId, onSelect, action }: PokemonDetailsProps) {
   const path = { pokemon_id: pokemonId }
   // Choosing another form or stage keeps this one showing until the next arrives, rather than
   // flashing a skeleton in between.
@@ -125,6 +135,7 @@ function PokemonDetails({
       <PokemonHero pokemon={pokemon} species={species} />
 
       <div className="flex flex-col gap-6 p-5 sm:p-6">
+        {action && !removed_at && <div>{action(pokemon)}</div>}
         {removed_at && (
           <Alert>
             <AlertTitle>{m.pokemon_removed_from_pokeapi()}</AlertTitle>

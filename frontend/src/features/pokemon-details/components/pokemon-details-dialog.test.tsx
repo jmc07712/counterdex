@@ -1,8 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
+import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PokemonChange } from '@/api'
+import type { Pokemon, PokemonChange } from '@/api'
+import { displayName } from '@/components/pokemon/format'
 import { servePokemonChanges, servePokemonDetails } from '@/test/handlers'
 import { CHARIZARD, makeDetails } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
@@ -18,12 +20,18 @@ const SPED_UP: PokemonChange = {
   after: { ...CHARIZARD, stats: { ...CHARIZARD.stats, speed: 110 } },
 }
 
-async function openDetails({ changes = [] as PokemonChange[] } = {}) {
+function pickButton(pokemon: Pokemon) {
+  return <button>Pick {displayName(pokemon.name)}</button>
+}
+
+type OpenDetails = { changes?: PokemonChange[]; action?: (pokemon: Pokemon) => ReactNode }
+
+async function openDetails({ changes = [], action }: OpenDetails = {}) {
   servePokemonChanges(changes)
   const onSelect = vi.fn()
   const onClose = vi.fn()
   const rendered = renderWithProviders(
-    <PokemonDetailsDialog pokemonId={6} onSelect={onSelect} onClose={onClose} />,
+    <PokemonDetailsDialog pokemonId={6} onSelect={onSelect} onClose={onClose} action={action} />,
   )
   const dialog = await screen.findByRole('dialog', { name: 'Charizard' })
   return { ...rendered, dialog, onSelect, onClose }
@@ -142,6 +150,22 @@ describe('PokemonDetailsDialog', () => {
 
     const notice = within(dialog).getByText(/PokéAPI stopped listing it on Oct 11, 2026/)
     expect(notice).toBeInTheDocument()
+  })
+
+  it('shows the action for the Pokémon', async () => {
+    servePokemonDetails()
+
+    const { dialog } = await openDetails({ action: pickButton })
+
+    expect(within(dialog).getByRole('button', { name: 'Pick Charizard' })).toBeInTheDocument()
+  })
+
+  it('shows no action for a Pokémon PokéAPI no longer lists', async () => {
+    servePokemonDetails(makeDetails({ removed_at: '2026-10-11T09:00:00Z' }))
+
+    const { dialog } = await openDetails({ action: pickButton })
+
+    expect(within(dialog).queryByRole('button', { name: /Pick/ })).not.toBeInTheDocument()
   })
 
   it('offers a retry when the Pokémon can’t load', async () => {
