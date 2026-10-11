@@ -1,9 +1,9 @@
 import type { TeamMember } from '@/api'
 import { statTotal } from '@/components/pokemon/format'
-import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
+import { memberColors } from '../utils/member-colors'
 import { MAX_TEAM_POWER, teamPower } from '../utils/team-power'
 
 type TeamPowerProps = { members: TeamMember[]; className?: string }
@@ -30,18 +30,19 @@ export function TeamPower({ members, className }: TeamPowerProps) {
       <span className="text-muted-foreground">{m.team_power()}</span>
       <span className="font-semibold">{m.team_power_amount({ power })}</span>
       <span className="flex h-2 min-w-16 flex-1 gap-0.5 overflow-hidden rounded-full bg-muted">
-        {members.map((member) => (
-          <span
-            key={member.pokemon.id}
-            style={{
-              width: `${(statTotal(member.pokemon.stats) / max) * 100}%`,
-              backgroundColor: member.removed_at
-                ? undefined
-                : TYPE_STYLES[member.pokemon.types[0]].background,
-            }}
-            className={cn('shrink-0 last:rounded-r-full', member.removed_at && 'bg-muted-foreground/50')}
-          />
-        ))}
+        {members.map((member) => {
+          const colors = memberColors(member)
+          return (
+            <span
+              key={member.pokemon.id}
+              style={{
+                width: `${(statTotal(member.pokemon.stats) / max) * 100}%`,
+                backgroundColor: colors?.background,
+              }}
+              className={cn('shrink-0 last:rounded-r-full', !colors && 'bg-muted-foreground/50')}
+            />
+          )
+        })}
       </span>
     </div>
   )

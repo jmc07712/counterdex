@@ -1,26 +1,7 @@
 import type { ComponentProps } from 'react'
 
 import type { TeamMember } from '@/api'
-import { PokeBall } from '@/components/pokemon/poke-ball'
-import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { cn } from '@/lib/utils'
-
-type MemberBallProps = { member: TeamMember; className?: string }
-
-/**
- * The Poké Ball ghosted behind a member: in its second type's color, or white for a single type.
- * Once the member is no longer in the Pokédex, it's in the text color.
- */
-export function MemberBall({ member, className }: MemberBallProps) {
-  const secondary = member.pokemon.types[1]
-  const color = secondary ? TYPE_STYLES[secondary].background : 'white'
-  return (
-    <PokeBall
-      style={member.removed_at ? undefined : { color }}
-      className={cn('opacity-40', className)}
-    />
-  )
-}
 
 type MemberSpriteProps = { member: TeamMember } & ComponentProps<'img'>
 

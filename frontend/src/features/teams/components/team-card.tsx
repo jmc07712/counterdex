@@ -3,14 +3,15 @@ import { Link } from 'react-router'
 import type { TeamMember } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { PokeBall } from '@/components/pokemon/poke-ball'
-import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
+import { memberColors } from '../utils/member-colors'
 import { teamTypes } from '../utils/team-types'
-import { MemberBall, MemberSprite } from './member-sprite'
+import { MemberBall } from './member-ball'
+import { MemberSprite } from './member-sprite'
 import { TeamPower } from './team-power'
 
 // On hover or focus, the sprites hop one after another, this far apart.
@@ -66,14 +67,11 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
 // A member's tile, in its main type's color, or neutral once it's no longer in the Pokédex. Its
 // sprite stands on the tile and rises over its top edge.
 function MemberTile({ member }: { member: TeamMember }) {
-  const colors = member.removed_at ? undefined : TYPE_STYLES[member.pokemon.types[0]]
+  const colors = memberColors(member)
   return (
     <li
       style={{ backgroundColor: colors?.background }}
-      className={cn(
-        'relative aspect-square rounded-lg',
-        member.removed_at && 'bg-muted text-muted-foreground',
-      )}
+      className={cn('relative aspect-square rounded-lg', !colors && 'bg-muted text-muted-foreground')}
     >
       <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
         <MemberBall member={member} className="absolute -inset-[10%]" />

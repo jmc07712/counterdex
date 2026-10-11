@@ -7,14 +7,15 @@ import { BaseStats } from '@/components/pokemon/base-stats'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
-import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
-import { MemberBall, MemberSprite } from './member-sprite'
+import { memberColors } from '../utils/member-colors'
+import { MemberBall } from './member-ball'
+import { MemberSprite } from './member-sprite'
 
 // Slots enter one after another, in battle order, this far apart.
 const ENTER_STAGGER_MS = 70
@@ -184,7 +185,7 @@ type MemberPanelProps = { member: TeamMember; className: string; children: React
 
 // A member's slot, painted in its main type, or neutral once it's no longer in the Pokédex.
 function MemberPanel({ member, className, children }: MemberPanelProps) {
-  const colors = member.removed_at ? undefined : TYPE_STYLES[member.pokemon.types[0]]
+  const colors = memberColors(member)
   return (
     <li
       style={{
@@ -195,7 +196,7 @@ function MemberPanel({ member, className, children }: MemberPanelProps) {
       className={cn(
         'group/hop relative isolate overflow-hidden',
         ENTER,
-        member.removed_at && 'bg-muted text-muted-foreground',
+        !colors && 'bg-muted text-muted-foreground',
         className,
       )}
     >

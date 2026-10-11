@@ -1,8 +1,8 @@
 import type { Pokemon, Species } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { dexNumber, displayName } from '@/components/pokemon/format'
-import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
+import { TypeBall } from '@/components/pokemon/type-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { m } from '@/paraglide/messages.js'
@@ -10,8 +10,7 @@ import { m } from '@/paraglide/messages.js'
 type PokemonHeroProps = { pokemon: Pokemon; species: Species | null }
 
 export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
-  const [primary, secondary] = pokemon.types
-  const { background, foreground } = TYPE_STYLES[primary]
+  const { background, foreground } = TYPE_STYLES[pokemon.types[0]]
 
   return (
     <header
@@ -38,10 +37,7 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
         </div>
         <div className="relative isolate -my-1 grid size-32 shrink-0 place-items-center sm:size-40">
           {/* Half again as wide as the sprite, so its band shows either side of the Pokémon. */}
-          <PokeBall
-            style={{ color: secondary ? TYPE_STYLES[secondary].background : 'white' }}
-            className="absolute -inset-1/4 -z-10 opacity-40"
-          />
+          <TypeBall types={pokemon.types} className="absolute -inset-1/4 -z-10" />
           {pokemon.sprite_url && (
             <img
               src={pokemon.sprite_url}
