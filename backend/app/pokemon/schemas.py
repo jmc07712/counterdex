@@ -15,6 +15,7 @@ from pydantic import (
     field_validator,
 )
 
+from app.core.text import NO_NUL
 from app.pokemon.constants import (
     DEFAULT_PAGE_SIZE,
     FORM_MARKERS,
@@ -287,6 +288,7 @@ SearchText = Annotated[
     StringConstraints(
         strip_whitespace=True, to_lower=True, min_length=1, max_length=MAX_SEARCH_LENGTH
     ),
+    NO_NUL,
 ]
 
 

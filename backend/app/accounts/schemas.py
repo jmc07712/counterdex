@@ -1,5 +1,7 @@
 """Accounts as the API takes and shows them. Descriptions appear in the API docs."""
 
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from app.accounts.constants import (
@@ -8,6 +10,7 @@ from app.accounts.constants import (
     MIN_PASSWORD_LENGTH,
     USERNAME_PATTERN,
 )
+from app.core.text import NO_NUL
 
 
 class Credentials(BaseModel):
@@ -15,7 +18,7 @@ class Credentials(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH)
+    username: Annotated[str, Field(min_length=1, max_length=MAX_USERNAME_LENGTH), NO_NUL]
     password: SecretStr = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH)
 
 

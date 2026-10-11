@@ -7,6 +7,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
+from app.core.text import NO_NUL
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.schemas import Pokemon, SearchText
 from app.teams.constants import (
@@ -20,6 +21,7 @@ from app.teams.enums import TeamConflictReason
 TeamName = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_TEAM_NAME_LENGTH),
+    NO_NUL,
 ]
 PokemonId = Annotated[int, Field(ge=1, le=MAX_POKEMON_ID)]
 

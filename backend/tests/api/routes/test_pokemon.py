@@ -109,6 +109,7 @@ def test_filters_by_name_type_and_form(client: TestClient, db_session: Session) 
         {"type": ["fire", "water", "grass"]},
         {"q": ""},
         {"q": "x" * 51},
+        {"q": "char\x00"},
         {"forms": "false"},
         {"status": "deleted"},
         {"changed": "maybe"},

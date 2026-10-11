@@ -46,6 +46,7 @@ def test_a_taken_username_is_a_conflict(client: TestClient, ash: SignedIn) -> No
     [
         pytest.param({**ASH_JSON, "password": "pikachu"}, id="short-password"),
         pytest.param({**ASH_JSON, "username": "ash ketchum"}, id="username-with-a-space"),
+        pytest.param({**ASH_JSON, "username": "ash\x00"}, id="username-with-a-nul-character"),
         pytest.param({"username": "ash"}, id="no-password"),
     ],
 )
@@ -89,6 +90,13 @@ def test_wrong_credentials_are_unauthorized(
     assert response.status_code == 401
     assert response.json() == {"detail": "Wrong username or password."}
     assert "set-cookie" not in response.headers
+
+
+def test_rejects_a_username_with_a_nul_character_at_sign_in(client: TestClient) -> None:
+    response = client.post("/api/session", json={**ASH_JSON, "username": "ash\x00"})
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "username"]
 
 
 # --- The session cookie ---

@@ -162,6 +162,7 @@ def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
     [
         pytest.param({"name": "   "}, "name", id="blank-name"),
         pytest.param({"name": "x" * 41}, "name", id="long-name"),
+        pytest.param({"name": "Fire\x00"}, "name", id="name-with-a-nul-character"),
         pytest.param(
             {"name": "Fire", "pokemon_ids": [201, 202, 203, 204, 205, 206, 207]},
             "pokemon_ids",
@@ -212,6 +213,15 @@ def test_renames_and_deletes(ash_client: TestClient) -> None:
 
     assert ash_client.delete(TEAM).status_code == 204
     assert ash_client.get(TEAM).status_code == 404
+
+
+def test_rejects_a_new_name_with_a_nul_character(ash_client: TestClient) -> None:
+    ash_client.put(TEAM, json={"name": "Fire"})
+
+    response = ash_client.patch(TEAM, json={"name": "Rain\x00"})
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "name"]
 
 
 def test_team_responses_are_never_cached(ash_client: TestClient) -> None:
@@ -473,6 +483,7 @@ def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None
         pytest.param({"q": ""}, id="q-empty"),
         pytest.param({"q": "   "}, id="q-blank"),
         pytest.param({"q": "x" * 51}, id="q-too-long"),
+        pytest.param({"q": "char\x00"}, id="q-with-a-nul-character"),
     ],
 )
 def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:
