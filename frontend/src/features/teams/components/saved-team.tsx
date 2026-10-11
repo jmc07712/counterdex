@@ -102,6 +102,7 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
       back={back}
       actions={<OwnerActions team={team.data} />}
       emptySlotsTo={paths.teamEdit.getHref(team.data.id)}
+      replaceTo={(pokemonId) => paths.teamEdit.getHref(teamId, { replace: pokemonId })}
     />
   )
 }

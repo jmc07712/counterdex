@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Replace } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
 
@@ -9,6 +9,7 @@ import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { Progress } from '@/components/ui/progress'
+import { formatDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -52,16 +53,22 @@ type LeadSlotProps = {
   member: TeamMember
   // Opens the member's details.
   onOpen: () => void
+  // Beside the "Lead" label, such as a ReplaceLink.
+  children?: ReactNode
 }
 
 /** The lead's slot, large: labelled as the lead, with a big sprite, its name, types and stats. */
-export function LeadSlot({ member, onOpen }: LeadSlotProps) {
+export function LeadSlot({ member, onOpen, children }: LeadSlotProps) {
   const headingId = useId()
   return (
     <MemberPanel member={member} className="flex flex-col gap-3 rounded-3xl p-5 md:p-6">
-      <p className="self-start rounded-full border border-current px-2.5 py-0.5 text-xs font-bold">
-        {m.team_lead()}
-      </p>
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <p className="rounded-full border border-current px-2.5 py-0.5 text-xs font-bold">
+          {m.team_lead()}
+        </p>
+        {/* Over the open button, so it can be pressed on its own. */}
+        {children && <div className="relative z-10">{children}</div>}
+      </div>
       {/* On phones the sprite sits beside the words; from md up, above them. */}
       <div className="flex flex-1 items-center gap-4 md:flex-col-reverse md:items-stretch">
         <div className="flex min-w-0 flex-1 flex-col items-start gap-1 md:flex-none">
@@ -133,6 +140,20 @@ export function SlotButton(props: ComponentProps<'button'>) {
       className="grid size-8 place-items-center rounded-lg transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current [&_svg]:size-4"
       {...props}
     />
+  )
+}
+
+/** A link to swap a member for another Pokémon, drawn in the slot's text color. */
+export function ReplaceLink({ member, to }: { member: TeamMember; to: string }) {
+  return (
+    <Link
+      to={to}
+      aria-label={m.team_replace_named({ name: displayName(member.pokemon.name) })}
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-current px-2.5 text-sm font-semibold transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current"
+    >
+      <Replace className="size-4" aria-hidden="true" />
+      {m.team_replace()}
+    </Link>
   )
 }
 
@@ -253,9 +274,11 @@ function MemberNumber({ member }: PartOfMemberProps) {
   )
 }
 
-// Its types, ringed so a badge in the panel's own color still shows; or that it's gone.
+// Its types, ringed so a badge in the panel's own color still shows; or when it was removed.
 function MemberTypes({ member }: PartOfMemberProps) {
-  if (member.removed_at) return <p className="text-xs">{m.team_removed_from_pokedex()}</p>
+  if (member.removed_at) {
+    return <p className="text-xs">{m.team_removed_on({ date: formatDate(member.removed_at) })}</p>
+  }
   return (
     <TypeBadges
       types={member.pokemon.types}

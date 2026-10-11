@@ -5,7 +5,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { TeamPower } from './team-power'
-import { EmptySlots, LeadSlot, PartySlots, TeamSlot } from './team-slots'
+import { EmptySlots, LeadSlot, PartySlots, ReplaceLink, TeamSlot } from './team-slots'
 
 type TeamPartyProps = {
   team: Team
@@ -16,10 +16,19 @@ type TeamPartyProps = {
   actions?: ReactNode
   // Where the empty slots link to be filled; without it, they don't link.
   emptySlotsTo?: string
+  // Where a member removed from the Pokédex links to be replaced; without it, there's no link.
+  replaceTo?: (pokemonId: number) => string
 }
 
 /** A team as its party: its lead large, beside the rest in battle order. Each opens its details. */
-export function TeamParty({ team, onOpenPokemon, back, actions, emptySlotsTo }: TeamPartyProps) {
+export function TeamParty({
+  team,
+  onOpenPokemon,
+  back,
+  actions,
+  emptySlotsTo,
+  replaceTo,
+}: TeamPartyProps) {
   const [lead, ...others] = team.members
   return (
     <>
@@ -41,13 +50,23 @@ export function TeamParty({ team, onOpenPokemon, back, actions, emptySlotsTo }: 
         {actions}
       </div>
       <PartySlots>
-        {lead && <LeadSlot member={lead} onOpen={() => onOpenPokemon(lead.pokemon.id)} />}
+        {lead && (
+          <LeadSlot member={lead} onOpen={() => onOpenPokemon(lead.pokemon.id)}>
+            {replaceTo && lead.removed_at && (
+              <ReplaceLink member={lead} to={replaceTo(lead.pokemon.id)} />
+            )}
+          </LeadSlot>
+        )}
         {others.map((member) => (
           <TeamSlot
             key={member.pokemon.id}
             member={member}
             onOpen={() => onOpenPokemon(member.pokemon.id)}
-          />
+          >
+            {replaceTo && member.removed_at && (
+              <ReplaceLink member={member} to={replaceTo(member.pokemon.id)} />
+            )}
+          </TeamSlot>
         ))}
         <EmptySlots filled={team.members.length} to={emptySlotsTo} />
       </PartySlots>

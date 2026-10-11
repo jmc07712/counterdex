@@ -3,7 +3,11 @@ export const paths = {
   team: { path: '/teams/:teamId', getHref: (teamId: string) => `/teams/${teamId}` },
   teamEdit: {
     path: '/teams/:teamId/edit',
-    getHref: (teamId: string) => `/teams/${teamId}/edit`,
+    // `replace` is the id of a member to swap for another Pokémon.
+    getHref: (teamId: string, { replace }: { replace?: number } = {}) => {
+      const path = `/teams/${teamId}/edit`
+      return replace === undefined ? path : `${path}?${new URLSearchParams({ replace: `${replace}` })}`
+    },
   },
   explore: { path: '/explore', getHref: () => '/explore' },
   pokedex: { path: '/pokedex', getHref: () => '/pokedex' },

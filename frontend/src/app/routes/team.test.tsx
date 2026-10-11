@@ -119,6 +119,34 @@ describe('TeamPage, for the team’s owner', () => {
     })
   })
 
+  it('offers the owner to replace each member removed from the Pokédex', async () => {
+    const removed = '2026-10-11T09:00:00Z'
+    serveAsh([
+      makeTeam({
+        members: [
+          { ...asMember(charmander, 0), removed_at: removed },
+          asMember(pikachu, 1),
+          { ...asMember(snorlax, 2), removed_at: removed },
+        ],
+      }),
+    ])
+    browse([])
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    const rows = slotRows()
+    expect(rows[0]).toHaveTextContent('Removed from PokéAPI on Oct 11, 2026')
+    expect(within(rows[0]).getByRole('link', { name: 'Replace Charmander' })).toHaveAttribute(
+      'href',
+      `${EDIT}?replace=4`,
+    )
+    expect(within(rows[1]).queryByRole('link', { name: /Replace/ })).not.toBeInTheDocument()
+    expect(within(rows[2]).getByRole('link', { name: 'Replace Snorlax' })).toHaveAttribute(
+      'href',
+      `${EDIT}?replace=143`,
+    )
+  })
+
   it('edits the team on its Edit page, with Edit current in the toggle', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([])
@@ -176,7 +204,7 @@ describe('TeamPage, for the team’s owner', () => {
       'FireFlying',
     )
     expect(pikachuSlot).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
-    expect(pikachuSlot).toHaveTextContent('No longer in the Pokédex')
+    expect(pikachuSlot).toHaveTextContent('Removed from PokéAPI on Oct 11, 2026')
     expect(within(pikachuSlot).queryByRole('list', { name: 'Types' })).not.toBeInTheDocument()
     expect(within(pikachuSlot).getByRole('button', { name: 'Remove Pikachu' })).toBeInTheDocument()
   })
@@ -485,7 +513,7 @@ describe('TeamPage, as a party', () => {
     expect(rows.slice(1).map((row) => row.textContent?.includes('Lead'))).not.toContain(true)
   })
 
-  it('shows its empty slots, and a member no longer in the Pokédex', async () => {
+  it('shows its empty slots, and when a member was removed from the Pokédex', async () => {
     serveSession()
     serveTeams({
       teams: [
@@ -503,9 +531,13 @@ describe('TeamPage, as a party', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
     const rows = slotRows()
-    expect(rows[1]).toHaveTextContent('No longer in the Pokédex')
+    expect(rows[1]).toHaveTextContent('Removed from PokéAPI on Oct 11, 2026')
     expect(within(rows[1]).queryByRole('list', { name: 'Types' })).not.toBeInTheDocument()
     expect(rows[1]).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
+    // Its last known stats stay.
+    expect(termsAndDefinitions(rows[1])).toContainEqual(['Total', '540'])
+    // Only its owner can replace it.
+    expect(within(rows[1]).queryByRole('link', { name: /Replace/ })).not.toBeInTheDocument()
     for (const row of rows.slice(2)) {
       expect(row).toHaveTextContent('Empty slot')
       expect(within(row).queryByRole('link')).not.toBeInTheDocument()

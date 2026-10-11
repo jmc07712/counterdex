@@ -2,8 +2,10 @@ import { Link } from 'react-router'
 
 import type { TeamMember } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
+import { displayName } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
+import { formatDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -57,6 +59,18 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
           </li>
         ))}
       </ol>
+      {members.flatMap((member) =>
+        member.removed_at
+          ? [
+              <p key={member.pokemon.id} className="text-xs text-muted-foreground">
+                {m.team_member_removed_on({
+                  name: displayName(member.pokemon.name),
+                  date: formatDate(member.removed_at),
+                })}
+              </p>,
+            ]
+          : [],
+      )}
       {types.length > 0 && <TypeBadges types={types} />}
       {/* At the bottom, so it lines up across cards with more or fewer rows of types. */}
       <TeamPower members={members} className="mt-auto" />

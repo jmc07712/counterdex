@@ -93,7 +93,8 @@ describe('TeamsPage', () => {
     expect(tiles).toHaveLength(6)
     expect(tiles[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
     expect(tiles[0].querySelector('img')).toBeInTheDocument()
-    // No longer in the Pokédex, so not painted in its type, but still there.
+    // Removed from the Pokédex, so not painted in its type, but still there, and said so.
+    expect(card).toHaveTextContent('Pikachu was removed from PokéAPI on Oct 11, 2026')
     expect(tiles[1]).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
     expect(tiles[1].querySelector('img')).toBeInTheDocument()
     for (const empty of tiles.slice(2)) expect(empty.querySelector('img')).not.toBeInTheDocument()
