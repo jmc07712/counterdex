@@ -64,12 +64,15 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
         .order_by(models.Team.created_at.desc(), models.Team.id.desc())
     )
     if query.cursor is not None:
-        # Joined, so a cursor that no team has leaves no rows.
+        # A row subquery, so Postgres can start scanning the (created_at, id) index at the
+        # cursor's team. A cursor that no team has makes it null, which no row is less than.
         cursor_team = aliased(models.Team)
-        statement = statement.join(cursor_team, cursor_team.id == query.cursor).where(
-            tuple_(models.Team.created_at, models.Team.id)
-            < tuple_(cursor_team.created_at, cursor_team.id)
+        cursor = (
+            select(cursor_team.created_at, cursor_team.id)
+            .where(cursor_team.id == query.cursor)
+            .scalar_subquery()
         )
+        statement = statement.where(tuple_(models.Team.created_at, models.Team.id) < cursor)
     # One extra row shows whether another page follows, without counting the rest.
     teams = session.execute(statement.limit(query.limit + 1)).all()
 
