@@ -32,7 +32,7 @@
   "pokedex_title": "Pokédex",
   "pokedex_description": "Every Pokémon with its types and base stats. Search, filter, and add any of them to a team.",
   "teams_title": "Teams",
-  "teams_description": "Up to six Pokémon each, in battle order. Anyone can see your teams, but only you can change them.",
+  "teams_description": "Up to six Pokémon each, in battle order. Teams are public: anyone can see them, but only their owner can change one.",
   "teams_session_check_failed": "Couldn’t check whether you’re signed in",
   "teams_sign_in_title": "Sign in to build teams",
   "teams_sign_in_description": "Teams are saved to your account, so you’ll need one.",
@@ -92,7 +92,7 @@
     }
   ],
   "teams_search": "Search teams, trainers or Pokémon",
-  "teams_scope_label": "Show",
+  "teams_scope_label": "Whose",
   "teams_scope_option": [
     {
       "declarations": [
@@ -108,9 +108,9 @@
       }
     }
   ],
-  "teams_scope_info_label": "About what’s shown",
-  "teams_scope_info": "My teams is every team you’ve built, empty ones too. Everyone is every trainer’s teams that have a Pokémon, yours among them.",
-  "teams_view_label": "View",
+  "teams_scope_info_label": "About whose teams",
+  "teams_scope_info": "My teams shows every team you’ve built, empty ones too. Everyone shows every trainer’s teams that have a Pokémon, including yours.",
+  "teams_view_label": "Show",
   "teams_view_option": [
     {
       "declarations": [
@@ -126,7 +126,7 @@
       }
     }
   ],
-  "teams_view_info_label": "About views",
+  "teams_view_info_label": "About what’s shown",
   "teams_view_info": "All is every team. Changed this week is the teams with a Pokémon a sync changed in the last week.",
   "teams_types_info": "Teams with a Pokémon of every type you pick, on one Pokémon or several. Pick as many types as you like.",
   "teams_nothing_found_title": [
@@ -199,7 +199,7 @@
   "team_deleted": "Deleted {name}",
   "team_not_found_title": "This team doesn’t exist",
   "team_not_found_description": "It may have been deleted.",
-  "team_go_to_teams": "Go to Teams",
+  "team_go_to_teams": "Go to the Teams page",
   "team_load_failed": "Couldn’t load this team",
   "team_add_pokemon": "Add Pokémon",
   "team_browser_description": "Choose Pokémon for {team}.",

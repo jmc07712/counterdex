@@ -640,7 +640,7 @@ describe('TeamPage, for anyone', () => {
     renderTeam()
 
     expect(await screen.findByText('This team doesn’t exist')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Go to Teams' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Go to the Teams page' })).toHaveAttribute('href', '/')
   })
 
   it('says when the team couldn’t load, and tries again', async () => {

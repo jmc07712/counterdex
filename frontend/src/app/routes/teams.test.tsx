@@ -508,7 +508,7 @@ describe.each([
     await renderTeams()
 
     expect(
-      screen.getByText(/Anyone can see your teams, but only you can change them/),
+      screen.getByText(/Teams are public: anyone can see them, but only their owner can change one/),
     ).toBeInTheDocument()
   })
 })
@@ -658,7 +658,7 @@ describe('TeamsPage, everyone’s teams', () => {
   })
 
   it.each([
-    ['About views', 'Changed this week is the teams with a Pokémon a sync changed'],
+    ['About what’s shown', 'Changed this week is the teams with a Pokémon a sync changed'],
     ['About types', 'Teams with a Pokémon of every type you pick'],
   ])('explains a filter from its info button: %s', async (button, explanation) => {
     serveTeams({ teams: [RAIN] })
