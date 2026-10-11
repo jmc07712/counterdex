@@ -149,10 +149,10 @@ export function ReplaceLink({ member, to }: { member: TeamMember; to: string }) 
     <Link
       to={to}
       aria-label={m.team_replace_named({ name: displayName(member.pokemon.name) })}
-      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-current px-2.5 text-sm font-semibold transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current"
+      className="inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-current text-sm font-semibold transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current sm:px-2.5"
     >
       <Replace className="size-4" aria-hidden="true" />
-      {m.team_replace()}
+      <span className="hidden sm:inline">{m.team_replace()}</span>
     </Link>
   )
 }
