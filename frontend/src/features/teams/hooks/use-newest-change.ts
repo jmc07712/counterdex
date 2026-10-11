@@ -6,7 +6,7 @@ import { listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
 /**
  * The newest change a sync found to a member's Pokémon, if it changed recently and is still in the
  * Pokédex; a removed member's newest change is its removal, which its slot already shows. Only
- * then are its changes fetched, and members that share a Pokémon share the request.
+ * then are its changes fetched, into the cache entry the Pokémon's details use for its history.
  */
 export function useNewestChange(member: TeamMember) {
   const shown = member.pokemon.changed_recently && !member.removed_at
