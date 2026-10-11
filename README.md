@@ -36,9 +36,10 @@ they never flag a team. Team power is always worked out from current stats.
 
 **Flag changed members when a team is read, not through a queue.** Each Pokémon keeps when a sync
 last changed it, so every team member comes with `changed_recently`: whether that was in the last
-seven days. The member's slot and its team's card show a "Changed recently" mark, and opening the
-member shows its change history from `GET /api/pokemon/{id}/changes`. Nothing is copied per user,
-so nothing goes stale.
+seven days. A team's page and its card say in one line which members changed this week, and the
+line goes once the week is up. On the page, each changed member's slot also shows its newest
+change from `GET /api/pokemon/{id}/changes`, fetched for those members only, and opening the member
+shows its whole change history. Nothing is copied per user, so nothing goes stale.
 
 **Teams are public; only the owner can change one.** Anyone can open a team, or search and filter
 everyone's on the Teams page. Every change goes through an owner check that answers 403 to other

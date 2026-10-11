@@ -100,16 +100,19 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
 
 - **Teams** (`/`) lists everyone's teams, with each card saying whose it is, or, for someone
   signed in, their own, empty ones too (`?scope=mine`), searchable and filterable by type and by
-  "Changed this week". Each card shows the team as party tiles, its types and its power, is
-  marked if a member changed recently, and says which member was removed from PokéAPI and when.
+  "Changed this week". Each card shows the team as party tiles, its types and its power, and says
+  which members a sync changed this week and which was removed from PokéAPI and when.
 - **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
   order, each slot in its main type's color with its stats, and the team's power, the sum of its
-  members' base stat totals. Opening a member shows its details. A removed member is muted, with
-  the date it was removed in place of its types.
+  members' base stat totals. Opening a member shows its details. A line above the slots names the
+  members a sync changed this week. The lead shows its newest change as the Pokédex's change
+  history does, and the other slots sum theirs up on one line. A removed member is muted, with the
+  date it was removed in place of its types, which is its newest change.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
-  (`/teams/:teamId/edit`) is the builder: rename the team, remove members, and add Pokémon from a
-  browser that marks the ones that can't join. Every change saves at once, so the toggle back to
-  View is the way out.
+  (`/teams/:teamId/edit`) is the builder, with the same line above the slots and each changed
+  member's change on one line: rename the team, remove members, and add Pokémon from a browser
+  that marks the ones that can't join. Every change saves at once, so the toggle back to View is
+  the way out.
 
 ## Phones
 
