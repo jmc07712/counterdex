@@ -3,6 +3,7 @@ import { SearchX } from 'lucide-react'
 import { ListingStatus } from '@/api'
 import { DealtInItem } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
+import { ResultsStatus } from '@/components/lists/results-status'
 import { PokemonCard } from '@/components/pokemon/pokemon-card'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -51,28 +52,39 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
 
   const { pages } = query.data
   const { view } = filters
+  const shown = pages.reduce((count, page) => count + page.items.length, 0)
+  // The status comes first in both cases below, so it stays the same element as they change.
+  const settled = !query.isPlaceholderData
 
-  if (pages.every((page) => page.items.length === 0)) {
+  if (shown === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <SearchX />
-          </EmptyMedia>
-          <EmptyTitle>{m.pokedex_nothing_found_title({ view })}</EmptyTitle>
-          <EmptyDescription>{m.pokedex_nothing_found_description({ view })}</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button variant="outline" onClick={onClearFilters}>
-            {m.common_clear_filters()}
-          </Button>
-        </EmptyContent>
-      </Empty>
+      <>
+        <ResultsStatus settled={settled}>{m.pokedex_nothing_found_title({ view })}</ResultsStatus>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SearchX />
+            </EmptyMedia>
+            <EmptyTitle>{m.pokedex_nothing_found_title({ view })}</EmptyTitle>
+            <EmptyDescription>{m.pokedex_nothing_found_description({ view })}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button variant="outline" onClick={onClearFilters}>
+              {m.common_clear_filters()}
+            </Button>
+          </EmptyContent>
+        </Empty>
+      </>
     )
   }
 
   return (
     <>
+      <ResultsStatus settled={settled}>
+        {query.hasNextPage
+          ? m.pokedex_shown_more({ count: shown })
+          : m.pokedex_shown({ count: shown })}
+      </ResultsStatus>
       <ul
         aria-busy={query.isPlaceholderData}
         className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}

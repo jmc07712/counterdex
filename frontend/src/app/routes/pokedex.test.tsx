@@ -209,7 +209,8 @@ describe('PokedexPage', () => {
 
     renderWithProviders(<PokedexPage />, { path: `/?status=${status}` })
 
-    expect(await screen.findByText(message)).toBeInTheDocument()
+    // The one on screen, not the results status, which reads it out too.
+    expect(await screen.findByText(message, { ignore: '[role=status]' })).toBeInTheDocument()
   })
 
   it('keeps only the last two types from a hand-edited URL', async () => {
@@ -240,6 +241,27 @@ describe('PokedexPage', () => {
     mockAllIsIntersecting(true)
 
     expect(await screen.findByRole('article', { name: 'Ivysaur' })).toBeInTheDocument()
+  })
+
+  it('tells screen readers how many Pokémon it shows, and when more can load', async () => {
+    servePokemon(twoPages)
+    const { user } = renderWithProviders(<PokedexPage />)
+
+    const status = await screen.findByRole('status')
+    await waitFor(() => expect(status).toHaveTextContent('1 Pokémon shown, more to load'))
+    await user.click(screen.getByRole('button', { name: 'Load more' }))
+
+    await waitFor(() => expect(status).toHaveTextContent('2 Pokémon shown'))
+    expect(status).not.toHaveTextContent('more')
+  })
+
+  it('tells screen readers when nothing matches', async () => {
+    servePokemon(makePage([]))
+
+    renderWithProviders(<PokedexPage />, { path: '/?status=removed' })
+
+    const status = await screen.findByRole('status')
+    await waitFor(() => expect(status).toHaveTextContent('No removed Pokémon'))
   })
 
   it('offers to clear the filters when nothing matches', async () => {

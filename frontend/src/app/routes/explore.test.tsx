@@ -10,6 +10,10 @@ import { catalog, makeTeam } from '@/test/teams'
 
 import { ExplorePage } from './explore'
 
+// The results status reads an empty state's title out too; text queries skip it to find the one
+// on screen.
+const ON_SCREEN = { ignore: '[role=status]' }
+
 const RAIN = makeTeam({
   id: '00000000-0000-4000-8000-00000000000a',
   name: 'Rain',
@@ -161,7 +165,7 @@ describe('ExplorePage', () => {
     )
     const { user, router } = renderWithProviders(<ExplorePage />, { path: '/?q=zzz&type=fire' })
 
-    expect(await screen.findByText('No teams match these filters')).toBeInTheDocument()
+    expect(await screen.findByText('No teams match these filters', ON_SCREEN)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
 
     expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
@@ -174,8 +178,46 @@ describe('ExplorePage', () => {
 
     renderWithProviders(<ExplorePage />, { path: '/?view=changed' })
 
-    expect(await screen.findByText('No recent changes')).toBeInTheDocument()
+    expect(await screen.findByText('No recent changes', ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+  })
+
+  it('tells screen readers how many teams it shows, and when more can load', async () => {
+    serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
+    const { user } = renderWithProviders(<ExplorePage />)
+
+    const status = await screen.findByRole('status')
+    await waitFor(() => expect(status).toHaveTextContent('1 team shown, more to load'))
+    await user.click(screen.getByRole('button', { name: 'Load more' }))
+
+    await waitFor(() => expect(status).toHaveTextContent('2 teams shown'))
+    expect(status).not.toHaveTextContent('more')
+  })
+
+  it('tells screen readers what the new filters found once it loads', async () => {
+    serveTeams({ teams: [RAIN] })
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    // Added last, so it answers first: a search waits for `release`, then finds nothing.
+    server.use(
+      http.get('/api/teams', async ({ request }) => {
+        if (!new URL(request.url).searchParams.has('q')) return
+        await released
+        return HttpResponse.json({ items: [], next_cursor: null })
+      }),
+    )
+    const { user } = renderWithProviders(<ExplorePage />)
+    const status = await screen.findByRole('status')
+    await waitFor(() => expect(status).toHaveTextContent('1 team shown'))
+
+    await user.type(screen.getByRole('searchbox', { name: /Search teams/ }), 'zzz')
+
+    // Nothing while the last results stand in for the new ones.
+    await waitFor(() => expect(status).toBeEmptyDOMElement())
+    release()
+    await waitFor(() => expect(status).toHaveTextContent('No teams match these filters'))
   })
 
   it('says when there are no teams yet', async () => {
@@ -183,7 +225,7 @@ describe('ExplorePage', () => {
 
     renderWithProviders(<ExplorePage />)
 
-    expect(await screen.findByText('No teams yet')).toBeInTheDocument()
+    expect(await screen.findByText('No teams yet', ON_SCREEN)).toBeInTheDocument()
   })
 
   it('says when the teams couldn’t load, and tries again', async () => {

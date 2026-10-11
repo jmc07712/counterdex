@@ -141,6 +141,38 @@
   "explore_load_failed": "Couldn’t load teams",
   "explore_empty_title": "No teams yet",
   "explore_empty_description": "Teams show here once they have a Pokémon on them.",
+  "explore_shown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} team shown",
+        "countPlural=other": "{shown} teams shown"
+      }
+    }
+  ],
+  "explore_shown_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} team shown, more to load",
+        "countPlural=other": "{shown} teams shown, more to load"
+      }
+    }
+  ],
   "explore_search": "Search teams, trainers or Pokémon",
   "explore_view_label": "View",
   "explore_view_option": [
@@ -537,6 +569,38 @@
   ],
   "pokedex_load_failed": "Couldn’t load the Pokédex",
   "pokedex_loading": "Loading Pokémon",
+  "pokedex_shown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} Pokémon shown",
+        "countPlural=other": "{shown} Pokémon shown"
+      }
+    }
+  ],
+  "pokedex_shown_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} Pokémon shown, more to load",
+        "countPlural=other": "{shown} Pokémon shown, more to load"
+      }
+    }
+  ],
   "sync_last_failed": "Last sync failed",
   "sync_synced_ago": "Synced {ago}",
   "sync_title": "Pokédex data",

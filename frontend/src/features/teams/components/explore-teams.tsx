@@ -2,6 +2,7 @@ import { Compass, SearchX } from 'lucide-react'
 
 import { DealtInItem } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
+import { ResultsStatus } from '@/components/lists/results-status'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,18 +62,34 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
   }
 
   const { pages } = teams.data
+  const shown = pages.reduce((count, page) => count + page.items.length, 0)
+  // The status comes first in each case below, so it stays the same element as they change.
+  const settled = !teams.isPlaceholderData
 
-  if (pages.every((page) => page.items.length === 0)) {
+  if (shown === 0) {
     const filtered = search !== '' || filters.types.length > 0 || filters.view !== 'all'
     return filtered ? (
-      <NoTeamsMatch view={filters.view} onClearFilters={onClearFilters} />
+      <>
+        <ResultsStatus settled={settled}>
+          {m.explore_nothing_found_title({ view: filters.view })}
+        </ResultsStatus>
+        <NoTeamsMatch view={filters.view} onClearFilters={onClearFilters} />
+      </>
     ) : (
-      <NoTeamsYet />
+      <>
+        <ResultsStatus settled={settled}>{m.explore_empty_title()}</ResultsStatus>
+        <NoTeamsYet />
+      </>
     )
   }
 
   return (
     <>
+      <ResultsStatus settled={settled}>
+        {teams.hasNextPage
+          ? m.explore_shown_more({ count: shown })
+          : m.explore_shown({ count: shown })}
+      </ResultsStatus>
       <ul
         aria-label={m.explore_title()}
         aria-busy={teams.isPlaceholderData}
