@@ -13,9 +13,10 @@ from app.core.config import get_settings
 from app.core.db import Base
 from app.pokemon.models import Pokemon
 from app.sync.models import PokemonChange, SyncRun
+from app.teams.models import Team, TeamMember
 
 # Importing each domain's models registers their tables on Base.metadata; list new ones here.
-MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession)
+MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession, Team, TeamMember)
 
 config = context.config
 target_metadata = Base.metadata

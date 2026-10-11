@@ -9,9 +9,10 @@ from app.accounts.models import User, UserSession
 from app.core.db import Base
 from app.pokemon.models import Pokemon
 from app.sync.models import PokemonChange, SyncRun
+from app.teams.models import Team, TeamMember
 
 # Imported so their tables are registered on Base.metadata, as in app/migrations/env.py.
-MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession)
+MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession, Team, TeamMember)
 # Each CHECK constraint's table, name and definition, as Postgres normalizes it.
 CHECK_CONSTRAINTS = text(
     "select conrelid::regclass::text, conname, pg_get_constraintdef(oid) from pg_constraint"

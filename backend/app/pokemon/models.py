@@ -1,7 +1,15 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, SmallInteger, String, Text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -79,6 +87,12 @@ class SpeciesVariety(Base):
     """Which species each Pokémon belongs to, e.g. Mega Charizard X belongs to Charizard."""
 
     __tablename__ = "species_varieties"
+    __table_args__ = (
+        # Lets a team member refer to a Pokémon and its species together, in one foreign key.
+        UniqueConstraint(
+            "pokemon_id", "species_id", name="uq_species_varieties_pokemon_id_species_id"
+        ),
+    )
 
     pokemon_id: Mapped[int] = mapped_column(ForeignKey("pokemon.id"), primary_key=True)
     species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), index=True)
