@@ -38,10 +38,8 @@ export function TeamCardAction({ editor, pokemon, replacing }: TeamCardActionPro
   if (replacing) {
     const member = displayName(replacing.pokemon.name)
     // It may be from the replaced member's own family, but not from another member's.
-    const blocking = familyMember(
-      members.filter((each) => each !== replacing),
-      pokemon,
-    )
+    const others = members.filter((each) => each.pokemon.id !== replacing.pokemon.id)
+    const blocking = familyMember(others, pokemon)
     if (blocking) {
       return (
         <CardButton

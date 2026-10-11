@@ -19,7 +19,7 @@ export function BackLink({ to, children }: BackLinkProps) {
   )
 }
 
-/** The BackLink on a team's pages for its owner, from either mode: to their own teams. */
+/** The BackLink on its owner's party and builder of a team: to their own teams. */
 export function MyTeamsLink() {
   return <BackLink to={paths.home.getHref({ scope: 'mine' })}>{m.teams_mine()}</BackLink>
 }

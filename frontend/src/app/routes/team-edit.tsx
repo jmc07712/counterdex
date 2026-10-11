@@ -47,7 +47,8 @@ function EditTeam({ team, onOpenPokemon }: EditTeamProps) {
   const editor = useTeamEditor(team)
   const replacing = useReplacing(team.members)
   const beside = useMediaQuery(BESIDE_FROM)
-  // Open from the start when a member is to be replaced, as the Pokédex is where to choose from.
+  // Below lg, the Pokédex's sheet starts open when a member is to be replaced, as that's where to
+  // choose from.
   const [adding, setAdding] = useState(replacing.member !== undefined)
   const pokedexBeside = useRef<HTMLElement>(null)
 

@@ -66,8 +66,8 @@ export function PokedexSheet({
           event.preventDefault()
           sheet.current?.focus()
         }}
-        // Below the status bar and clear of the screen's rounded corners, and scrolled as a page
-        // is, under a header as tall as the app's, which the Pokédex's filters stick below.
+        // Just below the status bar. It scrolls as a whole, under a header as tall as the app's,
+        // so the Pokédex's filters stick below it as they do below the app's.
         className="gap-0 overflow-y-auto rounded-t-2xl bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] outline-none data-[side=bottom]:top-[calc(env(safe-area-inset-top)+0.5rem)]"
       >
         <div className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4 sm:px-6">
