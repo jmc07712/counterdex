@@ -76,9 +76,13 @@ Guests can browse everything; building a team needs an account.
 else to the SPA, so there's no CORS and a SameSite=Strict cookie works. Pokédex reads are cached at
 the CDN. Everything else defaults to `no-store`, so nothing user-specific is cached by accident.
 
-**Counter teams will be computed on request and cached, not pregenerated,** since a team is any one
-to six of about 1,350 Pokémon, teams that aren't saved need one too, and every sync changes the
-inputs.
+**Counter teams are worked out on request, from types and base stats.** A team is any one to six of
+about 1,350 Pokémon, teams that aren't saved need one too, and every sync can change the inputs,
+so nothing is worked out in advance. With no moves to go on, there's no battle to simulate: each
+Pokémon is scored against each of theirs on its best type against them, their best type against
+it, base stat total and Speed. The team is picked one Pokémon at a time, one per evolution family,
+and each matchup comes back with the parts of its score, so a pick can be explained.
+[Counter teams](backend/README.md#counter-teams) has the scoring.
 
 ## Assumptions
 

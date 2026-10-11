@@ -39,6 +39,7 @@ app/
   accounts/    users, passwords and sign-in sessions
   sync/        keeping the Pokémon tables in step with PokéAPI, and the change history
   teams/       teams and their members
+  counter/     counter teams, threats and one team scored against another, worked out on request
   api/         the FastAPI app: routes, middleware and the docs
   jobs/        command-line jobs, such as sync_pokemon
   migrations/  Alembic
@@ -47,8 +48,9 @@ tests/         mirrors app/; fixtures are in the conftest.py files, and builders
 ```
 
 Domains know nothing about how they're called: `core` is at the bottom, `pokemon` and `accounts`
-build on it, and `sync` and `teams` build on those. Domains never import FastAPI or the
-entrypoints, and `api` and `jobs` don't import each other. `uv run lint-imports` checks all of it.
+build on it, and `sync`, `teams` and `counter` build on those without importing each other.
+Domains never import FastAPI or the entrypoints, and `api` and `jobs` don't import each other.
+`uv run lint-imports` checks all of it.
 
 Each file in a domain has one job:
 - `models`: tables.
@@ -139,6 +141,57 @@ second change on another connection, waits until Postgres shows that connection 
 already on it, or an out-of-date order. `test_a_change_waits_for_one_in_progress_then_sees_it`
 does the same through the API, and `test_the_database_refuses_a_family_member_the_check_couldnt_see`
 adds a Pokémon without the lock to show the constraint refuses it alone.
+
+## Counter teams
+
+Three routes answer from the Pokédex and the type chart alone, and write nothing:
+`GET /api/counter-team` picks a team to beat the one given, `GET /api/team-threats` lists the
+Pokémon that beat it most, and `GET /api/matchups` scores one team against another, such as a team
+being built against the team it's meant to counter. Teams are given as repeated Pokémon ids, so a
+team that isn't saved works too.
+
+**A matchup** is one Pokémon against another, scored from the first one's side from types and base
+stats, with no moves (`scoring.py`; the weights are in `constants.py`):
+- **Offense:** its best type against the opponent scores log2 of the multiplier: 4× is +2, 2× +1,
+  1× 0, ½× −1, ¼× −2, and no effect −3.
+- **Defense:** the opponent's best type against it is scored the same way and subtracted.
+- **Power:** ±0.25 for each 100 of base stat total between them.
+- **Speed:** ±0.25 for being faster or slower.
+
+Types move the score by whole points and stats by quarters, so a type's edge usually decides a
+matchup, but a big enough gap in stats can outweigh it. A score of 0.75 or more is `good`, −0.75
+or less `bad`, and anything between `even`: a one-point type edge stays good unless the stats take
+more than a quarter of it back. Each matchup comes with the parts it's scored from (`attack`,
+`opponent_attack`, `speed` and `stat_total_difference`), so a client can say why it's good. Scores
+are rounded to 9 decimals, so scores equal on paper compare equal and ties are broken by the rules
+below, not by float rounding.
+
+**The counter team** (`search.py`) is chosen one Pokémon at a time. Each pick is the one that most
+raises the team's score: its best score against each of their Pokémon, added up, less a point for
+each of their types that three or more of its Pokémon are weak to, since one of theirs could beat
+all of those. Ties go to the higher total score against their team, then the higher base stat total,
+then the lower id, so a team always gets the same answer from the same data. Picks come from
+different evolution families, so the result can be saved, and only from Pokémon PokéAPI lists;
+alternate forms and legendary and mythical Pokémon only when asked for (`forms=true`,
+`legendaries=true`). The team comes in battle order: first the Pokémon that scores best against
+their lead, then the rest in the order of the opponents they each score best against.
+
+Choosing one at a time isn't guaranteed to find the best possible six: that would mean scoring
+every set of six from the whole Pokédex. It's quick, it gives the same answer every time, and each
+pick can be explained by its matchups.
+
+**The threats** are the 12 Pokémon with the highest total score against the team, each evolution
+family once, by its best. **Matchups** scores each of ours against each of theirs, names our best
+answer to each of theirs, and says whether every one of theirs has a `good` answer.
+
+**Worked out on request.** A team is any one to six of about 1,350 Pokémon, teams that aren't saved
+need answers too, and a sync can change the stats and types they're scored from, so nothing is
+worked out in advance. A request reads the type chart and the Pokémon it can choose from, then
+scores each of them against at most six in memory. Responses are cached like the Pokédex's
+(`COUNTER_TEAM_CACHE_CONTROL`), since the same ids get the same answer until a sync changes the
+data. Until a sync has stored the type chart the routes answer 503 and say to run one, as the
+counter team does while there are fewer evolution families to choose from than the team has
+Pokémon. An unknown id, or one given twice on a team, is a 422.
 
 ## The type chart and legendary flags
 
