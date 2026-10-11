@@ -23,7 +23,8 @@ import { useTeamsList } from '../hooks/use-teams-list'
 import { NewTeamButton } from './new-team-button'
 import { TeamCard } from './team-card'
 
-const GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+// On phones, one column as wide as the page, however long a team's name.
+const GRID = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 type TeamsGridProps = {
   filters: TeamsFilters
