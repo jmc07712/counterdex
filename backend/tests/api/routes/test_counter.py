@@ -9,7 +9,7 @@ from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart
 from tests.support.pokemon import make_pokemon
 
 PATHS = ["/api/counter-team", "/api/team-threats"]
-CHARIZARD, AERODACTYL = 6, 142
+CHARIZARD, AERODACTYL, GOLEM = 6, 142, 76
 
 
 @pytest.fixture
@@ -123,32 +123,52 @@ def test_asks_for_a_sync_when_too_few_pokemon_are_stored(
 
 # --- Caching ---
 
+# A request each route answers.
+ANSWERED = [
+    pytest.param("/api/counter-team", {"pokemon_id": CHARIZARD}, id="counter-team"),
+    pytest.param("/api/team-threats", {"pokemon_id": CHARIZARD}, id="team-threats"),
+    pytest.param("/api/matchups", {"pokemon_id": GOLEM, "opponent_id": CHARIZARD}, id="matchups"),
+]
+# Requests each route refuses: one with an id given twice, one with an id no Pokémon has.
+REFUSED = [
+    pytest.param("/api/counter-team", {"pokemon_id": [6, 6]}, id="counter-team-twice"),
+    pytest.param("/api/counter-team", {"pokemon_id": 99999}, id="counter-team-unknown"),
+    pytest.param("/api/team-threats", {"pokemon_id": [6, 6]}, id="team-threats-twice"),
+    pytest.param("/api/team-threats", {"pokemon_id": 99999}, id="team-threats-unknown"),
+    pytest.param("/api/matchups", {"pokemon_id": [76, 76], "opponent_id": 6}, id="matchups-twice"),
+    pytest.param("/api/matchups", {"pokemon_id": 76, "opponent_id": 99999}, id="matchups-unknown"),
+]
 
-@pytest.mark.parametrize("path", PATHS)
+
+@pytest.mark.parametrize(("path", "params"), ANSWERED)
 @pytest.mark.usefixtures("pokedex")
-def test_lets_browsers_and_the_cdn_cache_the_answer(client: TestClient, path: str) -> None:
-    response = client.get(path, params={"pokemon_id": CHARIZARD})
-
-    assert response.headers["cache-control"] == COUNTER_TEAM_CACHE_CONTROL
-
-
-@pytest.mark.parametrize("path", PATHS)
-@pytest.mark.usefixtures("pokedex", "running_locally")
-def test_tells_browsers_not_to_keep_the_answer_when_caching_is_off(
-    client: TestClient, path: str
+def test_lets_browsers_and_the_cdn_cache_the_answer(
+    client: TestClient, path: str, params: dict[str, Any]
 ) -> None:
-    assert client.get(path, params={"pokemon_id": CHARIZARD}).headers["cache-control"] == (
-        "no-store"
+    response = client.get(path, params=params)
+
+    assert (response.status_code, response.headers["cache-control"]) == (
+        200,
+        COUNTER_TEAM_CACHE_CONTROL,
     )
 
 
-@pytest.mark.parametrize("path", PATHS)
-@pytest.mark.parametrize(
-    "params", [{"pokemon_id": [6, 6]}, {"pokemon_id": 99999}], ids=["invalid", "unknown"]
-)
+@pytest.mark.parametrize(("path", "params"), ANSWERED)
+@pytest.mark.usefixtures("pokedex", "running_locally")
+def test_tells_browsers_not_to_keep_the_answer_when_caching_is_off(
+    client: TestClient, path: str, params: dict[str, Any]
+) -> None:
+    response = client.get(path, params=params)
+
+    assert (response.status_code, response.headers["cache-control"]) == (200, "no-store")
+
+
+@pytest.mark.parametrize(("path", "params"), REFUSED)
 @pytest.mark.usefixtures("pokedex")
 def test_errors_are_not_cached(client: TestClient, path: str, params: dict[str, Any]) -> None:
-    assert client.get(path, params=params).headers["cache-control"] == "no-store"
+    response = client.get(path, params=params)
+
+    assert (response.status_code, response.headers["cache-control"]) == (422, "no-store")
 
 
 # --- Docs ---
@@ -165,8 +185,6 @@ def test_documents_each_parameter_and_error(openapi: dict[str, Any], path: str) 
 
 
 # --- One team against another ---
-
-GOLEM = 76
 
 
 @pytest.mark.usefixtures("pokedex")
@@ -236,13 +254,6 @@ def test_asks_for_a_sync_before_scoring_teams(client: TestClient, db_session: Se
 
     assert response.status_code == 503
     assert "sync" in response.json()["detail"]
-
-
-@pytest.mark.usefixtures("pokedex")
-def test_lets_browsers_and_the_cdn_cache_scored_teams(client: TestClient) -> None:
-    response = client.get("/api/matchups", params={"pokemon_id": GOLEM, "opponent_id": CHARIZARD})
-
-    assert response.headers["cache-control"] == COUNTER_TEAM_CACHE_CONTROL
 
 
 def test_documents_scoring_teams(openapi: dict[str, Any]) -> None:
