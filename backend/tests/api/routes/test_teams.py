@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.accounts.types import SignedIn
-from tests.support.teams import make_team
+from tests.support.teams import add_species_pokemon, make_team
 
 TEAM = "/api/teams/00000000-0000-4000-8000-000000000001"
 
@@ -53,28 +53,40 @@ def test_another_users_team_is_not_found(
     assert ash_client.patch(url, json={"name": "Mine"}).status_code == 404
     assert ash_client.delete(url).status_code == 404
     taken = ash_client.put(url, json={"name": "Mine"})
-    assert (taken.status_code, taken.json()) == (409, {"reason": "team_id_taken"})
+    assert (taken.status_code, taken.json()) == (409, {"detail": "team_id_taken"})
 
 
 @pytest.mark.usefixtures("charmander_family")
 def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
     response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6, 10034]})
 
-    assert (response.status_code, response.json()) == (409, {"reason": "species_on_team"})
+    assert (response.status_code, response.json()) == (409, {"detail": "species_on_team"})
     assert ash_client.get("/api/teams").json() == []
 
 
 @pytest.mark.parametrize(
-    "body",
+    ("body", "field"),
     [
-        pytest.param({"name": "   "}, id="blank-name"),
-        pytest.param({"name": "x" * 41}, id="long-name"),
-        pytest.param({"name": "Fire", "pokemon_ids": [1, 2, 3, 4, 5, 6, 7]}, id="seven"),
-        pytest.param({"name": "Fire", "pokemon_ids": [4, 4]}, id="twice"),
+        pytest.param({"name": "   "}, "name", id="blank-name"),
+        pytest.param({"name": "x" * 41}, "name", id="long-name"),
+        pytest.param(
+            {"name": "Fire", "pokemon_ids": [201, 202, 203, 204, 205, 206, 207]},
+            "pokemon_ids",
+            id="seven",
+        ),
+        pytest.param({"name": "Fire", "pokemon_ids": [201, 201]}, "pokemon_ids", id="twice"),
     ],
 )
-def test_rejects_invalid_teams(ash_client: TestClient, body: dict[str, Any]) -> None:
-    assert ash_client.put(TEAM, json=body).status_code == 422
+def test_rejects_invalid_teams(
+    ash_client: TestClient, db_session: Session, body: dict[str, Any], field: str
+) -> None:
+    # Stored, so these Pokémon are valid and only the team's shape can be what's wrong.
+    add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206, 207)
+
+    response = ash_client.put(TEAM, json=body)
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", field]
 
 
 def test_an_unknown_pokemon_is_invalid(ash_client: TestClient) -> None:

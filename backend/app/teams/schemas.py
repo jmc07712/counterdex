@@ -98,4 +98,4 @@ class Team(BaseModel):
 class TeamConflict(BaseModel):
     """Why the change can't be made to the team as it is now."""
 
-    reason: TeamConflictReason
+    detail: TeamConflictReason

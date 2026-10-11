@@ -145,7 +145,8 @@ export const renameTeam = <ThrowOnError extends boolean = false>(options: Option
  * Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.
  *
  * Sending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so
- * a create that's retried can't make two teams. An `id` someone else has is a 409.
+ * a create that's retried can't make two teams. An `id` someone else has is a 409, and a Pokémon
+ * `id` that no Pokémon has is a 422.
  */
 export const createTeam = <ThrowOnError extends boolean = false>(options: Options<CreateTeamData, ThrowOnError>): RequestResult<CreateTeamResponses, CreateTeamErrors, ThrowOnError> => (options.client ?? client).put<CreateTeamResponses, CreateTeamErrors, ThrowOnError>({
     url: '/api/teams/{team_id}',

@@ -422,7 +422,7 @@
     "/api/teams/{team_id}": {
       "put": {
         "summary": "Create a team",
-        "description": "Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.\n\nSending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so\na create that's retried can't make two teams. An `id` someone else has is a 409.",
+        "description": "Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.\n\nSending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so\na create that's retried can't make two teams. An `id` someone else has is a 409, and a Pokémon\n`id` that no Pokémon has is a 422.",
         "operationId": "create_team",
         "parameters": [
           {
@@ -473,7 +473,7 @@
             "description": "Sign in first."
           },
           "409": {
-            "description": "The change can't be made to the team as it is now; `reason` says why.",
+            "description": "The change can't be made to the team as it is now; `detail` says why.",
             "content": {
               "application/json": {
                 "schema": {
@@ -483,7 +483,14 @@
             }
           },
           "422": {
-            "description": "No Pokémon has this id. Or invalid input."
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
@@ -1581,13 +1588,13 @@
       },
       "TeamConflict": {
         "properties": {
-          "reason": {
+          "detail": {
             "$ref": "#/components/schemas/TeamConflictReason"
           }
         },
         "type": "object",
         "required": [
-          "reason"
+          "detail"
         ],
         "title": "TeamConflict",
         "description": "Why the change can't be made to the team as it is now."

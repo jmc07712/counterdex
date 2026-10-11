@@ -683,7 +683,7 @@ export type Team = {
  * Why the change can't be made to the team as it is now.
  */
 export type TeamConflict = {
-    reason: TeamConflictReason;
+    detail: TeamConflictReason;
 };
 
 /**
@@ -1286,13 +1286,13 @@ export type CreateTeamErrors = {
      */
     401: unknown;
     /**
-     * The change can't be made to the team as it is now; `reason` says why.
+     * The change can't be made to the team as it is now; `detail` says why.
      */
     409: TeamConflict;
     /**
-     * No Pokémon has this id. Or invalid input.
+     * Validation Error
      */
-    422: unknown;
+    422: HttpValidationError;
 };
 
 export type CreateTeamError = CreateTeamErrors[keyof CreateTeamErrors];
