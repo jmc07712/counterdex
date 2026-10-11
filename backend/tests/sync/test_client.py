@@ -96,6 +96,7 @@ def answering_first(*responses: httpx2.Response) -> Handler:
     return handler
 
 
+@pytest.mark.parametrize("status", [429, 503])
 @pytest.mark.parametrize(
     ("retry_after", "waited"),
     [
@@ -106,10 +107,10 @@ def answering_first(*responses: httpx2.Response) -> Handler:
         pytest.param("3600", MAX_RETRY_AFTER_SECONDS, id="an-hour"),
     ],
 )
-async def test_waits_as_long_as_a_429_asks_up_to_the_most(
-    sleeps: list[float], retry_after: str, waited: float
+async def test_waits_as_long_as_a_429_or_503_asks_up_to_the_most(
+    sleeps: list[float], status: int, retry_after: str, waited: float
 ) -> None:
-    handler = answering_first(httpx2.Response(429, headers={"Retry-After": retry_after}))
+    handler = answering_first(httpx2.Response(status, headers={"Retry-After": retry_after}))
 
     result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
 
@@ -123,10 +124,12 @@ async def test_waits_as_long_as_a_429_asks_up_to_the_most(
         pytest.param(429, {}, id="429-without-Retry-After"),
         pytest.param(429, {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, id="429-with-a-date"),
         pytest.param(429, {"Retry-After": "-2"}, id="429-with-a-negative-number"),
-        pytest.param(503, {"Retry-After": "2"}, id="503-with-Retry-After"),
+        pytest.param(503, {}, id="503-without-Retry-After"),
+        # HTTP defines Retry-After for 429 and 503, not for other server errors.
+        pytest.param(500, {"Retry-After": "2"}, id="500-with-Retry-After"),
     ],
 )
-async def test_waits_the_doubling_delay_unless_a_429_asks_for_seconds(
+async def test_waits_the_doubling_delay_unless_a_429_or_503_asks_for_seconds(
     sleeps: list[float], status: int, headers: dict[str, str]
 ) -> None:
     handler = answering_first(httpx2.Response(status, headers=headers))

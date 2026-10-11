@@ -14,6 +14,7 @@ from app.sync.constants import (
     MAX_PAGES,
     MAX_RETRY_AFTER_SECONDS,
     PAGE_SIZE,
+    RETRY_AFTER_STATUS_CODES,
     RETRY_DELAY_SECONDS,
     RETRYABLE_STATUS_CODES,
 )
@@ -39,8 +40,8 @@ class PokeApiClient:
     then fetches every entry's details concurrently, at most `concurrency` requests at a time.
     A request that hits rate limiting, a server error or a network failure is tried up to
     `attempts` times in all, waiting `retry_delay` seconds before the first retry and twice as
-    long before each one after. A 429 that says in Retry-After to wait a number of seconds is
-    waited that long instead, up to MAX_RETRY_AFTER_SECONDS.
+    long before each one after. A 429 or 503 that says in Retry-After to wait a number of seconds
+    is waited that long instead, up to MAX_RETRY_AFTER_SECONDS.
 
     One entry that keeps failing doesn't fail the fetch: its URL is reported in the result's
     `failed`, and the caller decides what that means. A listing that can't be trusted (it
@@ -172,13 +173,13 @@ def _is_retryable(error: httpx2.HTTPError) -> bool:
 
 
 def _retry_after_seconds(error: httpx2.HTTPError) -> int | None:
-    """How many seconds a 429 asks to wait in its Retry-After, at most MAX_RETRY_AFTER_SECONDS.
-    None for any other error, and for a Retry-After that isn't a whole number of seconds, such as
-    a date.
+    """How many seconds a 429 or 503 asks to wait in its Retry-After, at most
+    MAX_RETRY_AFTER_SECONDS. None for any other error, and for a Retry-After that isn't a whole
+    number of seconds, such as a date.
     """
     if (
         not isinstance(error, httpx2.HTTPStatusError)
-        or error.response.status_code != httpx2.codes.TOO_MANY_REQUESTS
+        or error.response.status_code not in RETRY_AFTER_STATUS_CODES
     ):
         return None
     seconds = error.response.headers.get("Retry-After", "")
