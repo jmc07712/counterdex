@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { paths } from '@/config/paths'
 import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { useCurrentUser } from '@/lib/auth'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import type { TeamsFilters, TeamsView } from '../hooks/use-teams-filters'
@@ -51,8 +52,9 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
         <ul aria-label={m.teams_loading()} className={GRID}>
           {[0, 1, 2].map((each) => (
             <li key={each}>
-              {/* As tall as a card with one row of types. */}
-              <Skeleton className="h-57 rounded-2xl" />
+              {/* As tall as a card with one row of types, which in everyone's teams says whose
+                  it is on a line of its own. */}
+              <Skeleton className={cn('rounded-2xl', owner === undefined ? 'h-57' : 'h-51')} />
             </li>
           ))}
         </ul>
