@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session, aliased
 
 from app.accounts import models as accounts_models
 from app.pokemon import models as pokemon_models
-from app.pokemon.queries import changed_lately, pokemon_from_columns
+from app.pokemon.queries import changed_recently, pokemon_from_columns
 from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
 from app.teams.constants import MAX_TEAM_SIZE
@@ -95,7 +95,7 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
             _has_a_pokemon(pokemon_models.Pokemon.types.contains([type_.value]))
         )
     if query.changed:
-        statement = statement.where(_has_a_pokemon(changed_lately()))
+        statement = statement.where(_has_a_pokemon(changed_recently()))
     if query.cursor is not None:
         # A row subquery, so Postgres can start scanning the (created_at, id) index at the
         # cursor's team. A cursor that no team has makes it null, which no row is less than.

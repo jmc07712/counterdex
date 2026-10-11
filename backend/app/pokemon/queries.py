@@ -38,7 +38,7 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
         types = [type_.value for type_ in query.types]
         statement = statement.where(models.Pokemon.types.contains(types))
     if query.changed:
-        statement = statement.where(changed_lately())
+        statement = statement.where(changed_recently())
     if query.forms is not FormFilter.ALL:
         is_default = query.forms is FormFilter.DEFAULT
         statement = statement.where(models.Pokemon.is_default.is_(is_default))
@@ -50,7 +50,7 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
 
 
-def changed_lately() -> ColumnElement[bool]:
+def changed_recently() -> ColumnElement[bool]:
     """Whether a sync changed the Pokémon in the last week: updated it, removed it or listed it
     again.
     """
@@ -164,7 +164,7 @@ def _listed_forms(
 def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
     """A Pokémon as the API serves it, from the pokemon table's columns and, where they include
     them, its species' and family's ids: its sprite from the CDN, and whether a sync changed it
-    lately (a change's snapshots have no such column).
+    recently (a change's snapshots have no such column).
     """
     pokemon = schemas.Pokemon.from_columns(
         {**columns, "sprite_url": cdn_sprite_url(columns["sprite_url"])}
