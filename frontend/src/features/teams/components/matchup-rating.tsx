@@ -55,6 +55,7 @@ type MatchupButtonProps = { pokemon: Pokemon; opponent: Pokemon; matchup: Matchu
  * attack's multiplier below. It opens a popover with the matchup in a sentence.
  */
 export function MatchupButton({ pokemon, opponent, matchup }: MatchupButtonProps) {
+  const names = { pokemon: displayName(pokemon.name), opponent: displayName(opponent.name) }
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -65,19 +66,17 @@ export function MatchupButton({ pokemon, opponent, matchup }: MatchupButtonProps
             TINTS[matchup.rating],
           )}
         >
-          <span className="sr-only">
-            {m.team_matchup_cell({
-              pokemon: displayName(pokemon.name),
-              opponent: displayName(opponent.name),
-            })}
-          </span>{' '}
+          <span className="sr-only">{m.team_matchup_cell(names)}</span>{' '}
           <RatingMark rating={matchup.rating} />{' '}
           <span className="text-xs text-muted-foreground tabular-nums">
             {multiplierWords(matchup.attack.multiplier)}
           </span>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 text-sm leading-relaxed">
+      <PopoverContent
+        aria-label={m.team_matchup_title(names)}
+        className="w-72 text-sm leading-relaxed"
+      >
         {matchupSentence(pokemon, opponent, matchup)}
       </PopoverContent>
     </Popover>

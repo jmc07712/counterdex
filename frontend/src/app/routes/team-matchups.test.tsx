@@ -221,7 +221,8 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const table = await within(await findSection()).findByRole('table')
     await user.click(within(table).getByRole('button', { name: 'Lapras against Charizard: Good 2×' }))
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent(
+    const dialog = await screen.findByRole('dialog', { name: 'Lapras against Charizard' })
+    expect(dialog).toHaveTextContent(
       'Lapras’s Water moves are 2× against Charizard, and Charizard’s Fire moves are only ½× ' +
         'against Lapras. Charizard is faster.',
     )
@@ -237,7 +238,8 @@ describe('TeamPage, how to beat someone else’s team', () => {
     cell.focus()
     await user.keyboard('{Enter}')
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent(
+    const dialog = await screen.findByRole('dialog', { name: 'Snorlax against Pikachu' })
+    expect(dialog).toHaveTextContent(
       'Snorlax’s Normal moves are neutral against Pikachu, and Pikachu’s Normal moves are ' +
         'neutral against Snorlax. Pikachu is faster. Snorlax’s base stats total 220 more.',
     )

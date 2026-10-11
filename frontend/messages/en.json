@@ -359,6 +359,7 @@
   "team_matchup_covered": "Every Pokémon on their team has a good answer",
   "team_matchup_uncovered": "Nothing here clearly beats {names}",
   "team_matchup_cell": "{pokemon} against {opponent}:",
+  "team_matchup_title": "{pokemon} against {opponent}",
   "team_pool_label": "Also pick from",
   "team_pool_forms": "Alternate forms",
   "team_pool_legendaries": "Legendaries",
