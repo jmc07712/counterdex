@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { type Ref, useId } from 'react'
 
 import { ChoiceToggle, ChoiceToggles } from '@/components/filters/choice-toggles'
 import { FilterBar } from '@/components/filters/filter-bar'
@@ -13,15 +13,17 @@ import { EXPLORE_VIEWS, type ExploreFilters as Filters } from '../hooks/use-expl
 type ExploreFiltersProps = {
   filters: Filters
   onChange: (filters: Filters) => void
+  searchRef?: Ref<HTMLInputElement>
 }
 
-export function ExploreFilters({ filters, onChange }: ExploreFiltersProps) {
+export function ExploreFilters({ filters, onChange, searchRef }: ExploreFiltersProps) {
   const viewId = useId()
 
   return (
     <FilterBar
       search={
         <SearchInput
+          ref={searchRef}
           aria-label={m.explore_search()}
           placeholder={m.explore_search()}
           value={filters.search}

@@ -276,15 +276,17 @@ describe('PokedexPage', () => {
     await waitFor(() => expect(status).toHaveTextContent('No removed Pokémon'))
   })
 
-  it('offers to clear the filters when nothing matches', async () => {
+  it('offers to clear the filters when nothing matches, then waits in the search', async () => {
     const requests = servePokemon((query) => makePage(query.has('q') ? [] : ['bulbasaur']))
-    const { user, router } = renderWithProviders(<PokedexPage />, { path: '/?q=zzz' })
+    const { user, router } = renderWithProviders(<PokedexPage />, { path: '/?q=zzz&type=fire' })
 
     await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
 
     expect(await screen.findByRole('article', { name: 'Bulbasaur' })).toBeInTheDocument()
-    expect(requests.at(-1)).toBe('')
+    // Straight to every Pokémon, without asking for the old search on its own on the way.
+    expect(gridRequests(requests)).toEqual(['q=zzz&type=fire', ''])
     expect(router.state.location.search).toBe('')
+    expect(screen.getByRole('combobox', { name: 'Search Pokémon' })).toHaveFocus()
   })
 
   it('offers a retry when the Pokédex can’t load', async () => {

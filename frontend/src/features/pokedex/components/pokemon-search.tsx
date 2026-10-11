@@ -1,5 +1,5 @@
 import { useCombobox } from 'downshift'
-import { useState } from 'react'
+import { type Ref, useState } from 'react'
 
 import { SearchInput } from '@/components/filters/search-input'
 import { dexNumber, displayName } from '@/components/pokemon/format'
@@ -13,10 +13,11 @@ type PokemonSearchProps = {
   value: string
   onChange: (search: string) => void
   onOpen: (pokemonId: number) => void
+  inputRef?: Ref<HTMLInputElement>
 }
 
 /** The Pokédex search, suggesting Pokémon as you type; choosing one opens its details. */
-export function PokemonSearch({ value, onChange, onOpen }: PokemonSearchProps) {
+export function PokemonSearch({ value, onChange, onOpen, inputRef }: PokemonSearchProps) {
   const [isOpen, setIsOpen] = useState(false)
   const search = useDebouncedSearch(value)
   // Only while the list is open: a search in a shared link doesn't load suggestions.
@@ -46,7 +47,7 @@ export function PokemonSearch({ value, onChange, onOpen }: PokemonSearchProps) {
       <label {...getLabelProps()} className="sr-only">
         {m.pokedex_search()}
       </label>
-      <SearchInput {...getInputProps({ placeholder: m.pokedex_search() })} />
+      <SearchInput {...getInputProps({ placeholder: m.pokedex_search(), ref: inputRef })} />
       <ul
         {...getMenuProps()}
         className={cn(

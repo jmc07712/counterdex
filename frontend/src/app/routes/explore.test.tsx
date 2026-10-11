@@ -164,15 +164,16 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent(explanation)
   })
 
-  it('offers to clear the filters when no team matches', async () => {
-    const { listQueries } = serveTeams({ teams: [RAIN] })
-    // Added last, so it answers first: nothing matches a search, and anything else goes on to
-    // the stand-in.
+  it('offers to clear the filters when no team matches, then waits in the search', async () => {
+    serveTeams({ teams: [RAIN] })
+    const queries: string[] = []
+    // Added last, so it answers first: it notes every request, nothing matches a search, and
+    // anything else goes on to the stand-in.
     server.use(
       http.get('/api/teams', ({ request }) => {
-        if (new URL(request.url).searchParams.has('q')) {
-          return HttpResponse.json({ items: [], next_cursor: null })
-        }
+        const query = new URL(request.url).searchParams
+        queries.push(query.toString())
+        if (query.has('q')) return HttpResponse.json({ items: [], next_cursor: null })
       }),
     )
     const { user, router } = renderWithProviders(<ExplorePage />, { path: '/?q=zzz&type=fire' })
@@ -181,8 +182,10 @@ describe('ExplorePage', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
 
     expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
-    expect(listQueries).toEqual([''])
+    // Straight to every team, without asking for the old search on its own on the way.
+    expect(queries).toEqual(['q=zzz&type=fire', ''])
     expect(router.state.location.search).toBe('')
+    expect(screen.getByRole('searchbox', { name: /Search teams/ })).toHaveFocus()
   })
 
   it('says when no team has changed this week', async () => {

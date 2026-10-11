@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { type Ref, useId } from 'react'
 
 import { FormFilter } from '@/api'
 import { ChoiceToggle, ChoiceToggles } from '@/components/filters/choice-toggles'
@@ -16,9 +16,15 @@ type PokedexFiltersProps = {
   filters: Filters
   onChange: (filters: Filters) => void
   onOpenPokemon: (pokemonId: number) => void
+  searchRef?: Ref<HTMLInputElement>
 }
 
-export function PokedexFilters({ filters, onChange, onOpenPokemon }: PokedexFiltersProps) {
+export function PokedexFilters({
+  filters,
+  onChange,
+  onOpenPokemon,
+  searchRef,
+}: PokedexFiltersProps) {
   const formsId = useId()
   const viewId = useId()
 
@@ -29,6 +35,7 @@ export function PokedexFilters({ filters, onChange, onOpenPokemon }: PokedexFilt
           value={filters.search}
           onChange={(search) => onChange({ ...filters, search })}
           onOpen={onOpenPokemon}
+          inputRef={searchRef}
         />
       }
       choices={
