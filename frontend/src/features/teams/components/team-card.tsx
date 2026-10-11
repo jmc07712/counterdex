@@ -67,18 +67,14 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
             </li>
           ))}
         </ol>
-        {members.flatMap((member) =>
-          member.removed_at
-            ? [
-                <p key={member.pokemon.id} className="text-xs text-muted-foreground">
-                  {m.team_member_removed_on({
-                    name: displayName(member.pokemon.name),
-                    date: formatDate(member.removed_at),
-                  })}
-                </p>,
-              ]
-            : [],
-        )}
+        {members.filter(isRemoved).map((member) => (
+          <p key={member.pokemon.id} className="text-xs text-muted-foreground">
+            {m.team_member_removed_on({
+              name: displayName(member.pokemon.name),
+              date: formatDate(member.removed_at),
+            })}
+          </p>
+        ))}
         {types.length > 0 && (
           <>
             <p className="sr-only">
@@ -110,6 +106,10 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
       </div>
     </article>
   )
+}
+
+function isRemoved(member: TeamMember): member is TeamMember & { removed_at: string } {
+  return member.removed_at !== null
 }
 
 // A member's tile, in its main type's color, or neutral once it's no longer in the Pokédex. Its
