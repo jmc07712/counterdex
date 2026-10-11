@@ -38,7 +38,8 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
       <ul aria-label={m.explore_loading()} className={GRID}>
         {[0, 1, 2].map((each) => (
           <li key={each}>
-            <Skeleton className="h-36 rounded-2xl" />
+            {/* As tall as a card with one row of types. */}
+            <Skeleton className="h-57 rounded-2xl" />
           </li>
         ))}
       </ul>

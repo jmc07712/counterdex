@@ -29,7 +29,8 @@ export function TeamList({ username }: { username: string }) {
       <ul aria-label={m.teams_loading()} className={GRID}>
         {[0, 1, 2].map((each) => (
           <li key={each}>
-            <Skeleton className="h-32 rounded-2xl" />
+            {/* As tall as a card with one row of types. */}
+            <Skeleton className="h-51 rounded-2xl" />
           </li>
         ))}
       </ul>
