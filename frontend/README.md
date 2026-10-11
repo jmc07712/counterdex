@@ -1,32 +1,108 @@
-# React + TypeScript + Vite
+# Counterdex web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The React app: the Pokédex, teams and accounts. Why it's built this way is in the
+[root README](../README.md); this covers working on it.
 
-Currently, two official plugins are available:
+## Running it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Needs Node `^22.22.2 || ^24.15.0 || >=26`, the versions the installed jsdom and Vitest support (not
+25), and the API running on port 3000 (see [backend/README.md](../backend/README.md)). Vite sends
+`/api` requests there.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm ci
+npm run dev        # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Starts Vite, recompiling messages as they change. |
+| `npm run build` | Compiles messages, type-checks, and builds to `dist/`. |
+| `npm test` | Runs the tests once (`npm run test:watch` keeps watching). |
+| `npm run lint` | Runs oxlint. |
+| `npm run api:generate` | Exports the backend's OpenAPI schema to `openapi.json` and regenerates `src/api`. Needs uv. |
+| `npm run messages` | Compiles `messages/en.json` into `src/paraglide`. |
+
+## Layout
+
+```
+src/
+  app/          the router, and the pages in routes/, which compose features
+  features/     auth, pokedex, pokemon-details, sync-status and teams, each with the
+                components/, hooks/ and utils/ it needs
+  components/   shared UI: ui/ (shadcn), layout/ (the app shell), pokemon/ (cards, badges),
+                filters/ (the search, type and view filters the Pokédex and Explore share)
+                and lists/ (Load more, and the grids' card entrance)
+  hooks/        shared hooks, such as a debounced search
+  lib/          app-wide helpers: who's signed in, the query client, the theme, dates
+  config/       page paths
+  api/          the generated API client
+  paraglide/    the generated messages (not committed)
+  test/         the MSW server and handlers, render helpers and test data
+messages/en.json  the text the app shows
+```
+
+Code flows shared → features → app. Features never import each other; `app/` composes them, so a
+page that needs two features, such as a team with its Pokémon's details, renders both.
+
+## Conventions
+
+- **Don't edit generated code.** That's `src/api` (from `npm run api:generate`), `src/paraglide`
+  (from `npm run messages`) and `src/components/ui` (from `npx shadcn add <component>`).
+- **Use the API's own types.** The generated client has every request and response type, the API's
+  enums as runtime values (such as every `PokemonType` and `TeamConflictReason`), a function for
+  every route and TanStack Query options for each. An API change then shows up as a type error.
+- **Put text in `messages/en.json`.** Paraglide compiles it into typed functions. Values from the
+  API, such as types and change kinds, are worded by select messages, and tests check that every
+  value has wording.
+- **Keep filters and the open Pokémon in the URL**, so a view can be shared or reloaded: the
+  Pokédex's and Explore's filters (`?q=char&type=fire`), and the Pokémon whose details are open
+  (`?pokemon=6`). Opening a Pokémon adds a history entry, so Back closes it.
+- **Change a team through its hooks.** Each change (`useAddTeamMember`, `useRemoveTeamMember`,
+  `useReplaceTeamMember`, `useReorderTeam`, `useRenameTeam`) is built on `useTeamChange`: the team
+  shows the change at once, changes to one team share a mutation scope so they're sent one at a
+  time in order, a refused change is rolled back (if nothing was changed on top of it) with a
+  toast saying why, and the team is fetched again once the last change has settled.
+- **Build links from `config/paths.ts`**, where every page's path is defined.
+- **Use the color tokens** in `src/index.css`, which have light and dark values. Saturated color is
+  for Pokémon types and the status lights.
+- **Text on a type's color uses the type's own text color** from `TYPE_STYLES`, at full strength;
+  a test checks every pair reaches 4.5:1 (WCAG AA).
+- **Export only components from component files.** Hooks and helpers go in `hooks/`, `utils/` or
+  `lib/`. oxlint warns about the rest.
+- **Style:** there's no formatter. Use single quotes, no semicolons, and lines up to about 100
+  characters.
+- **Dependencies:** take only releases that are at least two weeks old, with
+  `npm install --before=<date>`.
+
+## The team views
+
+- **Teams** (`/`) lists your teams, and **Explore** (`/explore`) everyone's, searchable and
+  filterable by type and by "Changed this week". Each card shows the team as party tiles, its
+  types and its power, is marked if a member changed recently, and says which member was removed
+  from PokéAPI and when.
+- **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
+  order, each slot in its main type's color with its stats, and the team's power, the sum of its
+  members' base stat totals. Opening a member shows its details. A removed member is muted, with
+  the date it was removed in place of its types.
+- **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
+  (`/teams/:teamId/edit`) is the builder: rename the team, remove members, and add Pokémon from a
+  browser that marks the ones that can't join. Every change saves at once, so the toggle back to
+  View is the way out.
+
+## Phones
+
+Every page has to work at phone width.
+- Below `md`, navigation is a tab bar at the bottom, which hides while scrolling down and comes back
+  on any scroll up. A Pokémon's details open as a bottom sheet.
+- Toasts take their distance from the bottom from `--toaster-bottom`: above the tab bar below `md`,
+  and sonner's default 24px from `md` up.
+- Below `lg`, the header's sync status is just its light and a short age, though the full words
+  are still read out, and the builder's Pokémon browser opens in a bottom sheet.
+
+## Tests
+
+- Vitest runs in jsdom, with Testing Library. `renderWithProviders` in `src/test/render.tsx` gives
+  each test its own query client and router.
+- MSW answers the app's real requests. The helpers in `src/test/handlers.ts` serve each endpoint
+  and record what was asked for. A request with no handler is an error.
