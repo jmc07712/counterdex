@@ -6,8 +6,9 @@ from app.accounts.schemas import Credentials, NewAccount, User
 from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.session_cookie import clear_session_cookie, read_session_cookie, set_session_cookie
+from app.api.tags import SESSION
 
-router = APIRouter(dependencies=[Depends(never_cache)])
+router = APIRouter(tags=[SESSION], dependencies=[Depends(never_cache)])
 
 USERNAME_TAKEN = "Someone already has this username."
 WRONG_CREDENTIALS = "Wrong username or password."

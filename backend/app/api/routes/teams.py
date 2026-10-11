@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, st
 from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
+from app.api.tags import TEAM_MEMBERS, TEAMS
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.teams import service
 from app.teams.enums import TeamConflictReason
@@ -28,7 +29,9 @@ from app.teams.schemas import (
     TeamRename,
 )
 
-router = APIRouter(dependencies=[Depends(never_cache)])
+router = APIRouter(tags=[TEAMS], dependencies=[Depends(never_cache)])
+# The member routes get their own router: a route's tags add to its router's, not replace them.
+members_router = APIRouter(tags=[TEAM_MEMBERS], dependencies=[Depends(never_cache)])
 
 TEAM_NOT_FOUND = "You have no team with this id."
 MEMBER_NOT_FOUND = "That Pokémon isn't on the team."
@@ -175,7 +178,7 @@ def delete_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> None
     session.commit()
 
 
-@router.post(
+@members_router.post(
     "/teams/{team_id}/members",
     summary="Add a Pokémon to a team",
     responses={
@@ -199,7 +202,7 @@ def add_team_member(
     return team
 
 
-@router.put(
+@members_router.put(
     "/teams/{team_id}/members/{pokemon_id}",
     summary="Replace a Pokémon on a team",
     responses={
@@ -228,7 +231,7 @@ def replace_team_member(
     return team
 
 
-@router.delete(
+@members_router.delete(
     "/teams/{team_id}/members/{pokemon_id}",
     summary="Remove a Pokémon from a team",
     responses={
@@ -246,7 +249,7 @@ def remove_team_member(
     return team
 
 
-@router.put(
+@members_router.put(
     "/teams/{team_id}/order",
     summary="Reorder a team",
     responses={

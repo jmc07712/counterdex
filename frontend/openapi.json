@@ -7,6 +7,9 @@
   "paths": {
     "/api/health": {
       "get": {
+        "tags": [
+          "Health"
+        ],
         "summary": "Health",
         "operationId": "health",
         "responses": {
@@ -29,6 +32,9 @@
     },
     "/api/pokemon": {
       "get": {
+        "tags": [
+          "Pokémon"
+        ],
         "summary": "List Pokémon",
         "description": "Pokémon in Pokédex order, one page at a time, optionally filtered by name, type and form,\nand by whether PokéAPI still lists them.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page. Alternate forms, such as Mega Evolutions and regional\nforms, are numbered from 10001, so they come after the main Pokédex.",
         "operationId": "list_pokemon",
@@ -164,6 +170,9 @@
     },
     "/api/pokemon/{pokemon_id}": {
       "get": {
+        "tags": [
+          "Pokémon"
+        ],
         "summary": "Get a Pokémon",
         "description": "A Pokémon with its species, the species' other forms, and its evolution family.\n\nPokémon that PokéAPI no longer lists can still be fetched: `removed_at` says when they were\nremoved.",
         "operationId": "get_pokemon",
@@ -211,6 +220,9 @@
     },
     "/api/pokemon/{pokemon_id}/changes": {
       "get": {
+        "tags": [
+          "Pokémon"
+        ],
         "summary": "List a Pokémon's changes",
         "description": "Every change a sync has found to the Pokémon, newest first: updates to its data, and\nPokéAPI removing it or listing it again. A Pokémon is new to the Pokédex without a change.",
         "operationId": "list_pokemon_changes",
@@ -262,6 +274,9 @@
     },
     "/api/sync/status": {
       "get": {
+        "tags": [
+          "Sync"
+        ],
         "summary": "Sync status",
         "description": "When the Pokédex data last came from PokéAPI, and how the most recent sync went.",
         "operationId": "sync_status",
@@ -281,6 +296,9 @@
     },
     "/api/users": {
       "post": {
+        "tags": [
+          "Session"
+        ],
         "summary": "Sign up",
         "description": "Creates an account and signs in to it: the response sets the session cookie.",
         "operationId": "sign_up",
@@ -323,6 +341,9 @@
     },
     "/api/session": {
       "get": {
+        "tags": [
+          "Session"
+        ],
         "summary": "Get the signed-in user",
         "description": "Who the session cookie signs in.",
         "operationId": "get_current_user",
@@ -348,6 +369,9 @@
         ]
       },
       "post": {
+        "tags": [
+          "Session"
+        ],
         "summary": "Sign in",
         "description": "Starts a session: the response sets the session cookie, which later requests send back.\n\nSessions last 30 days, and using one in its last 15 renews it for another 30.",
         "operationId": "sign_in",
@@ -388,6 +412,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "Session"
+        ],
         "summary": "Sign out",
         "description": "Ends the session and clears its cookie. Signing out when signed out does nothing.",
         "operationId": "sign_out",
@@ -400,6 +427,9 @@
     },
     "/api/teams": {
       "get": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "List your teams",
         "description": "Your teams, most recently changed first, each with its Pokémon in slot order.",
         "operationId": "list_teams",
@@ -431,6 +461,9 @@
     },
     "/api/teams/{team_id}": {
       "put": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "Create a team",
         "description": "Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.\n\nSending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so\na create that's retried can't make two teams. An `id` someone else has is a 409, and a Pokémon\n`id` that no Pokémon has is a 422.",
         "operationId": "create_team",
@@ -510,6 +543,9 @@
         }
       },
       "get": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "Get a team",
         "description": "One of your teams, with its Pokémon in slot order.",
         "operationId": "get_team",
@@ -562,6 +598,9 @@
         }
       },
       "patch": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "Rename a team",
         "description": "Gives one of your teams a new name.",
         "operationId": "rename_team",
@@ -624,6 +663,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "Delete a team",
         "description": "Deletes one of your teams.",
         "operationId": "delete_team",
@@ -671,6 +713,9 @@
     },
     "/api/teams/preview": {
       "get": {
+        "tags": [
+          "Teams"
+        ],
         "summary": "Preview a team",
         "description": "Pokémon as a team's members would be, in the order given, without saving a team or\nsigning in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.",
         "operationId": "preview_team",
@@ -723,6 +768,9 @@
     },
     "/api/teams/{team_id}/members": {
       "post": {
+        "tags": [
+          "Team members"
+        ],
         "summary": "Add a Pokémon to a team",
         "description": "Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:\nCharizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.",
         "operationId": "add_team_member",
@@ -797,6 +845,9 @@
     },
     "/api/teams/{team_id}/members/{pokemon_id}": {
       "put": {
+        "tags": [
+          "Team members"
+        ],
         "summary": "Replace a Pokémon on a team",
         "description": "Puts another Pokémon in this member's slot, such as Charizard in Charmander's. If the new\nPokémon is on the team already, it moves into the slot and the gap it leaves closes. An `id`\nwith no Pokémon is a 422.",
         "operationId": "replace_team_member",
@@ -882,6 +933,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "Team members"
+        ],
         "summary": "Remove a Pokémon from a team",
         "description": "Takes a Pokémon off the team; the members after it move up a slot.",
         "operationId": "remove_team_member",
@@ -949,6 +1003,9 @@
     },
     "/api/teams/{team_id}/order": {
       "put": {
+        "tags": [
+          "Team members"
+        ],
         "summary": "Reorder a team",
         "description": "Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if\nthe team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.",
         "operationId": "reorder_team",
@@ -2181,5 +2238,59 @@
         "name": "__Host-session"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Pokémon",
+      "description": "Every Pokémon PokéAPI lists, kept current by a sync. No sign-in needed."
+    },
+    {
+      "name": "Sync",
+      "description": "How current the Pokédex is: when the sync last ran and what it found. No sign-in needed."
+    },
+    {
+      "name": "Session",
+      "description": "Signing up, in and out. Signing in sets the session cookie that the Teams routes need."
+    },
+    {
+      "name": "Teams",
+      "description": "Your teams of up to six Pokémon. Every route needs signing in, except Preview."
+    },
+    {
+      "name": "Team members",
+      "description": "The Pokémon on one of your teams, in slot order. Every route needs signing in."
+    },
+    {
+      "name": "Health",
+      "description": "Whether the API is up."
+    }
+  ],
+  "x-tagGroups": [
+    {
+      "name": "Pokédex",
+      "tags": [
+        "Pokémon",
+        "Sync"
+      ]
+    },
+    {
+      "name": "Account",
+      "tags": [
+        "Session"
+      ]
+    },
+    {
+      "name": "Teams",
+      "tags": [
+        "Teams",
+        "Team members"
+      ]
+    },
+    {
+      "name": "Service",
+      "tags": [
+        "Health"
+      ]
+    }
+  ]
 }

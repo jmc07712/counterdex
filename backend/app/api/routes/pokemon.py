@@ -5,13 +5,14 @@ from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 from app.api.caching import cache_publicly
 from app.api.constants import POKEMON_CACHE_CONTROL
 from app.api.dependencies import SessionDep
+from app.api.tags import POKEMON
 from app.pokemon import queries
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.schemas import PokemonDetails, PokemonPage, PokemonQuery
 from app.sync import queries as sync_queries
 from app.sync.schemas import PokemonChange
 
-router = APIRouter()
+router = APIRouter(tags=[POKEMON])
 
 
 @router.get("/pokemon", summary="List Pokémon")

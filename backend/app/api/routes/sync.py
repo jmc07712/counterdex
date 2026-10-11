@@ -3,10 +3,11 @@ from fastapi import APIRouter, Response
 from app.api.caching import cache_publicly
 from app.api.constants import SYNC_STATUS_CACHE_CONTROL
 from app.api.dependencies import SessionDep
+from app.api.tags import SYNC
 from app.sync import queries
 from app.sync.schemas import SyncOverview
 
-router = APIRouter()
+router = APIRouter(tags=[SYNC])
 
 
 @router.get("/sync/status", summary="Sync status")
