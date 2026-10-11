@@ -24,6 +24,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // The app shows dates in local time. In UTC, the tests' dates read the same wherever they run.
+    env: { TZ: 'UTC' },
     restoreMocks: true,
     unstubGlobals: true,
   },
