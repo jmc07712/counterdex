@@ -84,8 +84,7 @@ The sync adds:
 ## Teams
 
 - Every route that changes an existing team depends on `require_team_owner`, which answers 404 or
-  403, or locks the team's row (`lock_owned_team`) until the request's transaction ends. Changes
-  to one team therefore run one at a time, and each sees the one before.
+  403, or locks the team's row. [Atomicity and races](#atomicity-and-races) explains why.
 - Each member stores its `species_id` and `family_id` (its species' `evolution_chain_id`). A unique
   `(team_id, family_id)` allows one Pokémon per evolution family, and composite foreign keys tie
   the species to the Pokémon (`species_varieties`) and the family to the species (`species`). The
@@ -96,6 +95,48 @@ The sync adds:
   repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
   week; `owner` keeps one user's teams, including those with no Pokémon yet unless another filter
   needs one. Filters combine.
+
+## Atomicity and races
+
+A change to a team is made in one database transaction, which the route commits only once the
+change is complete, so it's saved whole or not at all.
+
+**Two changes to one team.** `require_team_owner` locks the team's row (`lock_owned_team`, a
+`SELECT … FOR UPDATE`) before the route reads the team, and the lock is held until the request
+commits. A second change to the same team waits for the first, then reads the team the first left,
+so changes to one team run one at a time. Changes to different teams don't wait for each other.
+
+**Rules checked after the lock.** Because the service reads the team only once it holds the lock,
+its checks see the latest members:
+- a full team refuses another Pokémon (409 `team_full`);
+- a team that already has the family refuses another (409 `family_on_team`);
+- a reorder must list exactly the current members, so one made before someone else's removal is
+  refused (409 `order_out_of_date`) instead of applied to a team it never saw.
+
+**The database as the backstop.** The rules hold even for a write that skips the service:
+- a unique `(team_id, family_id)` allows one Pokémon per evolution family, and `_guarded` turns a
+  violation into the same 409 `family_on_team`;
+- a CHECK keeps `position` between 0 and 5, and a unique `(team_id, position)` gives each slot one
+  member, so a team can't pass six;
+- the slot uniqueness is checked at commit, so a reorder or replace can move members through each
+  other's slots. Each change that moves members ends with `_check_slots`, which checks it then and
+  defers it again, so a clash is found inside the change rather than at commit.
+
+**Creating a team.** The client picks the team's UUID and sends `PUT /api/teams/{id}`. If the same
+request arrives twice, from a retry or a double click, the second gets the team the first made
+instead of making another. If another user already has the id, it's a 409 `team_id_taken`; the
+insert runs in a savepoint, so that answer doesn't abort the request. The new team's Pokémon are
+added in the same transaction, so a refused Pokémon leaves no team behind.
+
+**The sync** runs as one transaction under an advisory lock, so a run is saved whole or not at all
+and two never write at once. [How the sync works](#how-the-sync-works) has the details.
+
+**How it's tested.** `tests/teams/test_races.py` holds one change's lock uncommitted, starts a
+second change on another connection, waits until Postgres shows that connection waiting for a lock
+(`pg_locks`), then commits the first and checks what the second found: a full team, a family
+already on it, or an out-of-date order. `test_a_change_waits_for_one_in_progress_then_sees_it`
+does the same through the API, and `test_the_database_refuses_a_family_member_the_check_couldnt_see`
+adds a Pokémon without the lock to show the constraint refuses it alone.
 
 ## The type chart and legendary flags
 

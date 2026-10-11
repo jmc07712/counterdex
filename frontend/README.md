@@ -63,10 +63,8 @@ page that needs two features, such as a team with its Pokémon's details, render
   Pokémon whose details are open (`?pokemon=6`). Opening a Pokémon adds a history entry, so Back
   closes it.
 - **Change a team through its hooks.** Each change (`useAddTeamMember`, `useRemoveTeamMember`,
-  `useReplaceTeamMember`, `useReorderTeam`, `useRenameTeam`) is built on `useTeamChange`: the team
-  shows the change at once, changes to one team share a mutation scope so they're sent one at a
-  time in order, a refused change is rolled back (if nothing was changed on top of it) with a
-  toast saying why, and the team is fetched again once the last change has settled.
+  `useReplaceTeamMember`, `useReorderTeam`, `useRenameTeam`) is built on `useTeamChange`, which
+  keeps them in order: see [Changes and races](#changes-and-races).
 - **Build links from `config/paths.ts`**, where every page's path is defined.
 - **Use the color tokens** in `src/index.css`, which have light and dark values. Saturated color is
   for Pokémon types and the status lights.
@@ -78,6 +76,25 @@ page that needs two features, such as a team with its Pokémon's details, render
   characters.
 - **Dependencies:** take only releases that are at least two weeks old, with
   `npm install --before=<date>`.
+
+## Changes and races
+
+A team saves each change as it's made, so several can be on their way at once. `useTeamChange`
+(`features/teams/hooks/use-team-change.ts`) keeps them straight:
+- **One at a time, in order.** Changes to one team share a TanStack Query mutation scope
+  (`teamChangeScope`), so each is sent only once the one before has answered. A response can't
+  overtake an earlier one, and the API, which locks the team for each change, sees them in the
+  order they were made.
+- **Shown at once.** Each change is applied to the cached team as soon as it's made.
+- **Undone only when nothing depends on it.** If the API refuses a change, the team is put back
+  only if no later change is waiting, and a toast says why. Otherwise the fetch after the last
+  change shows the team as it really is.
+- **Fetched again once, at the end.** The team and the team lists are fetched again only after the
+  last waiting change has settled, so a fetch can't overwrite changes still on their way.
+- **One click, one team.** New team ignores clicks while it's creating, and the team's id is a
+  UUID picked in the browser, so even a repeated request makes one team.
+
+The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-races).
 
 ## The team views
 

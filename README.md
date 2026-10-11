@@ -55,6 +55,7 @@ API refuses one. The owner check locks the team's row, so the server applies the
 too, as tests that race two real connections check. A CHECK on slots 0–5 and a unique slot per
 team keep a team to six, and the slot uniqueness is checked at commit, so members can swap. Team
 ids are UUIDs the client picks, so `PUT /api/teams/{id}` is a create that's safe to retry.
+[Atomicity and races](backend/README.md#atomicity-and-races) has the details.
 
 **Removed Pokémon stay on their teams.** When PokéAPI stops listing a Pokémon, its row is marked
 removed, never deleted, so it keeps its slot. The UI shows it muted, with the date it was removed
