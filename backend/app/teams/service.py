@@ -61,17 +61,21 @@ TeamWithOwner = Row[models.Team, str]
 def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     """One page of everyone's teams that have a Pokémon, newest first, after the cursor's team.
 
-    With a search, only the teams whose name, owner's username or a Pokémon's name contains it,
-    whatever the case. As in the Pokédex, a Pokémon's name is searched for the words joined by
-    hyphens: "mega x" finds charizard-mega-x. With types, only the teams with a Pokémon of each
-    type, and with `changed`, only those with a Pokémon a sync changed in the last week. A cursor
-    that no team has gives an empty page.
+    With an owner, only the teams of the user with that username, whatever the case, including
+    teams with no Pokémon; a username no one has gives an empty page. With a search, only the
+    teams whose name, owner's username or a Pokémon's name contains it, whatever the case. As in
+    the Pokédex, a Pokémon's name is searched for the words joined by hyphens: "mega x" finds
+    charizard-mega-x. With types, only the teams with a Pokémon of each type, and with `changed`,
+    only those with a Pokémon a sync changed in the last week. A cursor that no team has gives an
+    empty page.
     """
-    statement = (
-        _with_owners()
-        .where(exists().where(models.TeamMember.team_id == models.Team.id))
-        .order_by(models.Team.created_at.desc(), models.Team.id.desc())
-    )
+    statement = _with_owners().order_by(models.Team.created_at.desc(), models.Team.id.desc())
+    if query.owner is None:
+        statement = statement.where(exists().where(models.TeamMember.team_id == models.Team.id))
+    else:
+        statement = statement.where(
+            func.lower(accounts_models.User.username) == query.owner.lower()
+        )
     if query.q is not None:
         # Escaped, so a % or _ in the search matches itself rather than acting as a wildcard.
         # A Pokémon is matched in a subquery, so a team with several matches is listed once.

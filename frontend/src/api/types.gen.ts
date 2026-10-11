@@ -1338,6 +1338,12 @@ export type ListTeamsData = {
          */
         changed?: boolean;
         /**
+         * Owner
+         *
+         * Only this user's teams, including any with no Pokémon yet. Case doesn't matter. A username no one has gives an empty page, not an error.
+         */
+        owner?: string | null;
+        /**
          * Limit
          *
          * How many teams per page.

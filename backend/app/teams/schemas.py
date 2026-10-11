@@ -7,6 +7,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
+from app.accounts.constants import USERNAME_PATTERN
 from app.core.text import NO_NUL
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.enums import PokemonType
@@ -116,6 +117,14 @@ class TeamsQuery(BaseModel):
             "removed or listed again."
         ),
     ] = False
+    owner: Annotated[
+        str | None,
+        Field(
+            pattern=USERNAME_PATTERN,
+            description="Only this user's teams, including any with no Pokémon yet. Case doesn't "
+            "matter. A username no one has gives an empty page, not an error.",
+        ),
+    ] = None
     limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
         DEFAULT_PAGE_SIZE
     )

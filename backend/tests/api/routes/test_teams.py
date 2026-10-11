@@ -495,7 +495,77 @@ def test_documents_each_filter(openapi: dict[str, Any]) -> None:
     operation = openapi["paths"]["/api/teams"]["get"]
     described = {param["name"] for param in operation["parameters"] if param.get("description")}
 
-    assert {"q", "type", "changed", "limit", "cursor"} <= described
+    assert {"q", "type", "changed", "owner", "limit", "cursor"} <= described
+
+
+def test_documents_what_an_owner_finds(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/teams"]["get"]
+    owner = next(param for param in operation["parameters"] if param["name"] == "owner")
+
+    assert "no Pokémon" in owner["description"]
+    assert "empty page" in owner["description"]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_lists_one_users_teams_among_everyones_including_ones_with_no_pokemon(
+    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    older = make_team(db_session, ash.user.id, 4, name="Older")
+    make_team(db_session, ash.user.id, name="Empty")
+    make_team(db_session, misty.user.id, 5, name="Misty's")
+    backdate(db_session, older.id, timedelta(days=1))
+
+    page = client.get("/api/teams", params={"owner": "ASH"}).json()
+
+    assert [team["name"] for team in page["items"]] == ["Empty", "Older"]
+    assert page["next_cursor"] is None
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_pages_through_one_users_teams(
+    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    for hours, (name, pokemon_ids) in enumerate(
+        [("Fire 1", [4]), ("Empty 2", []), ("Fire 3", [4])], start=1
+    ):
+        team = make_team(db_session, ash.user.id, *pokemon_ids, name=name)
+        backdate(db_session, team.id, timedelta(hours=hours))
+    make_team(db_session, misty.user.id, 5, name="Misty's")
+    params: dict[str, Any] = {"owner": "ash", "limit": 2}
+
+    first = client.get("/api/teams", params=params).json()
+    second = client.get("/api/teams", params=params | {"cursor": first["next_cursor"]}).json()
+
+    assert [team["name"] for team in first["items"] + second["items"]] == [
+        "Fire 1",
+        "Empty 2",
+        "Fire 3",
+    ]
+    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
+
+
+def test_an_owner_no_one_has_gives_an_empty_page(client: TestClient) -> None:
+    response = client.get("/api/teams", params={"owner": "brock"})
+
+    assert (response.status_code, response.json()) == (200, {"items": [], "next_cursor": None})
+
+
+@pytest.mark.parametrize(
+    "owner",
+    [
+        pytest.param("", id="empty"),
+        pytest.param("as", id="too-short"),
+        pytest.param("x" * 33, id="too-long"),
+        pytest.param("a sh", id="space"),
+        pytest.param("ash\x00", id="nul-character"),
+        pytest.param("ash\n", id="newline"),
+    ],
+)
+def test_rejects_owners_that_cant_exist(client: TestClient, owner: str) -> None:
+    response = client.get("/api/teams", params={"owner": owner})
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "owner"]
 
 
 @pytest.mark.parametrize(

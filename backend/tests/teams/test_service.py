@@ -439,6 +439,127 @@ def test_pages_through_filtered_teams_without_repeating_or_skipping_one(
     assert third.next_cursor is None
 
 
+# --- Listing one owner's teams ---
+
+
+def add_teams_of_two_owners(session: Session, ash: SignedIn, misty: SignedIn) -> None:
+    """Ash's teams as add_teams_to_filter makes them, then his "Fire plans", a team with no
+    Pokémon that is 3 hours old, and Misty's "Misty's fire" (Charmander and Pokémon 201) that is
+    30 minutes old. Needs the charmander_family fixture.
+    """
+    add_teams_to_filter(session, ash)
+    plans = make_team(session, ash.user.id, name="Fire plans")
+    mistys = make_team(session, misty.user.id, 4, 201, name="Misty's fire")
+    backdate(session, plans.id, timedelta(hours=3))
+    backdate(session, mistys.id, timedelta(minutes=30))
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_an_owner_finds_their_teams_including_ones_with_no_pokemon(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    add_teams_of_two_owners(db_session, ash, misty)
+
+    page = service.list_teams(db_session, TeamsQuery(owner="ash"))
+
+    assert (team_names(page), page.next_cursor) == (
+        ["Fire and water", "Fire", "Water", "Fire plans"],
+        None,
+    )
+
+
+def test_an_owner_is_found_whatever_the_usernames_case(db_session: Session) -> None:
+    brock = accounts.sign_up(db_session, BROCK)
+    make_team(db_session, brock.user.id, name="Rocks")
+
+    assert team_names(service.list_teams(db_session, TeamsQuery(owner="bROCK"))) == ["Rocks"]
+
+
+@pytest.mark.parametrize(
+    ("query", "found"),
+    [
+        pytest.param(
+            TeamsQuery(owner="ash", q="fire"),
+            ["Fire and water", "Fire", "Fire plans"],
+            id="search",
+        ),
+        pytest.param(
+            TeamsQuery(owner="ash", types=(PokemonType.WATER,)),
+            ["Fire and water", "Water"],
+            id="type",
+        ),
+        pytest.param(
+            TeamsQuery(owner="ash", types=(PokemonType.FIRE, PokemonType.WATER)),
+            ["Fire and water"],
+            id="types-on-two-members",
+        ),
+        pytest.param(
+            TeamsQuery(owner="ash", changed=True), ["Fire and water", "Water"], id="changed"
+        ),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_an_owner_combines_with_the_other_filters(
+    db_session: Session, ash: SignedIn, misty: SignedIn, query: TeamsQuery, found: list[str]
+) -> None:
+    add_teams_of_two_owners(db_session, ash, misty)
+    # Pokémon 201 is on a team of Misty's too, which none of these finds.
+    change_recently(db_session, 201)
+
+    assert team_names(service.list_teams(db_session, query)) == found
+
+
+def test_pages_through_an_owners_teams_without_repeating_or_skipping_one(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    # Ash's teams at 1 to 5 hours old, every other one with no Pokémon, and Misty's teams
+    # between them.
+    for hours in range(1, 6):
+        pokemon_ids = [201] if hours % 2 else []
+        ashs = make_team(db_session, ash.user.id, *pokemon_ids, name=f"{hours}h")
+        mistys = make_team(db_session, misty.user.id, 201, name=f"Misty's {hours}h")
+        backdate(db_session, ashs.id, timedelta(hours=hours))
+        backdate(db_session, mistys.id, timedelta(hours=hours, minutes=30))
+
+    first = service.list_teams(db_session, TeamsQuery(owner="ash", limit=2))
+    second = service.list_teams(
+        db_session, TeamsQuery(owner="ash", limit=2, cursor=first.next_cursor)
+    )
+    third = service.list_teams(
+        db_session, TeamsQuery(owner="ash", limit=2, cursor=second.next_cursor)
+    )
+
+    assert [team_names(page) for page in (first, second, third)] == [
+        ["1h", "2h"],
+        ["3h", "4h"],
+        ["5h"],
+    ]
+    assert (first.next_cursor, second.next_cursor, third.next_cursor) == (
+        first.items[-1].id,
+        second.items[-1].id,
+        None,
+    )
+
+
+def test_an_owner_no_one_has_gives_an_empty_page(db_session: Session, ash: SignedIn) -> None:
+    make_team(db_session, ash.user.id, name="Empty")
+
+    page = service.list_teams(db_session, TeamsQuery(owner="brock"))
+
+    assert page == TeamPage(items=[], next_cursor=None)
+
+
+def test_without_an_owner_teams_with_no_pokemon_are_left_out(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    make_team(db_session, ash.user.id, name="Empty")
+    make_team(db_session, misty.user.id, 201, name="Full")
+
+    assert team_names(service.list_teams(db_session, TeamsQuery())) == ["Full"]
+
+
 # --- Locking a team to change it ---
 
 

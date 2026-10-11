@@ -297,10 +297,11 @@ export const listTeamsQueryKey = (options?: Options<ListTeamsData>) => createQue
  * List everyone's teams
  *
  * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
- * with its owner and its Pokémon in slot order.
+ * with its owner and its Pokémon in slot order. The list can be filtered by search, type,
+ * recent changes and owner; with an `owner`, teams with no Pokémon are listed too.
  *
- * To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
- * page.
+ * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
+ * filters; it's `null` on the last page.
  */
 export const listTeamsOptions = (options?: Options<ListTeamsData>) => queryOptions<ListTeamsResponse, ListTeamsError, ListTeamsResponse, ReturnType<typeof listTeamsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -321,10 +322,11 @@ export const listTeamsInfiniteQueryKey = (options?: Options<ListTeamsData>): Que
  * List everyone's teams
  *
  * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
- * with its owner and its Pokémon in slot order.
+ * with its owner and its Pokémon in slot order. The list can be filtered by search, type,
+ * recent changes and owner; with an `owner`, teams with no Pokémon are listed too.
  *
- * To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
- * page.
+ * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
+ * filters; it's `null` on the last page.
  */
 export const listTeamsInfiniteOptions = (options?: Options<ListTeamsData>) => {
     const opts = infiniteQueryOptions<ListTeamsResponse, ListTeamsError, InfiniteData<ListTeamsResponse>, QueryKey<Options<ListTeamsData>>, string | null | Pick<QueryKey<Options<ListTeamsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(

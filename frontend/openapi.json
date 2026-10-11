@@ -431,7 +431,7 @@
           "Teams"
         ],
         "summary": "List everyone's teams",
-        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last\npage.",
+        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order. The list can be filtered by search, type,\nrecent changes and owner; with an `owner`, teams with no Pokémon are listed too.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page.",
         "operationId": "list_teams",
         "parameters": [
           {
@@ -481,6 +481,25 @@
               "title": "Changed"
             },
             "description": "Only teams with a Pokémon a sync has changed in the last week: updated, removed or listed again."
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{3,32}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this user's teams, including any with no Pokémon yet. Case doesn't matter. A username no one has gives an empty page, not an error.",
+              "title": "Owner"
+            },
+            "description": "Only this user's teams, including any with no Pokémon yet. Case doesn't matter. A username no one has gives an empty page, not an error."
           },
           {
             "name": "limit",
