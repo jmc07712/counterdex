@@ -293,6 +293,20 @@ export type NewAccount = {
 };
 
 /**
+ * NewMember
+ *
+ * A Pokémon to put on a team.
+ */
+export type NewMember = {
+    /**
+     * Pokemon Id
+     *
+     * The Pokémon's `id`.
+     */
+    pokemon_id: number;
+};
+
+/**
  * NewTeam
  *
  * A team to create: its name, and any Pokémon to start with.
@@ -732,6 +746,20 @@ export type TeamMember = {
      * Charmander for Charizard. Branches of one family, such as Vaporeon and Jolteon, aren't.
      */
     related_pokemon_ids: Array<number>;
+};
+
+/**
+ * TeamOrder
+ *
+ * A team's members in a new order.
+ */
+export type TeamOrder = {
+    /**
+     * Pokemon Ids
+     *
+     * Every member's Pokémon `id`, each once, in the new slot order.
+     */
+    pokemon_ids: Array<number>;
 };
 
 /**
@@ -1309,3 +1337,187 @@ export type CreateTeamResponses = {
 };
 
 export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
+
+export type AddTeamMemberData = {
+    body: NewMember;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}/members';
+};
+
+export type AddTeamMemberErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id.
+     */
+    404: unknown;
+    /**
+     * The change can't be made to the team as it is now; `detail` says why.
+     */
+    409: TeamConflict;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddTeamMemberError = AddTeamMemberErrors[keyof AddTeamMemberErrors];
+
+export type AddTeamMemberResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type AddTeamMemberResponse = AddTeamMemberResponses[keyof AddTeamMemberResponses];
+
+export type RemoveTeamMemberData = {
+    body?: never;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+        /**
+         * Pokemon Id
+         *
+         * The member's Pokémon `id`, e.g. 6.
+         */
+        pokemon_id: number;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}/members/{pokemon_id}';
+};
+
+export type RemoveTeamMemberErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id. Or: That Pokémon isn't on the team.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RemoveTeamMemberError = RemoveTeamMemberErrors[keyof RemoveTeamMemberErrors];
+
+export type RemoveTeamMemberResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type RemoveTeamMemberResponse = RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
+
+export type ReplaceTeamMemberData = {
+    body: NewMember;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+        /**
+         * Pokemon Id
+         *
+         * The member's Pokémon `id`, e.g. 6.
+         */
+        pokemon_id: number;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}/members/{pokemon_id}';
+};
+
+export type ReplaceTeamMemberErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id. Or: That Pokémon isn't on the team.
+     */
+    404: unknown;
+    /**
+     * The change can't be made to the team as it is now; `detail` says why.
+     */
+    409: TeamConflict;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReplaceTeamMemberError = ReplaceTeamMemberErrors[keyof ReplaceTeamMemberErrors];
+
+export type ReplaceTeamMemberResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type ReplaceTeamMemberResponse = ReplaceTeamMemberResponses[keyof ReplaceTeamMemberResponses];
+
+export type ReorderTeamData = {
+    body: TeamOrder;
+    path: {
+        /**
+         * Team Id
+         *
+         * The team's `id`: a UUID its creator chose.
+         */
+        team_id: string;
+    };
+    query?: never;
+    url: '/api/teams/{team_id}/order';
+};
+
+export type ReorderTeamErrors = {
+    /**
+     * Sign in first.
+     */
+    401: unknown;
+    /**
+     * You have no team with this id.
+     */
+    404: unknown;
+    /**
+     * The change can't be made to the team as it is now; `detail` says why.
+     */
+    409: TeamConflict;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReorderTeamError = ReorderTeamErrors[keyof ReorderTeamErrors];
+
+export type ReorderTeamResponses = {
+    /**
+     * Successful Response
+     */
+    200: Team;
+};
+
+export type ReorderTeamResponse = ReorderTeamResponses[keyof ReorderTeamResponses];

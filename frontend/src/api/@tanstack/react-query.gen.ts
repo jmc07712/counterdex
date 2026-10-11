@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, type Options, renameTeam, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, type Options, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -382,6 +382,86 @@ export const createTeamMutation = (options?: Partial<Options<CreateTeamData>>): 
     const mutationOptions: UseMutationOptions<CreateTeamResponse, CreateTeamError, Options<CreateTeamData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await createTeam({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add a Pokémon to a team
+ *
+ * Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:
+ * Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
+ */
+export const addTeamMemberMutation = (options?: Partial<Options<AddTeamMemberData>>): UseMutationOptions<AddTeamMemberResponse, AddTeamMemberError, Options<AddTeamMemberData>> => {
+    const mutationOptions: UseMutationOptions<AddTeamMemberResponse, AddTeamMemberError, Options<AddTeamMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addTeamMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Remove a Pokémon from a team
+ *
+ * Takes a Pokémon off the team; the members after it move up a slot.
+ */
+export const removeTeamMemberMutation = (options?: Partial<Options<RemoveTeamMemberData>>): UseMutationOptions<RemoveTeamMemberResponse, RemoveTeamMemberError, Options<RemoveTeamMemberData>> => {
+    const mutationOptions: UseMutationOptions<RemoveTeamMemberResponse, RemoveTeamMemberError, Options<RemoveTeamMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await removeTeamMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Replace a Pokémon on a team
+ *
+ * Puts another Pokémon in this member's slot, such as Charizard in Charmander's. If the new
+ * Pokémon is on the team already, it moves into the slot and the gap it leaves closes. An `id`
+ * with no Pokémon is a 422.
+ */
+export const replaceTeamMemberMutation = (options?: Partial<Options<ReplaceTeamMemberData>>): UseMutationOptions<ReplaceTeamMemberResponse, ReplaceTeamMemberError, Options<ReplaceTeamMemberData>> => {
+    const mutationOptions: UseMutationOptions<ReplaceTeamMemberResponse, ReplaceTeamMemberError, Options<ReplaceTeamMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await replaceTeamMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Reorder a team
+ *
+ * Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
+ * the team has changed since you read it, that's a 409 with `order_out_of_date`.
+ */
+export const reorderTeamMutation = (options?: Partial<Options<ReorderTeamData>>): UseMutationOptions<ReorderTeamResponse, ReorderTeamError, Options<ReorderTeamData>> => {
+    const mutationOptions: UseMutationOptions<ReorderTeamResponse, ReorderTeamError, Options<ReorderTeamData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await reorderTeam({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

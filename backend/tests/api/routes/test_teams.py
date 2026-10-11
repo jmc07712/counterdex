@@ -107,3 +107,42 @@ def test_renames_and_deletes(ash_client: TestClient) -> None:
 
 def test_team_responses_are_never_cached(ash_client: TestClient) -> None:
     assert ash_client.get("/api/teams").headers["cache-control"] == "no-store"
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_adds_replaces_removes_and_reorders(ash_client: TestClient) -> None:
+    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4]})
+
+    assert member_ids(ash_client.post(f"{TEAM}/members", json={"pokemon_id": 5}).json()) == [4, 5]
+    assert member_ids(ash_client.put(f"{TEAM}/members/4", json={"pokemon_id": 6}).json()) == [6, 5]
+    assert member_ids(ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5, 6]}).json()) == [
+        5,
+        6,
+    ]
+    assert member_ids(ash_client.delete(f"{TEAM}/members/5").json()) == [6]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_conflict_says_why(ash_client: TestClient) -> None:
+    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6]})
+
+    response = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 10034})
+
+    assert (response.status_code, response.json()) == (409, {"detail": "species_on_team"})
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_pokemon_not_on_the_team_is_not_found(ash_client: TestClient) -> None:
+    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4]})
+
+    assert ash_client.delete(f"{TEAM}/members/5").status_code == 404
+    assert ash_client.put(f"{TEAM}/members/5", json={"pokemon_id": 6}).status_code == 404
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient) -> None:
+    ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [4, 5]})
+
+    response = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5]})
+
+    assert (response.status_code, response.json()) == (409, {"detail": "order_out_of_date"})

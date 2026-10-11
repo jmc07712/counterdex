@@ -8,7 +8,12 @@ from app.accounts.types import SignedIn
 from app.pokemon.models import Pokemon
 from app.teams import service
 from app.teams.enums import TeamConflictReason
-from app.teams.exceptions import TeamConflictError, TeamNotFoundError, UnknownPokemonError
+from app.teams.exceptions import (
+    MemberNotFoundError,
+    TeamConflictError,
+    TeamNotFoundError,
+    UnknownPokemonError,
+)
 from app.teams.schemas import NewTeam
 from tests.support.teams import add_eevee_family, add_species_pokemon, make_team, member_ids
 
@@ -172,3 +177,152 @@ def test_creates_a_full_team(db_session: Session, ash: SignedIn) -> None:
     team = make_team(db_session, ash.user.id, 201, 202, 203, 204, 205, 206)
 
     assert member_ids(team) == [201, 202, 203, 204, 205, 206]
+
+
+# --- Adding ---
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_adding_fills_the_next_slot(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 6)
+
+    added = service.add_member(db_session, ash.user.id, team.id, 4)
+
+    assert member_ids(added) == [6, 4]
+    assert added.updated_at > team.updated_at
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_adding_a_species_already_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 6)
+
+    with pytest.raises(TeamConflictError) as conflict:
+        service.add_member(db_session, ash.user.id, team.id, 10034)
+
+    assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
+
+
+def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206, 207)
+    team = make_team(db_session, ash.user.id, 201, 202, 203, 204, 205, 206)
+
+    with pytest.raises(TeamConflictError) as conflict:
+        service.add_member(db_session, ash.user.id, team.id, 207)
+
+    assert conflict.value.reason is TeamConflictReason.TEAM_FULL
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_adding_to_another_users_team_fails(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    team = make_team(db_session, misty.user.id)
+
+    with pytest.raises(TeamNotFoundError):
+        service.add_member(db_session, ash.user.id, team.id, 4)
+
+
+# --- Replacing ---
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_replacing_keeps_the_slot(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201)
+    team = make_team(db_session, ash.user.id, 4, 201)
+
+    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+
+    assert member_ids(replaced) == [6, 201]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_replacing_with_a_member_moves_it_into_the_slot(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201)
+    team = make_team(db_session, ash.user.id, 4, 201, 6)
+
+    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+
+    assert member_ids(replaced) == [6, 201]
+    assert [member.position for member in replaced.members] == [0, 1]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201, 202, 203, 204, 205)
+    team = make_team(db_session, ash.user.id, 4, 201, 202, 203, 204, 205)
+
+    replaced = service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+
+    assert member_ids(replaced) == [6, 201, 202, 203, 204, 205]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_member_can_be_replaced_by_its_other_form(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 6)
+
+    assert member_ids(service.replace_member(db_session, ash.user.id, team.id, 6, 10034)) == [10034]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_replacing_cant_break_the_species_clause(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 4, 6)
+
+    with pytest.raises(TeamConflictError) as conflict:
+        service.replace_member(db_session, ash.user.id, team.id, 4, 10034)
+
+    assert conflict.value.reason is TeamConflictReason.SPECIES_ON_TEAM
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_replacing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id, 4)
+
+    with pytest.raises(MemberNotFoundError):
+        service.replace_member(db_session, ash.user.id, team.id, 5, 6)
+
+
+# --- Removing ---
+
+
+def test_removing_closes_the_gap(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201, 202, 203)
+    team = make_team(db_session, ash.user.id, 201, 202, 203)
+
+    removed = service.remove_member(db_session, ash.user.id, team.id, 201)
+
+    assert [(member.position, member.pokemon.id) for member in removed.members] == [
+        (0, 202),
+        (1, 203),
+    ]
+
+
+def test_removing_a_pokemon_not_on_the_team_fails(db_session: Session, ash: SignedIn) -> None:
+    team = make_team(db_session, ash.user.id)
+
+    with pytest.raises(MemberNotFoundError):
+        service.remove_member(db_session, ash.user.id, team.id, 201)
+
+
+# --- Reordering ---
+
+
+def test_reorders(db_session: Session, ash: SignedIn) -> None:
+    add_species_pokemon(db_session, 201, 202, 203)
+    team = make_team(db_session, ash.user.id, 201, 202, 203)
+
+    reordered = service.reorder(db_session, ash.user.id, team.id, [203, 201, 202])
+
+    assert member_ids(reordered) == [203, 201, 202]
+
+
+@pytest.mark.parametrize("order", [[202, 201], [203, 201, 202, 204]])
+def test_an_order_that_isnt_the_members_is_out_of_date(
+    db_session: Session, ash: SignedIn, order: list[int]
+) -> None:
+    add_species_pokemon(db_session, 201, 202, 203, 204)
+    team = make_team(db_session, ash.user.id, 201, 202, 203)
+
+    with pytest.raises(TeamConflictError) as conflict:
+        service.reorder(db_session, ash.user.id, team.id, order)
+
+    assert conflict.value.reason is TeamConflictReason.ORDER_OUT_OF_DATE

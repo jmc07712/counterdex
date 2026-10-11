@@ -4,14 +4,14 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, Engine
-from sqlalchemy.orm import Session
+from sqlalchemy import Connection, Engine, text
+from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.community.postgres import PostgresContainer
 
 from app.accounts import service
 from app.accounts.types import SignedIn
 from app.core.config import get_settings
-from app.core.db import get_engine, get_session
+from app.core.db import Base, get_engine, get_session
 from app.pokemon import models
 from tests.support.accounts import ASH, MISTY
 from tests.support.pokemon import LEVEL_16, LEVEL_36, add_species, make_pokemon
@@ -76,6 +76,18 @@ def db_session(connection: Connection) -> Iterator[Session]:
     """A session whose changes are rolled back after each test, even if the code commits."""
     with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
         yield session
+
+
+@pytest.fixture
+def committing_sessions(migrated_engine: Engine) -> Iterator[sessionmaker[Session]]:
+    """Sessions on their own connections that really commit, for tests of requests that overlap.
+
+    Every table is emptied afterwards, as the other tests expect an empty database.
+    """
+    yield sessionmaker(migrated_engine)
+    tables = ", ".join(f'"{table.name}"' for table in Base.metadata.sorted_tables)
+    with migrated_engine.begin() as connection:
+        connection.execute(text(f"truncate {tables} restart identity cascade"))
 
 
 @pytest.fixture

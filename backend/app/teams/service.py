@@ -10,7 +10,7 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 
 from psycopg.errors import UniqueViolation
-from sqlalchemy import Insert, Row, Update, func, insert, select
+from sqlalchemy import Insert, Row, Update, delete, func, insert, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,10 +19,16 @@ from app.pokemon.queries import pokemon_from_columns
 from app.teams import models, schemas
 from app.teams.constants import MAX_TEAM_SIZE
 from app.teams.enums import TeamConflictReason
-from app.teams.exceptions import TeamConflictError, TeamNotFoundError, UnknownPokemonError
+from app.teams.exceptions import (
+    MemberNotFoundError,
+    TeamConflictError,
+    TeamNotFoundError,
+    UnknownPokemonError,
+)
 
 SPECIES_ON_TEAM = "uq_team_members_team_id_species_id"
 TEAM_ID = "pk_teams"
+SLOT = "uq_team_members_team_id_position"
 
 # A member's row: id, position, pokemon_id and species_id.
 Member = Row[int, int, int, int]
@@ -88,6 +94,88 @@ def delete_team(session: Session, user_id: int, team_id: uuid.UUID) -> None:
     team = _locked(session, user_id, team_id)
     session.delete(team)
     session.flush()
+
+
+def add_member(session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int) -> schemas.Team:
+    """Puts a Pokémon in the team's next free slot.
+
+    Raises TeamNotFoundError, UnknownPokemonError, or TeamConflictError: SPECIES_ON_TEAM if the
+    species is on the team already, TEAM_FULL if the team has six members, or POKEMON_REMOVED if
+    PokéAPI no longer lists the Pokémon.
+    """
+    team = _locked(session, user_id, team_id)
+    _append(session, team.id, pokemon_id)
+    return _changed(session, team)
+
+
+def replace_member(
+    session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int, new_pokemon_id: int
+) -> schemas.Team:
+    """Puts another Pokémon in a member's slot, such as Charizard in Charmander's. If the new
+    Pokémon is on the team already, it moves into the slot and the gap it leaves closes.
+
+    Raises MemberNotFoundError if `pokemon_id` isn't on the team, and raises as add_member does,
+    except that the team may be full.
+    """
+    team = _locked(session, user_id, team_id)
+    members = _members(session, team.id)
+    replaced = _find(members, pokemon_id)
+    if replaced is None:
+        raise MemberNotFoundError(pokemon_id)
+    if new_pokemon_id != pokemon_id:
+        species_id = _listed_species(session, new_pokemon_id)
+        others = [m for m in members if m.pokemon_id not in {pokemon_id, new_pokemon_id}]
+        if any(member.species_id == species_id for member in others):
+            raise TeamConflictError(TeamConflictReason.SPECIES_ON_TEAM)
+        moving = _find(members, new_pokemon_id)
+        if moving is not None:
+            _remove(session, team.id, moving)
+        _guarded(
+            session,
+            update(models.TeamMember)
+            .where(models.TeamMember.id == replaced.id)
+            .values(pokemon_id=new_pokemon_id, species_id=species_id),
+        )
+        _check_slots(session)
+    return _changed(session, team)
+
+
+def remove_member(
+    session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int
+) -> schemas.Team:
+    """Takes a Pokémon off the team; the members after it move up a slot.
+
+    Raises TeamNotFoundError, or MemberNotFoundError if the Pokémon isn't on the team.
+    """
+    team = _locked(session, user_id, team_id)
+    removed = _find(_members(session, team.id), pokemon_id)
+    if removed is None:
+        raise MemberNotFoundError(pokemon_id)
+    _remove(session, team.id, removed)
+    _check_slots(session)
+    return _changed(session, team)
+
+
+def reorder(
+    session: Session, user_id: int, team_id: uuid.UUID, pokemon_ids: Sequence[int]
+) -> schemas.Team:
+    """Puts the team's members in this order, given as every member's Pokémon id, each once.
+
+    Raises TeamNotFoundError, or TeamConflictError (ORDER_OUT_OF_DATE) if the ids aren't exactly
+    the members, e.g. because a change made elsewhere came first.
+    """
+    team = _locked(session, user_id, team_id)
+    members = {member.pokemon_id: member for member in _members(session, team.id)}
+    if sorted(pokemon_ids) != sorted(members):
+        raise TeamConflictError(TeamConflictReason.ORDER_OUT_OF_DATE)
+    for position, pokemon_id in enumerate(pokemon_ids):
+        session.execute(
+            update(models.TeamMember)
+            .where(models.TeamMember.id == members[pokemon_id].id)
+            .values(position=position)
+        )
+    _check_slots(session)
+    return _changed(session, team)
 
 
 def _locked(session: Session, user_id: int, team_id: uuid.UUID) -> models.Team:
@@ -160,6 +248,30 @@ def _listed_species(session: Session, pokemon_id: int) -> int:
         raise TeamConflictError(TeamConflictReason.POKEMON_REMOVED)
     species_id: int = row.species_id
     return species_id
+
+
+def _find(members: Sequence[Member], pokemon_id: int) -> Member | None:
+    return next((member for member in members if member.pokemon_id == pokemon_id), None)
+
+
+def _remove(session: Session, team_id: uuid.UUID, member: Member) -> None:
+    """Deletes a member and moves the members after it up a slot."""
+    session.execute(delete(models.TeamMember).where(models.TeamMember.id == member.id))
+    # Rows are updated in no set order, so one can briefly take a slot another hasn't left yet;
+    # the slot constraint is checked once they've all moved.
+    session.execute(
+        update(models.TeamMember)
+        .where(models.TeamMember.team_id == team_id, models.TeamMember.position > member.position)
+        .values(position=models.TeamMember.position - 1)
+    )
+
+
+def _check_slots(session: Session) -> None:
+    """Checks now, rather than at commit, that no two members share a slot, then goes back to
+    checking at commit.
+    """
+    session.execute(text(f"set constraints {SLOT} immediate"))
+    session.execute(text(f"set constraints {SLOT} deferred"))
 
 
 def _guarded(session: Session, statement: Insert | Update) -> None:

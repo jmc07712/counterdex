@@ -638,6 +638,286 @@
           }
         }
       }
+    },
+    "/api/teams/{team_id}/members": {
+      "post": {
+        "summary": "Add a Pokémon to a team",
+        "description": "Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:\nCharizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.",
+        "operationId": "add_team_member",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewMember"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id."
+          },
+          "409": {
+            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{team_id}/members/{pokemon_id}": {
+      "put": {
+        "summary": "Replace a Pokémon on a team",
+        "description": "Puts another Pokémon in this member's slot, such as Charizard in Charmander's. If the new\nPokémon is on the team already, it moves into the slot and the gap it leaves closes. An `id`\nwith no Pokémon is a 422.",
+        "operationId": "replace_team_member",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          },
+          {
+            "name": "pokemon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "description": "The member's Pokémon `id`, e.g. 6.",
+              "title": "Pokemon Id"
+            },
+            "description": "The member's Pokémon `id`, e.g. 6."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewMember"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id. Or: That Pokémon isn't on the team."
+          },
+          "409": {
+            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a Pokémon from a team",
+        "description": "Takes a Pokémon off the team; the members after it move up a slot.",
+        "operationId": "remove_team_member",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          },
+          {
+            "name": "pokemon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "description": "The member's Pokémon `id`, e.g. 6.",
+              "title": "Pokemon Id"
+            },
+            "description": "The member's Pokémon `id`, e.g. 6."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id. Or: That Pokémon isn't on the team."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{team_id}/order": {
+      "put": {
+        "summary": "Reorder a team",
+        "description": "Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if\nthe team has changed since you read it, that's a 409 with `order_out_of_date`.",
+        "operationId": "reorder_team",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The team's `id`: a UUID its creator chose.",
+              "title": "Team Id"
+            },
+            "description": "The team's `id`: a UUID its creator chose."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamOrder"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first."
+          },
+          "404": {
+            "description": "You have no team with this id."
+          },
+          "409": {
+            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1064,6 +1344,23 @@
         ],
         "title": "NewAccount",
         "description": "A username and password, for signing up."
+      },
+      "NewMember": {
+        "properties": {
+          "pokemon_id": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Pokemon Id",
+            "description": "The Pokémon's `id`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "pokemon_id"
+        ],
+        "title": "NewMember",
+        "description": "A Pokémon to put on a team."
       },
       "NewTeam": {
         "properties": {
@@ -1652,6 +1949,27 @@
         ],
         "title": "TeamMember",
         "description": "A Pokémon on a team."
+      },
+      "TeamOrder": {
+        "properties": {
+          "pokemon_ids": {
+            "items": {
+              "type": "integer",
+              "maximum": 2147483647.0,
+              "minimum": 1.0
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Pokemon Ids",
+            "description": "Every member's Pokémon `id`, each once, in the new slot order."
+          }
+        },
+        "type": "object",
+        "required": [
+          "pokemon_ids"
+        ],
+        "title": "TeamOrder",
+        "description": "A team's members in a new order."
       },
       "TeamRename": {
         "properties": {

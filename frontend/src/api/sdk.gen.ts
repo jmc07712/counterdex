@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -150,6 +150,59 @@ export const renameTeam = <ThrowOnError extends boolean = false>(options: Option
  */
 export const createTeam = <ThrowOnError extends boolean = false>(options: Options<CreateTeamData, ThrowOnError>): RequestResult<CreateTeamResponses, CreateTeamErrors, ThrowOnError> => (options.client ?? client).put<CreateTeamResponses, CreateTeamErrors, ThrowOnError>({
     url: '/api/teams/{team_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Add a Pokémon to a team
+ *
+ * Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:
+ * Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
+ */
+export const addTeamMember = <ThrowOnError extends boolean = false>(options: Options<AddTeamMemberData, ThrowOnError>): RequestResult<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError> => (options.client ?? client).post<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError>({
+    url: '/api/teams/{team_id}/members',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove a Pokémon from a team
+ *
+ * Takes a Pokémon off the team; the members after it move up a slot.
+ */
+export const removeTeamMember = <ThrowOnError extends boolean = false>(options: Options<RemoveTeamMemberData, ThrowOnError>): RequestResult<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError> => (options.client ?? client).delete<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError>({ url: '/api/teams/{team_id}/members/{pokemon_id}', ...options });
+
+/**
+ * Replace a Pokémon on a team
+ *
+ * Puts another Pokémon in this member's slot, such as Charizard in Charmander's. If the new
+ * Pokémon is on the team already, it moves into the slot and the gap it leaves closes. An `id`
+ * with no Pokémon is a 422.
+ */
+export const replaceTeamMember = <ThrowOnError extends boolean = false>(options: Options<ReplaceTeamMemberData, ThrowOnError>): RequestResult<ReplaceTeamMemberResponses, ReplaceTeamMemberErrors, ThrowOnError> => (options.client ?? client).put<ReplaceTeamMemberResponses, ReplaceTeamMemberErrors, ThrowOnError>({
+    url: '/api/teams/{team_id}/members/{pokemon_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reorder a team
+ *
+ * Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
+ * the team has changed since you read it, that's a 409 with `order_out_of_date`.
+ */
+export const reorderTeam = <ThrowOnError extends boolean = false>(options: Options<ReorderTeamData, ThrowOnError>): RequestResult<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError> => (options.client ?? client).put<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError>({
+    url: '/api/teams/{team_id}/order',
     ...options,
     headers: {
         'Content-Type': 'application/json',
