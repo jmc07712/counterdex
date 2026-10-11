@@ -344,9 +344,9 @@ function MemberNumber({ member, className }: PartOfMemberProps) {
   )
 }
 
-// Its types, ringed so a badge in the panel's own color still shows; or when it was removed. A
-// removal from this week is the member's change, so it gets the dot the Pokédex's change history
-// marks a removal with.
+// Its types, ringed so a badge in the panel's own color still shows; or, for a member removed from
+// the Pokédex, the date it was removed. A removal from this week is the member's change, so it gets
+// the dot the Pokédex's change history marks a removal with.
 function MemberTypes({ member }: PartOfMemberProps) {
   if (member.removed_at) {
     return (
