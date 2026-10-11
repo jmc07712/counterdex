@@ -64,6 +64,7 @@ function EditTeam({ team, onOpenPokemon }: EditTeamProps) {
       back={<MyTeamsLink />}
       actions={<OwnerActions team={team} />}
       onOpenPokemon={onOpenPokemon}
+      replaceTo={replacing.replaceTo}
       replacing={beside ? undefined : replacing.member}
       onCancelReplacing={replacing.cancel}
     />

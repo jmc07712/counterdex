@@ -234,7 +234,7 @@ function SlotRow({ member, onOpen, children }: TeamSlotProps) {
       />
       {onOpen && <OpenButton labelledBy={headingId} onOpen={onOpen} />}
       {/* Over the open button, so it can be pressed on its own. */}
-      {children && <div className="relative z-10 flex shrink-0 items-center">{children}</div>}
+      {children && <div className="relative z-10 flex shrink-0 items-center gap-1">{children}</div>}
     </>
   )
 }
@@ -257,12 +257,13 @@ export function ReplaceLink({ member, to }: { member: TeamMember; to: string }) 
     <Link
       to={to}
       aria-label={label}
-      // Below sm it's just its icon, so hovering it says what it does.
+      // Below sm, or in a slot's row narrower than 34rem, it's just its icon, so hovering it says
+      // what it does.
       title={label}
-      className="inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-current text-sm font-semibold transition-colors hover:bg-current/8 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current sm:px-2.5"
+      className="inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-current text-sm font-semibold transition-colors hover:bg-current/8 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current sm:px-2.5 @max-[34rem]:px-0"
     >
       <Replace className="size-4" aria-hidden="true" />
-      <span className="hidden sm:inline">{m.team_replace()}</span>
+      <span className="hidden sm:inline @max-[34rem]:hidden">{m.team_replace()}</span>
     </Link>
   )
 }

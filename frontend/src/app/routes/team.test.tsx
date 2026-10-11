@@ -644,6 +644,26 @@ describe('TeamPage, choosing a Pokémon to replace a member', () => {
   })
   const REPLACE = `${EDIT}?replace=${charmander.id}`
 
+  it('offers to replace each removed member from its slot, keeping the Pokédex’s filters', async () => {
+    onWideScreen()
+    serveAsh([TEAM])
+    browse([snorlax])
+    const { user } = renderTeam(`${EDIT}?q=snor`)
+
+    await screen.findByRole('button', { name: 'Move Charmander' })
+    const [charmanderSlot, pikachuSlot] = slotRows()
+    const link = within(charmanderSlot).getByRole('link', { name: 'Replace Charmander' })
+    expect(link).toHaveAttribute('href', `${EDIT}?q=snor&replace=4`)
+    expect(within(pikachuSlot).queryByRole('link', { name: /Replace/ })).not.toBeInTheDocument()
+    await user.click(link)
+
+    const pokedex = screen.getByRole('complementary', { name: 'Add Pokémon' })
+    expect(within(pokedex).getByText('Choose a Pokémon to replace Charmander')).toBeInTheDocument()
+    expect(
+      await within(pokedex).findByRole('button', { name: 'Replace Charmander with Snorlax' }),
+    ).toBeInTheDocument()
+  })
+
   it('asks for a Pokémon to replace the member, and replaces it with the one chosen', async () => {
     onWideScreen()
     const api = serveAsh([TEAM])

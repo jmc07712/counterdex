@@ -11,7 +11,7 @@ import { ChangedThisWeekAlert } from './changed-this-week'
 import { ReplaceBanner } from './replace-banner'
 import { SortableMembers } from './sortable-members'
 import { TeamNameField } from './team-name-field'
-import { EmptySlots, SlotButton, SortableTeamSlot, TeamSlots } from './team-slots'
+import { EmptySlots, ReplaceLink, SlotButton, SortableTeamSlot, TeamSlots } from './team-slots'
 
 type TeamBuilderProps = {
   editor: TeamEditor
@@ -21,6 +21,8 @@ type TeamBuilderProps = {
   actions?: ReactNode
   // Opens a member's details.
   onOpenPokemon: (pokemonId: number) => void
+  // Where a member removed from the Pokédex links to be replaced.
+  replaceTo: (pokemonId: number) => string
   // The member a Pokémon is being chosen to replace, if any.
   replacing?: TeamMember
   onCancelReplacing: () => void
@@ -28,14 +30,15 @@ type TeamBuilderProps = {
 
 /**
  * A team's name, edited in place, and its six slots, each member with a button to remove it and a
- * handle to drag it to another member's slot. While a member is being replaced, a box above the
- * slots says so.
+ * handle to drag it to another member's slot, and each member removed from the Pokédex with a
+ * Replace link. While a member is being replaced, a box above the slots says so.
  */
 export function TeamBuilder({
   editor,
   back,
   actions,
   onOpenPokemon,
+  replaceTo,
   replacing,
   onCancelReplacing,
 }: TeamBuilderProps) {
@@ -75,6 +78,9 @@ export function TeamBuilder({
               member={member}
               onOpen={() => onOpenPokemon(member.pokemon.id)}
             >
+              {member.removed_at && (
+                <ReplaceLink member={member} to={replaceTo(member.pokemon.id)} />
+              )}
               <SlotButton
                 aria-label={m.team_remove({ name: displayName(member.pokemon.name) })}
                 onClick={() => void editor.remove(member.pokemon.id)}
