@@ -1,9 +1,8 @@
 from collections.abc import Collection
 
-from app.counter.constants import SHARED_WEAKNESS_PENALTY
 from app.counter.enums import RelativeSpeed
 from app.counter.scoring import rating
-from app.counter.search import battle_order, counter_team, team_score, threats
+from app.counter.search import battle_order, counter_team, threats
 from app.counter.types import Attack, Candidate, Contender, Matchup
 from app.pokemon.enums import PokemonType
 from tests.support.counter import profile
@@ -47,26 +46,6 @@ def ids(team: list[Contender]) -> list[int]:
 EQUAL_ON_PAPER = ((-2.26, 4.575, 0), (-2.81, 0.155, 4.97))
 
 
-# --- Team scores ---
-
-
-def test_scores_a_team_by_its_best_score_against_each_opponent() -> None:
-    team = [contender(1, 1, 0), contender(2, -1, 2)]
-
-    assert team_score(team) == 1 + 2
-
-
-def test_takes_off_a_penalty_for_each_type_three_of_the_team_are_weak_to() -> None:
-    two = [contender(pokemon_id, 1, weak_to={FIRE, WATER}) for pokemon_id in (1, 2)]
-    third = contender(3, 1, weak_to={FIRE})
-
-    assert team_score(two) == 1
-    assert team_score([*two, third]) == 1 - SHARED_WEAKNESS_PENALTY
-    assert team_score([*two, contender(3, 1, weak_to={FIRE, WATER})]) == (
-        1 - 2 * SHARED_WEAKNESS_PENALTY
-    )
-
-
 # --- Counter teams ---
 
 
@@ -105,6 +84,19 @@ def test_avoids_three_pokemon_weak_to_one_of_their_types() -> None:
         contender(2, 2, weak_to={FIRE}, stat_total=550),
         contender(3, 2, weak_to={FIRE}, stat_total=540),
         contender(4, 1.9),
+    ]
+
+    assert sorted(ids(counter_team(pool, size=3))) == [1, 2, 4]
+
+
+def test_counts_the_penalty_once_for_each_type_three_are_weak_to() -> None:
+    # On base stat total the third pick would be 3, but sharing both of the first two's
+    # weaknesses costs it two penalties to 4's one.
+    pool = [
+        contender(1, 2, weak_to={FIRE, WATER}, stat_total=600),
+        contender(2, 2, weak_to={FIRE, WATER}, stat_total=590),
+        contender(3, 2, weak_to={FIRE, WATER}, stat_total=580),
+        contender(4, 2, weak_to={FIRE}, stat_total=500),
     ]
 
     assert sorted(ids(counter_team(pool, size=3))) == [1, 2, 4]

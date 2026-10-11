@@ -17,21 +17,10 @@ from app.counter.types import Contender
 from app.pokemon.enums import PokemonType
 
 
-def team_score(team: Sequence[Contender]) -> float:
-    """How well a team of at least one Pokémon answers theirs: its best score against each of
-    their Pokémon, added up, less SHARED_WEAKNESS_PENALTY for each of their attacking types that
-    SHARED_WEAKNESS_LIMIT or more of the team are weak to.
-    """
-    standing = _Standing.empty(len(team[0].matchups))
-    for member in team:
-        standing = standing.adding(member)
-    return standing.score()
-
-
 @dataclass(frozen=True)
 class _Standing:
-    """What a team's score is worked out from: its best score against each of their Pokémon,
-    and how many of its Pokémon are weak to each of their attacking types.
+    """A team's score, and what it's worked out from: its best score against each of their
+    Pokémon, and how many of its Pokémon are weak to each of their attacking types.
     """
 
     best: tuple[float, ...]
@@ -49,6 +38,10 @@ class _Standing:
         return type(self)(best, self.weak + Counter(contender.weak_to))
 
     def score(self) -> float:
+        """The team's best scores against their Pokémon, added up, less SHARED_WEAKNESS_PENALTY
+        for each of their attacking types that SHARED_WEAKNESS_LIMIT or more of the team are
+        weak to.
+        """
         shared = sum(1 for count in self.weak.values() if count >= SHARED_WEAKNESS_LIMIT)
         return round(sum(self.best) - SHARED_WEAKNESS_PENALTY * shared, SCORE_DECIMALS)
 
@@ -57,9 +50,9 @@ def counter_team(contenders: Sequence[Contender], size: int) -> list[Contender]:
     """`size` of the contenders, one from each evolution family, in battle order. There must be
     at least `size` families among them.
 
-    They're chosen one at a time: each is the contender that raises team_score most. Ties go to
-    the higher total score against their Pokémon, then the higher base stat total, then the
-    lower id.
+    They're chosen one at a time: each is the contender that raises the team's score (see
+    _Standing.score) most. Ties go to the higher total score against their Pokémon, then the
+    higher base stat total, then the lower id.
     """
     team: list[Contender] = []
     standing = _Standing.empty(len(contenders[0].matchups))
