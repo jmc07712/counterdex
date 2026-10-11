@@ -1,0 +1,17 @@
+import { ArrowLeft } from 'lucide-react'
+import { Link } from 'react-router'
+
+type BackLinkProps = { to: string; children: string }
+
+/** A quiet link above a page's heading, back to where the page was opened from. */
+export function BackLink({ to, children }: BackLinkProps) {
+  return (
+    <Link
+      to={to}
+      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft className="size-4" aria-hidden="true" />
+      {children}
+    </Link>
+  )
+}

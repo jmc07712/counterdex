@@ -1,4 +1,5 @@
 import { SearchX } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { Team } from '@/api'
@@ -19,6 +20,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { useTeam } from '../hooks/use-team'
 import { useTeamEditor } from '../hooks/use-team-editor'
+import { BackLink } from './back-link'
 import { BuildYourOwnTeam } from './build-your-own-team'
 import { TeamBuilder } from './team-builder'
 import { TeamMenu } from './team-menu'
@@ -81,25 +83,32 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
   if (!isOwner) {
     return (
       <>
-        <TeamParty team={team.data} onOpenPokemon={onOpenPokemon} />
+        <TeamParty
+          team={team.data}
+          onOpenPokemon={onOpenPokemon}
+          back={<BackLink to={paths.explore.getHref()}>{m.team_explore_teams()}</BackLink>}
+        />
         <BuildYourOwnTeam />
       </>
     )
   }
-  if (mode === 'edit') return <SavedTeamBuilder team={team.data} />
+  // The owner's way back is to their own teams, from either mode.
+  const back = <BackLink to={paths.home.getHref()}>{m.team_all_teams()}</BackLink>
+  if (mode === 'edit') return <SavedTeamBuilder team={team.data} back={back} />
   return (
     <TeamParty
       team={team.data}
       onOpenPokemon={onOpenPokemon}
+      back={back}
       actions={<OwnerActions team={team.data} />}
       emptySlotsTo={paths.teamEdit.getHref(team.data.id)}
     />
   )
 }
 
-function SavedTeamBuilder({ team }: { team: Team }) {
+function SavedTeamBuilder({ team, back }: { team: Team; back: ReactNode }) {
   const editor = useTeamEditor(team)
-  return <TeamBuilder editor={editor} actions={<OwnerActions team={team} />} />
+  return <TeamBuilder editor={editor} back={back} actions={<OwnerActions team={team} />} />
 }
 
 // Every change saves at once, so the toggle back to View is the way out of editing.

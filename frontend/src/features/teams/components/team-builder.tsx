@@ -1,11 +1,9 @@
-import { ArrowLeft, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { Link } from 'react-router'
 import { useMediaQuery } from 'usehooks-ts'
 
 import type { Pokemon } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import type { TeamEditor } from '../types'
@@ -21,12 +19,14 @@ const TWO_PANES_FROM = '(min-width: 64rem)'
 
 type TeamBuilderProps = {
   editor: TeamEditor
+  // Above the name, a BackLink.
+  back: ReactNode
   // Beside the name, such as a menu with Delete.
   actions?: ReactNode
 }
 
 /** A team's name and six slots, beside a browser of Pokémon to add to it. */
-export function TeamBuilder({ editor, actions }: TeamBuilderProps) {
+export function TeamBuilder({ editor, back, actions }: TeamBuilderProps) {
   const twoPanes = useMediaQuery(TWO_PANES_FROM)
   const [adding, setAdding] = useState(false)
   const { team } = editor
@@ -43,13 +43,7 @@ export function TeamBuilder({ editor, actions }: TeamBuilderProps) {
     // Below lg, room after the last slot for the floating Add Pokémon button.
     <div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:pb-0">
       <div>
-        <Link
-          to={paths.home.getHref()}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {m.team_all_teams()}
-        </Link>
+        {back}
         <div className="mb-6 flex items-center gap-2">
           <TeamNameField name={team.name} onRename={(name) => void editor.rename(name)} />
           {actions}

@@ -90,6 +90,9 @@ describe('TeamPage, for the team’s owner', () => {
     const edit = screen.getByRole('link', { name: 'Edit' })
     expect(edit).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
+    // Back to the owner's teams, as from Edit.
+    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'Explore teams' })).not.toBeInTheDocument()
     expect(slotRows()[0]).toHaveTextContent('Lead')
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove Charmander' })).not.toBeInTheDocument()
@@ -125,6 +128,7 @@ describe('TeamPage, for the team’s owner', () => {
     const view = screen.getByRole('link', { name: 'View' })
     expect(view).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/')
 
     await user.click(view)
 
