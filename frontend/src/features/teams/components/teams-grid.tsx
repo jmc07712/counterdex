@@ -122,11 +122,8 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
                 members={team.members}
                 // Everyone's teams say whose each is; your own don't need to.
                 note={owner === undefined ? m.team_by({ username: team.owner.username }) : undefined}
-                // Someone else's, with Pokémon to counter.
-                action={
-                  team.owner.username !== signedInAs &&
-                  team.members.length > 0 && <CounterTeamButton team={team} />
-                }
+                // Someone else's. Theirs are listed only with a Pokémon, so there's one to counter.
+                action={team.owner.username !== signedInAs && <CounterTeamButton team={team} />}
               />
             </DealtInItem>
           )),
