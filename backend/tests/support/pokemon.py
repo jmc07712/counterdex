@@ -83,6 +83,8 @@ def add_species(
         "id": species_id,
         "name": f"species-{species_id}",
         "genus": None,
+        "is_legendary": False,
+        "is_mythical": False,
         "evolution_chain_id": family,
         "evolves_from_species_id": evolves_from,
         "evolution_methods": [method.model_dump(mode="json") for method in methods],

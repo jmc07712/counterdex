@@ -1,6 +1,8 @@
 {
   "id": 25,
   "name": "pikachu",
+  "is_legendary": false,
+  "is_mythical": false,
   "genera": [
     {
       "genus": "Mouse Pokémon",

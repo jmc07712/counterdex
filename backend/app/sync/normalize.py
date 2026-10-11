@@ -96,6 +96,8 @@ def _species_record(
         genus=next(
             (each.genus for each in species.genera if each.language.name == GENUS_LANGUAGE), None
         ),
+        is_legendary=species.is_legendary,
+        is_mythical=species.is_mythical,
         evolution_chain_id=chain_id,
         evolves_from_species_id=evolves_from,
         evolution_methods=tuple(

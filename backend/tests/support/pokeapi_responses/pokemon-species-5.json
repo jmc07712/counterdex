@@ -1,6 +1,8 @@
 {
   "id": 5,
   "name": "charmeleon",
+  "is_legendary": false,
+  "is_mythical": false,
   "genera": [
     {
       "genus": "Flame Pokémon",

@@ -143,11 +143,26 @@ def test_normalizes_a_species_and_its_place_in_its_family(
         id=6,
         name="charizard",
         genus="Flame Pokémon",
+        is_legendary=False,
+        is_mythical=False,
         evolution_chain_id=2,
         evolves_from_species_id=5,
         evolution_methods=(LEVEL_36,),
         pokemon_ids=(6, 10034, 10035, 10196),
     )
+
+
+def test_reads_whether_a_species_is_legendary_or_mythical(
+    species: list[PokeApiSpecies], chains: list[PokeApiEvolutionChain]
+) -> None:
+    charizard, pikachu = (next(each for each in species if each.id == id_) for id_ in (6, 25))
+    charizard.is_legendary = True
+    pikachu.is_mythical = True
+
+    records = by_id(species, chains)
+
+    assert (records[6].is_legendary, records[6].is_mythical) == (True, False)
+    assert (records[25].is_legendary, records[25].is_mythical) == (False, True)
 
 
 def test_a_familys_first_stage_evolves_from_nothing(

@@ -86,6 +86,9 @@ class Species(Base):
     name: Mapped[str] = mapped_column(Text, unique=True)
     # e.g. "Flame Pokémon".
     genus: Mapped[str | None] = mapped_column(Text)
+    # As PokéAPI marks them, e.g. Mewtwo is legendary and Mew is mythical.
+    is_legendary: Mapped[bool]
+    is_mythical: Mapped[bool]
     # PokéAPI's id for the evolution family: the species that share it are one family.
     evolution_chain_id: Mapped[int] = mapped_column(index=True)
     evolves_from_species_id: Mapped[int | None] = mapped_column(ForeignKey("species.id"))

@@ -114,6 +114,8 @@ def store_species(session: Session, species: Sequence[SpeciesRecord]) -> None:
                 "id": each.id,
                 "name": each.name,
                 "genus": each.genus,
+                "is_legendary": each.is_legendary,
+                "is_mythical": each.is_mythical,
                 "evolution_chain_id": each.evolution_chain_id,
                 "evolves_from_species_id": each.evolves_from_species_id,
                 # Only the conditions that apply; the rest read back as their defaults.

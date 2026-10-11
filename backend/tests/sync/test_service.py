@@ -120,6 +120,18 @@ async def test_syncs_species_and_their_evolution_families(db_session: Session) -
     assert (raichu.evolution_chain_id, raichu.evolves_from_species_id) == (10, 25)
 
 
+async def test_syncs_whether_each_species_is_legendary_or_mythical(db_session: Session) -> None:
+    def pichu_is_mythical(path: str, data: dict[str, Any]) -> None:
+        if path == "pokemon-species/172":
+            data["is_mythical"] = True
+
+    await run_sync(fake_pokeapi(edit=pichu_is_mythical), db_session, clock=clock)
+
+    mythical = db_session.scalars(select(Species.id).where(Species.is_mythical)).all()
+    legendary = db_session.scalars(select(Species.id).where(Species.is_legendary)).all()
+    assert (mythical, legendary) == ([172], [])
+
+
 async def test_links_each_synced_pokemon_to_its_species(db_session: Session) -> None:
     await run_sync(fake_pokeapi(), db_session, clock=clock)
 

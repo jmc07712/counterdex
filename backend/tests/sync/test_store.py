@@ -167,6 +167,8 @@ CHARMANDER = SpeciesRecord(
     id=4,
     name="charmander",
     genus="Lizard Pokémon",
+    is_legendary=False,
+    is_mythical=False,
     evolution_chain_id=2,
     evolves_from_species_id=None,
     evolution_methods=(),
@@ -202,6 +204,25 @@ def test_stores_species_and_their_place_in_their_family(db_session: Session) -> 
     assert (charizard.evolution_chain_id, charizard.evolves_from_species_id) == (2, 5)
     methods = [EvolutionMethod.model_validate(method) for method in charizard.evolution_methods]
     assert methods == [LEVEL_36]
+
+
+def test_stores_whether_a_species_is_legendary_or_mythical(db_session: Session) -> None:
+    add_pokemon(db_session, 4, 5, 6, 10034)
+
+    store_species(
+        db_session,
+        [
+            replace(CHARMANDER, is_mythical=True),
+            CHARMELEON,
+            replace(CHARIZARD_SPECIES, is_legendary=True),
+        ],
+    )
+
+    flags = {
+        each.id: (each.is_legendary, each.is_mythical)
+        for each in (stored(db_session, models.Species, species_id) for species_id in (4, 5, 6))
+    }
+    assert flags == {4: (False, True), 5: (False, False), 6: (True, False)}
 
 
 def test_stores_which_species_each_pokemon_belongs_to(db_session: Session) -> None:

@@ -1,6 +1,8 @@
 {
   "id": 4,
   "name": "charmander",
+  "is_legendary": false,
+  "is_mythical": false,
   "genera": [
     {
       "genus": "Lizard Pokémon",

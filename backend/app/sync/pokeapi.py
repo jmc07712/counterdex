@@ -90,6 +90,8 @@ class PokeApiSpecies(BaseModel):
 
     id: int
     name: str
+    is_legendary: bool
+    is_mythical: bool
     # e.g. "Flame Pokémon", once per language.
     genera: list[Genus]
     evolution_chain: ApiResource

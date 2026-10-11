@@ -1,6 +1,8 @@
 {
   "id": 6,
   "name": "charizard",
+  "is_legendary": false,
+  "is_mythical": false,
   "genera": [
     {
       "genus": "Flame Pokémon",

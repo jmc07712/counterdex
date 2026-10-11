@@ -13,6 +13,8 @@ from app.teams.models import Team, TeamMember
 
 # Imported so their tables are registered on Base.metadata, as in app/migrations/env.py.
 MODELS = (Pokemon, PokemonChange, SyncRun, User, UserSession, Team, TeamMember)
+# The migration before species were marked legendary or mythical.
+BEFORE_SPECIES_FLAGS = "1f8216da36fa"
 # Each CHECK constraint's table, name and definition, as Postgres normalizes it.
 CHECK_CONSTRAINTS = text(
     "select conrelid::regclass::text, conname, pg_get_constraintdef(oid) from pg_constraint"
@@ -60,3 +62,29 @@ def test_migrations_can_be_rolled_back_and_reapplied(
 ) -> None:
     command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")
+
+
+def test_species_stored_before_the_flags_are_neither_legendary_nor_mythical(
+    alembic_config: Config, migrated_engine: Engine
+) -> None:
+    # Until the next sync fills them in.
+    command.downgrade(alembic_config, BEFORE_SPECIES_FLAGS)
+    try:
+        with migrated_engine.begin() as connection:
+            connection.execute(
+                text(
+                    "insert into species (id, name, evolution_chain_id, evolution_methods)"
+                    " values (6, 'charizard', 2, '[]')"
+                )
+            )
+        command.upgrade(alembic_config, "head")
+
+        with migrated_engine.connect() as connection:
+            flags = connection.execute(
+                text("select is_legendary, is_mythical from species where id = 6")
+            ).one()
+        assert tuple(flags) == (False, False)
+    finally:
+        command.upgrade(alembic_config, "head")
+        with migrated_engine.begin() as connection:
+            connection.execute(text("delete from species where id = 6"))

@@ -52,6 +52,8 @@ class SpeciesRecord:
     name: str
     # e.g. "Flame Pokémon".
     genus: str | None
+    is_legendary: bool
+    is_mythical: bool
     evolution_chain_id: int
     evolves_from_species_id: int | None
     # How it evolves from evolves_from_species_id; none for a family's first stage.
