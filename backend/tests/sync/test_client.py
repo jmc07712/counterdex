@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.pokemon.enums import PokemonType
-from app.sync.constants import MAX_PAGES, MAX_RETRY_AFTER_SECONDS
+from app.sync.constants import MAX_PAGES, MAX_RETRY_AFTER_DIGITS, MAX_RETRY_AFTER_SECONDS
 from app.sync.exceptions import PokeApiError
 from tests.support.pokeapi import (
     BASE_URL,
@@ -105,6 +105,7 @@ def answering_first(*responses: httpx2.Response) -> Handler:
         pytest.param(str(MAX_RETRY_AFTER_SECONDS), MAX_RETRY_AFTER_SECONDS, id="the-most"),
         pytest.param(str(MAX_RETRY_AFTER_SECONDS + 1), MAX_RETRY_AFTER_SECONDS, id="over-the-most"),
         pytest.param("3600", MAX_RETRY_AFTER_SECONDS, id="an-hour"),
+        pytest.param("9" * MAX_RETRY_AFTER_DIGITS, MAX_RETRY_AFTER_SECONDS, id="the-most-digits"),
     ],
 )
 async def test_waits_as_long_as_a_429_or_503_asks_up_to_the_most(
@@ -124,6 +125,10 @@ async def test_waits_as_long_as_a_429_or_503_asks_up_to_the_most(
         pytest.param(429, {}, id="429-without-Retry-After"),
         pytest.param(429, {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, id="429-with-a-date"),
         pytest.param(429, {"Retry-After": "-2"}, id="429-with-a-negative-number"),
+        pytest.param(
+            429, {"Retry-After": "9" * (MAX_RETRY_AFTER_DIGITS + 1)}, id="429-with-too-many-digits"
+        ),
+        pytest.param(503, {"Retry-After": "1" * 4301}, id="503-with-4301-digits"),
         pytest.param(503, {}, id="503-without-Retry-After"),
         # HTTP defines Retry-After for 429 and 503, not for other server errors.
         pytest.param(500, {"Retry-After": "2"}, id="500-with-Retry-After"),
@@ -133,6 +138,18 @@ async def test_waits_the_doubling_delay_unless_a_429_or_503_asks_for_seconds(
     sleeps: list[float], status: int, headers: dict[str, str]
 ) -> None:
     handler = answering_first(httpx2.Response(status, headers=headers))
+
+    result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
+
+    assert [p.name for p in result.pokemon] == ["pikachu"]
+    assert sleeps == [0.5]
+
+
+async def test_waits_the_doubling_delay_when_a_429_asks_in_non_ascii_digits(
+    sleeps: list[float],
+) -> None:
+    # Arabic-Indic three: str.isdecimal accepts it and int() reads it as 3.
+    handler = answering_first(httpx2.Response(429, headers={b"Retry-After": "٣".encode()}))
 
     result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
 

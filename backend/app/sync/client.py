@@ -12,6 +12,7 @@ from app.sync.constants import (
     CONCURRENT_REQUESTS,
     MAX_ATTEMPTS,
     MAX_PAGES,
+    MAX_RETRY_AFTER_DIGITS,
     MAX_RETRY_AFTER_SECONDS,
     PAGE_SIZE,
     RETRY_AFTER_STATUS_CODES,
@@ -175,7 +176,7 @@ def _is_retryable(error: httpx2.HTTPError) -> bool:
 def _retry_after_seconds(error: httpx2.HTTPError) -> int | None:
     """How many seconds a 429 or 503 asks to wait in its Retry-After, at most
     MAX_RETRY_AFTER_SECONDS. None for any other error, and for a Retry-After that isn't a whole
-    number of seconds, such as a date.
+    number of seconds, such as a date, or that has more than MAX_RETRY_AFTER_DIGITS digits.
     """
     if (
         not isinstance(error, httpx2.HTTPStatusError)
@@ -183,6 +184,6 @@ def _retry_after_seconds(error: httpx2.HTTPError) -> int | None:
     ):
         return None
     seconds = error.response.headers.get("Retry-After", "")
-    if not (seconds.isascii() and seconds.isdecimal()):
+    if not (seconds.isascii() and seconds.isdecimal() and len(seconds) <= MAX_RETRY_AFTER_DIGITS):
         return None
     return min(int(seconds), MAX_RETRY_AFTER_SECONDS)

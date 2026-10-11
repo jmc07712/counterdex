@@ -22,6 +22,9 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 RETRY_AFTER_STATUS_CODES = frozenset({429, 503})
 # The longest the client waits when a Retry-After asks for more.
 MAX_RETRY_AFTER_SECONDS = 30
+# A Retry-After with more digits than this isn't read as seconds. int() refuses a number with
+# thousands of digits.
+MAX_RETRY_AFTER_DIGITS = 10
 
 # What PokéAPI calls each of our stats; every PokéAPI Pokémon must have all six.
 POKEAPI_STAT_NAMES = {
