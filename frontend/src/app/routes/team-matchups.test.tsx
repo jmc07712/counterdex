@@ -296,11 +296,27 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(forms).toHaveAttribute('aria-pressed', 'true')
     const ids = `pokemon_id=${charizard.id}&pokemon_id=${pikachu.id}&pokemon_id=${gengar.id}`
     expect(counters).toEqual([ids, `${ids}&legendaries=true`, `${ids}&forms=true&legendaries=true`])
-    expect(router.state.location.search).toBe('?forms=true&legendaries=true')
+    expect(router.state.location.search).toBe('?alternate_forms=true&legendaries=true')
 
     await user.click(forms)
 
     expect(router.state.location.search).toBe('?legendaries=true')
+  })
+
+  it('leaves alone a Pokédex forms filter in the URL', async () => {
+    serveTheirs()
+    const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    const { user, router } = renderTeam(`${VIEW}?forms=alternate`)
+
+    const section = await findSection()
+    await within(section).findByRole('table')
+    const forms = within(section).getByRole('button', { name: 'Alternate forms' })
+    expect(forms).toHaveAttribute('aria-pressed', 'false')
+    expect(counters[0]).not.toMatch(/forms/)
+
+    await user.click(forms)
+
+    expect(router.state.location.search).toBe('?forms=alternate&alternate_forms=true')
   })
 
   it('builds the counter shown as a new team, then opens it to edit', async () => {
@@ -359,7 +375,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('builds the same counter from the Counter button beside the team’s name', async () => {
     const api = serveTheirs()
     const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    const { user, router } = renderTeam(`${VIEW}?forms=true`)
+    const { user, router } = renderTeam(`${VIEW}?alternate_forms=true`)
 
     await within(await findSection()).findByRole('table')
     await user.click(screen.getByRole('button', { name: 'Build a counter to Team 1' }))
@@ -375,13 +391,13 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('links someone signed out to signing in first, then back to the same counter', async () => {
     serveTheirs({ viewer: null })
     serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    renderTeam(`${VIEW}?forms=true`)
+    renderTeam(`${VIEW}?alternate_forms=true`)
 
     const section = await findSection()
 
     expect(await within(section).findByRole('link', { name: 'Build this counter' })).toHaveAttribute(
       'href',
-      `/sign-in?next=${encodeURIComponent(`${VIEW}?forms=true`)}`,
+      `/sign-in?next=${encodeURIComponent(`${VIEW}?alternate_forms=true`)}`,
     )
   })
 
@@ -589,7 +605,7 @@ describe('TeamPage, threats to your own team', () => {
 
     const ids = `pokemon_id=${charizard.id}&pokemon_id=${pikachu.id}&pokemon_id=${gengar.id}`
     expect(threats).toEqual([ids, `${ids}&forms=true`])
-    expect(router.state.location.search).toBe('?forms=true')
+    expect(router.state.location.search).toBe('?alternate_forms=true')
   })
 
   it('shows its skeleton while threats load', async () => {

@@ -117,7 +117,8 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
 - **Under your own team**, "Threats to this team" lists up to 12 Pokémon from
   `GET /api/team-threats`, each saying which members it beats, and each opening its details. Both
   sections can also pick from alternate forms and legendaries, kept in the URL
-  (`?forms=true&legendaries=true`) so signing in to build a counter comes back to the same one.
+  (`?alternate_forms=true&legendaries=true`, apart from the Pokédex filters' `?forms=`) so
+  signing in to build a counter comes back to the same one.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
   (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
   pinned at the left, with its name to rename, the same line above the slots, and its slots, each
