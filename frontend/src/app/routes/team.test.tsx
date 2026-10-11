@@ -12,6 +12,8 @@ import {
   holdTeamChanges,
   holdTeamFetches,
   servePokemon,
+  servePokemonChanges,
+  servePokemonDetails,
   serveSession,
   serveTeams,
 } from '@/test/handlers'
@@ -364,9 +366,76 @@ describe.each([
     expect(rows[0]).toHaveTextContent('Charmander')
     expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Explore teams' })).toHaveAttribute('href', '/explore')
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    // Each member opens its details, and that's all there is to press.
+    expect(screen.getAllByRole('button')).toEqual([
+      screen.getByRole('button', { name: 'Charmander' }),
+      screen.getByRole('button', { name: 'Pikachu' }),
+    ])
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+  })
+})
+
+describe('TeamPage, as a party', () => {
+  it('shows the lead in a slot of its own, then the rest in battle order', async () => {
+    serveSession()
+    serveTeams({ teams: [makeTeam({ pokemon: [charizard, pikachu, gengar] })], catalog: CATALOG })
+
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    expect(screen.getByText('3 of 6')).toBeInTheDocument()
+    const rows = slotRows()
+    expect(rows).toHaveLength(6)
+    expect(rows[0]).toHaveTextContent('Lead')
+    expect(within(rows[0]).getByRole('heading', { level: 2 })).toHaveTextContent('Charizard')
+    expect(rows[0]).toHaveTextContent('No. 0006')
+    expect(rows[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
+    expect(rows.slice(1, 3).map((row) => within(row).getByRole('heading').textContent)).toEqual([
+      'Pikachu',
+      'Gengar',
+    ])
+    expect(rows.slice(1).map((row) => row.textContent?.includes('Lead'))).not.toContain(true)
+  })
+
+  it('shows its empty slots, and a member no longer in the Pokédex', async () => {
+    serveSession()
+    serveTeams({
+      teams: [
+        makeTeam({
+          members: [
+            asMember(charmander, 0),
+            { ...asMember(pikachu, 1), removed_at: '2026-10-11T09:00:00Z' },
+          ],
+        }),
+      ],
+      catalog: CATALOG,
+    })
+
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    const rows = slotRows()
+    expect(rows[1]).toHaveTextContent('No longer in the Pokédex')
+    expect(within(rows[1]).queryByRole('list', { name: 'Types' })).not.toBeInTheDocument()
+    expect(rows[1]).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
+    for (const row of rows.slice(2)) {
+      expect(row).toHaveTextContent('Empty slot')
+      expect(within(row).queryByRole('link')).not.toBeInTheDocument()
+    }
+  })
+
+  it('opens a member’s Pokédex details from its slot, and puts it in the URL', async () => {
+    serveSession()
+    serveTeams({ teams: [makeTeam({ pokemon: [charmander, charizard] })], catalog: CATALOG })
+    servePokemonDetails()
+    servePokemonChanges()
+    const { user, router } = renderTeam()
+
+    await user.click(await screen.findByRole('button', { name: 'Charizard' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?pokemon=6')
   })
 })
 

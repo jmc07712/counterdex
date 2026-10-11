@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react'
+import { type ComponentProps, type ReactNode, useId } from 'react'
 
 import type { TeamMember } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
@@ -28,24 +28,79 @@ export function TeamSlots({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * A team's six slots as a party: a LeadSlot, then the other members' slots and EmptySlots. From
+ * md up, the first slot runs down the left beside the other five.
+ */
+export function PartySlots({ children }: { children: ReactNode }) {
+  return (
+    <ol
+      aria-label={m.team_slots()}
+      className="grid gap-2 md:grid-cols-[5fr_7fr] md:grid-rows-5 md:gap-3 md:*:first:row-span-5"
+    >
+      {children}
+    </ol>
+  )
+}
+
+type LeadSlotProps = {
+  member: TeamMember
+  // Opens the member's details.
+  onOpen: () => void
+}
+
+/** The lead's slot, large: labelled as the lead, with a big sprite, its name and its types. */
+export function LeadSlot({ member, onOpen }: LeadSlotProps) {
+  const headingId = useId()
+  return (
+    <MemberPanel member={member} className="flex flex-col gap-3 rounded-3xl p-5 md:p-6">
+      <p className="self-start rounded-full bg-current/15 px-2.5 py-0.5 text-xs font-bold">
+        {m.team_lead()}
+      </p>
+      {/* On phones the sprite sits beside the words; from md up, above them. */}
+      <div className="flex flex-1 items-center gap-4 md:flex-col-reverse md:items-stretch">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-1 md:flex-none">
+          <MemberNumber member={member} />
+          <MemberName
+            id={headingId}
+            member={member}
+            className="text-3xl font-extrabold break-words md:text-4xl"
+          />
+          <MemberTypes member={member} />
+        </div>
+        <PanelSprite
+          member={member}
+          className="size-28 md:my-auto md:size-44 md:self-center lg:size-56"
+        />
+      </div>
+      <OpenButton labelledBy={headingId} onOpen={onOpen} />
+    </MemberPanel>
+  )
+}
+
 type TeamSlotProps = {
   member: TeamMember
+  // Opens the member's details; without it, the slot doesn't open.
+  onOpen?: () => void
   // At the end of the row, such as a button to remove the member.
   children?: ReactNode
 }
 
 /** A member's slot as a row: its number, sprite, name, Pokédex number and types. */
-export function TeamSlot({ member, children }: TeamSlotProps) {
+export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
+  const headingId = useId()
   return (
     <MemberPanel member={member} className={ROW}>
       <SlotNumber slot={member.position} />
       <PanelSprite member={member} className="size-16" />
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-        <MemberName member={member} className="text-lg" />
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+        <MemberNumber member={member} />
+        <MemberName id={headingId} member={member} className="truncate text-lg" />
         <MemberTypes member={member} />
       </div>
-      <MemberNumber member={member} className="self-start pt-1" />
-      {children && <div className="flex shrink-0 items-center">{children}</div>}
+      {onOpen && <OpenButton labelledBy={headingId} onOpen={onOpen} />}
+      {/* Over the open button, so it can be pressed on its own. */}
+      {children && <div className="relative z-10 flex shrink-0 items-center">{children}</div>}
     </MemberPanel>
   )
 }
@@ -128,17 +183,17 @@ function PanelSprite({ member, className }: PartOfMemberProps) {
   )
 }
 
-function MemberName({ member, className }: PartOfMemberProps) {
+function MemberName({ member, id, className }: PartOfMemberProps & { id: string }) {
   return (
-    <h2 className={cn('max-w-full truncate font-bold', className)}>
+    <h2 id={id} className={cn('max-w-full font-bold', className)}>
       {displayName(member.pokemon.name)}
     </h2>
   )
 }
 
-function MemberNumber({ member, className }: PartOfMemberProps) {
+function MemberNumber({ member }: PartOfMemberProps) {
   return (
-    <p className={cn('flex shrink-0 items-center gap-1 text-xs font-bold tabular-nums', className)}>
+    <p className="flex items-center gap-1 text-xs font-bold tabular-nums">
       <span className="opacity-80">{dexNumber(member.pokemon.id)}</span>
       {member.pokemon.changed_recently && <ChangedMark className="text-current" />}
     </p>
@@ -152,6 +207,21 @@ function MemberTypes({ member }: PartOfMemberProps) {
     <TypeBadges
       types={member.pokemon.types}
       className="*:*:data-[slot=badge]:ring-2 *:*:data-[slot=badge]:ring-white/80"
+    />
+  )
+}
+
+type OpenButtonProps = { labelledBy: string; onOpen: () => void }
+
+// Over the whole slot, so all of it opens the details. It's named by the slot's heading, so it
+// reads as "Charizard, button".
+function OpenButton({ labelledBy, onOpen }: OpenButtonProps) {
+  return (
+    <button
+      type="button"
+      aria-labelledby={labelledBy}
+      onClick={onOpen}
+      className="absolute inset-0 rounded-[inherit] outline-none focus-visible:inset-ring-3 focus-visible:inset-ring-current"
     />
   )
 }

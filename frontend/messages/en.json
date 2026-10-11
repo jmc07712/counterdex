@@ -47,6 +47,7 @@
   "team_name_label": "Team name",
   "team_by": "by {username}",
   "team_slots": "Team, in battle order",
+  "team_lead": "Lead",
   "team_empty_slot": "Empty slot",
   "team_remove": "Remove {name}",
   "team_removed_from_pokedex": "No longer in the Pokédex",

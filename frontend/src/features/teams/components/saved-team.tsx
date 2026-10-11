@@ -19,12 +19,18 @@ import { m } from '@/paraglide/messages.js'
 
 import { useTeam } from '../hooks/use-team'
 import { useTeamEditor } from '../hooks/use-team-editor'
-import { ReadOnlyTeam } from './read-only-team'
 import { TeamBuilder } from './team-builder'
 import { TeamMenu } from './team-menu'
+import { TeamParty } from './team-party'
 
-/** A team, by id: in the builder for its owner, and as it is for everyone else. */
-export function SavedTeam({ teamId }: { teamId: string }) {
+type SavedTeamProps = {
+  teamId: string
+  // Opens a member's details.
+  onOpenPokemon: (pokemonId: number) => void
+}
+
+/** A team, by id: in the builder for its owner, and as its party for everyone else. */
+export function SavedTeam({ teamId, onOpenPokemon }: SavedTeamProps) {
   const team = useTeam(teamId)
   const currentUser = useCurrentUser()
 
@@ -65,7 +71,8 @@ export function SavedTeam({ teamId }: { teamId: string }) {
 
   // Signed out, or not sure who's signed in, counts as not the owner.
   const isOwner = currentUser.data?.username === team.data.owner.username
-  return isOwner ? <SavedTeamBuilder team={team.data} /> : <ReadOnlyTeam team={team.data} />
+  if (isOwner) return <SavedTeamBuilder team={team.data} />
+  return <TeamParty team={team.data} onOpenPokemon={onOpenPokemon} />
 }
 
 function SavedTeamBuilder({ team }: { team: Team }) {
