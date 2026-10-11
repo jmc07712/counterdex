@@ -38,6 +38,8 @@ export function TeamsPage() {
     focusAfterClearing()
   }
 
+  const owner = filters.scope === 'mine' ? user?.username : undefined
+
   // With no teams yet, the empty state of your own teams has the button instead.
   const offerNewTeam = teamCount !== undefined && (teamCount > 0 || filters.scope === 'everyone')
 
@@ -81,8 +83,11 @@ export function TeamsPage() {
           />
           <ResultsRegion ref={results}>
             <TeamsGrid
+              // A new grid for each scope and owner, so it starts from its skeleton rather than
+              // showing the last scope's teams while its own load.
+              key={`${filters.scope}:${owner ?? ''}`}
               filters={filters}
-              owner={filters.scope === 'mine' ? user?.username : undefined}
+              owner={owner}
               onClearFilters={clearFilters}
               onShowEveryone={showEveryone}
             />

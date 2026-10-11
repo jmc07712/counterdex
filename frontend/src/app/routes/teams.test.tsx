@@ -185,6 +185,30 @@ describe('TeamsPage, signed in', () => {
     expect(router.state.location.search).toBe('')
   })
 
+  it('shows no one else’s teams while yours load', async () => {
+    serveTeams({ teams: [FIRE, RAIN] })
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    // Added last, so it answers first: your teams wait for `release`, then go to the stand-in.
+    server.use(
+      http.get('/api/teams', async ({ request }) => {
+        if (new URL(request.url).searchParams.has('owner')) await released
+      }),
+    )
+    const { user } = await renderTeams()
+    await screen.findByRole('article', { name: 'Rain' })
+
+    await user.click(screen.getByRole('radio', { name: 'My teams' }))
+
+    expect(await screen.findByRole('list', { name: 'Loading teams' })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
+    release()
+    expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
+  })
+
   it('filters your teams as it does everyone’s', async () => {
     const { listQueries } = serveTeams({ teams: [FIRE] })
     const { user } = await renderTeams('/?scope=mine&q=fire')
