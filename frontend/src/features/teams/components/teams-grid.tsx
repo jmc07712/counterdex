@@ -43,8 +43,8 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
   const teams = useTeamsList({ ...filters, search }, owner)
   const signedInAs = useCurrentUser().data?.username
 
-  // The status comes first in each case below, from the first load on, so it stays the same
-  // element as they change: a status that appears with words in it often isn't read out.
+  // Wherever there's a status, it's the first thing returned, from the first load on, so it stays
+  // the same element as the results change.
   if (teams.isPending) {
     return (
       <>

@@ -34,8 +34,8 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
   const search = useDebouncedSearch(filters.search)
   const query = usePokemonList({ ...filters, search })
 
-  // The status comes first in each case below, from the first load on, so it stays the same
-  // element as they change: a status that appears with words in it often isn't read out.
+  // Wherever there's a status, it's the first thing returned, from the first load on, so it stays
+  // the same element as the results change.
   if (query.isPending) {
     return (
       <>
