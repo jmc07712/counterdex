@@ -271,7 +271,7 @@ function MemberName({ member, id, className }: PartOfMemberProps & { id: string 
 function MemberNumber({ member }: PartOfMemberProps) {
   return (
     <p className="flex items-center gap-1 text-xs font-medium tabular-nums">
-      <span>{dexNumber(member.pokemon.id)}</span>
+      {dexNumber(member.pokemon.id)}
       {member.pokemon.changed_recently && <ChangedMark className="text-current" />}
     </p>
   )

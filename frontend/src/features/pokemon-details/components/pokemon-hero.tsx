@@ -20,7 +20,7 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1 pb-1">
           <p className="flex items-center gap-1 font-heading text-sm font-medium tabular-nums">
-            <span>{dexNumber(pokemon.id)}</span>
+            {dexNumber(pokemon.id)}
             {pokemon.changed_recently && <ChangedMark className="text-current" />}
           </p>
           <DialogTitle className="font-heading text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
