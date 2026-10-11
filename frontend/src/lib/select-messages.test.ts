@@ -8,6 +8,7 @@ import {
   PokemonForm,
   PokemonType,
   RelativePhysicalStats,
+  TeamConflictReason,
   TimeOfDay,
 } from '@/api'
 import { STATS } from '@/components/pokemon/format'
@@ -36,6 +37,16 @@ describe.each<[string, string[], (value: string) => string]>([
     'evolution_physical_stats',
     Object.values(RelativePhysicalStats),
     (stats) => m.evolution_physical_stats({ stats }),
+  ],
+  [
+    'team_problem',
+    [...Object.values(TeamConflictReason), 'not_found', 'failed'],
+    (problem) => m.team_problem({ problem }),
+  ],
+  [
+    'team_cant_add',
+    ['team_full', 'species_on_team'],
+    (reason) => m.team_cant_add({ reason }),
   ],
 ])('%s', (_, values, word) => {
   it.each(values)('words %s', (value) => {

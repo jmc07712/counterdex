@@ -27,6 +27,9 @@ Object.defineProperty(window, 'matchMedia', {
 // jsdom doesn't lay pages out, so it has no scrolling to do.
 Element.prototype.scrollIntoView = () => {}
 
+// jsdom doesn't implement pointer capture, which a toast sets on a press, to follow a swipe.
+Element.prototype.setPointerCapture = () => {}
+
 // The app calls the API with relative URLs; Node's fetch needs an absolute one.
 client.setConfig({ baseUrl: window.location.origin })
 
@@ -43,6 +46,7 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   resetIntersectionMocking()
+  localStorage.clear()
 })
 
 afterAll(() => {

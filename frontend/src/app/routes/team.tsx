@@ -1,22 +1,24 @@
-import { ArrowLeft } from 'lucide-react'
-import { Link, useParams } from 'react-router'
+import { UsersRound } from 'lucide-react'
+import { useParams } from 'react-router'
 
-import { PageHeader } from '@/components/layout/page-header'
 import { paths } from '@/config/paths'
+import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
+import { SavedTeam } from '@/features/teams/components/saved-team'
+import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 export function TeamPage() {
-  const { teamId } = useParams()
+  const { teamId = '' } = useParams()
+  const currentUser = useCurrentUser()
 
+  if (currentUser.isPending) return null
+  if (currentUser.data) return <SavedTeam teamId={teamId} />
   return (
-    <PageHeader title={m.team_title()} description={m.team_description({ teamId: teamId ?? '' })}>
-      <Link
-        to={paths.home.getHref()}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {m.team_all_teams()}
-      </Link>
-    </PageHeader>
+    <SignInPrompt
+      icon={<UsersRound />}
+      title={m.teams_sign_in_title()}
+      description={m.teams_sign_in_description()}
+      next={paths.team.getHref(teamId)}
+    />
   )
 }

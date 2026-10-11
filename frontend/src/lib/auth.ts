@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query'
 
 import { getCurrentUser, signOut, type User } from '@/api'
-import { getCurrentUserQueryKey } from '@/api/@tanstack/react-query.gen'
+import { getCurrentUserQueryKey, listTeamsQueryKey } from '@/api/@tanstack/react-query.gen'
 
 /** Who's signed in: a user, or null for nobody. */
 export const currentUserOptions = queryOptions({
@@ -37,11 +37,16 @@ export async function setCurrentUser(queryClient: QueryClient, user: User | null
   queryClient.setQueryData(currentUserOptions.queryKey, user)
 }
 
-/** Signs out. On success the app knows nobody is signed in. */
+/** Signs out. On success the app knows nobody is signed in, and forgets their teams. */
 export function useSignOut() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => signOut({ throwOnError: true }),
-    onSuccess: () => setCurrentUser(queryClient, null),
+    onSuccess: async () => {
+      await setCurrentUser(queryClient, null)
+      // Their teams aren't anyone else's to see. Each team's key is under the list's, so this
+      // removes them all.
+      queryClient.removeQueries({ queryKey: listTeamsQueryKey() })
+    },
   })
 }

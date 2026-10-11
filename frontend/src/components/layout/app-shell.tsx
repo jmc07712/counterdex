@@ -19,6 +19,7 @@ import { m } from '@/paraglide/messages.js'
 import { AccountMenu } from './account-menu'
 import { BrandMark } from './brand-mark'
 import { ThemeSwitch } from './theme-switch'
+import { Toaster } from './toaster'
 
 type NavItem = {
   to: string
@@ -171,6 +172,8 @@ export function AppShell() {
           </li>
         </ul>
       </nav>
+
+      <Toaster />
     </div>
   )
 }

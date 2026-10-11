@@ -5,17 +5,25 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
 import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
+import { NewTeamButton } from '@/features/teams/components/new-team-button'
+import { TeamList } from '@/features/teams/components/team-list'
+import { useTeams } from '@/features/teams/hooks/use-teams'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 export function TeamsPage() {
   const currentUser = useCurrentUser()
+  const signedIn = Boolean(currentUser.data)
+  const teams = useTeams({ enabled: signedIn })
+  // With no teams yet, the list's own empty state has the button.
+  const hasTeams = signedIn && teams.data !== undefined && teams.data.length > 0
 
   return (
     <>
       <PageHeader
         title={m.teams_title()}
         description={m.teams_description()}
+        action={hasTeams && <NewTeamButton teamCount={teams.data.length} />}
       />
       {currentUser.isError && (
         <Alert variant="destructive">
@@ -28,6 +36,7 @@ export function TeamsPage() {
           </AlertAction>
         </Alert>
       )}
+      {signedIn && <TeamList />}
       {currentUser.data === null && (
         <SignInPrompt
           icon={<UsersRound />}

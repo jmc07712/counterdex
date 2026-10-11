@@ -26,13 +26,75 @@
   "pokedex_title": "Pokédex",
   "pokedex_description": "Every Pokémon with its types and base stats. Search, filter, and add any of them to a team.",
   "teams_title": "Teams",
-  "teams_description": "Build teams of up to six Pokémon, put them in battle order, and keep as many teams as you like.",
+  "teams_description": "Up to six Pokémon each, in battle order. Keep as many teams as you like.",
   "teams_session_check_failed": "Couldn’t check whether you’re signed in",
   "teams_sign_in_title": "Sign in to build teams",
   "teams_sign_in_description": "Teams are saved to your account, so you’ll need one.",
-  "team_title": "Team",
-  "team_description": "Team {teamId}",
+  "teams_new": "New team",
+  "teams_creating": "Creating…",
+  "teams_empty_title": "Build your first team",
+  "teams_empty_description": "Pick up to six Pokémon and put them in battle order.",
+  "teams_load_failed": "Couldn’t load your teams",
   "team_all_teams": "All teams",
+  "team_default_name": "Team {number}",
+  "team_member_count": "{count} of {max}",
+  "team_name_label": "Team name",
+  "team_slots": "Team, in battle order",
+  "team_add_to_slot": "Add a Pokémon to slot {number}",
+  "team_remove": "Remove {name}",
+  "team_removed_from_pokedex": "No longer in the Pokédex",
+  "team_actions": "Team actions",
+  "team_delete": "Delete team",
+  "team_delete_title": "Delete {name}?",
+  "team_delete_description": "The team and its Pokémon picks are deleted for good.",
+  "team_delete_cancel": "Keep it",
+  "team_deleted": "Deleted {name}",
+  "team_not_found_title": "This team doesn’t exist",
+  "team_not_found_description": "It may have been deleted, or it belongs to someone else.",
+  "team_load_failed": "Couldn’t load this team",
+  "team_picker_title": "Add a Pokémon",
+  "team_picker_description": "Choose a Pokémon for {team}.",
+  "team_picker_search": "Search Pokémon",
+  "team_picker_empty": "No Pokémon match that search.",
+  "team_added": "Added {name} to {team}",
+  "team_view": "View",
+  "team_related_notice": "{related} is already on {team}, from the same evolution line.",
+  "team_replace": "Replace {name}",
+  "team_cant_add": [
+    {
+      "declarations": [
+        "input reason"
+      ],
+      "selectors": [
+        "reason"
+      ],
+      "match": {
+        "reason=team_full": "Team is full",
+        "reason=species_on_team": "On the team",
+        "reason=*": "{reason}"
+      }
+    }
+  ],
+  "team_problem": [
+    {
+      "declarations": [
+        "input problem"
+      ],
+      "selectors": [
+        "problem"
+      ],
+      "match": {
+        "problem=team_full": "That team is full.",
+        "problem=species_on_team": "That species is already on the team.",
+        "problem=order_out_of_date": "This team changed somewhere else, so it’s been reloaded.",
+        "problem=pokemon_removed": "That Pokémon is no longer in the Pokédex.",
+        "problem=team_id_taken": "That team couldn’t be created. Try again.",
+        "problem=not_found": "This team changed somewhere else, so it’s been reloaded.",
+        "problem=failed": "Couldn’t save that change. Check your connection and try again.",
+        "problem=*": "{problem}"
+      }
+    }
+  ],
   "auth_username": "Username",
   "auth_password": "Password",
   "auth_go_to_sign_in": "Sign in",

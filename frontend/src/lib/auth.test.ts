@@ -1,8 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { act, fireEvent, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { listTeamsQueryKey } from '@/api/@tanstack/react-query.gen'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers'
 import { renderHookWithProviders } from '@/test/render'
+import { makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
 import { useCurrentUser, useSignOut } from './auth'
@@ -65,5 +68,21 @@ describe('useSignOut', () => {
 
     await waitFor(() => expect(result.current.user.fetchStatus).toBe('idle'))
     expect(result.current.user.data).toBeNull()
+  })
+
+  it('forgets the user’s teams on signing out', async () => {
+    serveSession({ signedIn: ASH })
+    const { result } = renderHookWithProviders(() => ({
+      signOut: useSignOut(),
+      client: useQueryClient(),
+    }))
+    const teamKey = [...listTeamsQueryKey(), TEAM_ID]
+    result.current.client.setQueryData(listTeamsQueryKey(), [])
+    result.current.client.setQueryData(teamKey, makeTeam())
+
+    await act(() => result.current.signOut.mutateAsync())
+
+    expect(result.current.client.getQueryData(listTeamsQueryKey())).toBeUndefined()
+    expect(result.current.client.getQueryData(teamKey)).toBeUndefined()
   })
 })
