@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
 
+import { AppLayout } from '@/app/app-layout'
 import { ExplorePage } from '@/app/routes/explore'
 import { NotFoundPage } from '@/app/routes/not-found'
 import { PokedexPage } from '@/app/routes/pokedex'
@@ -8,12 +9,11 @@ import { SignUpPage } from '@/app/routes/sign-up'
 import { TeamPage } from '@/app/routes/team'
 import { TeamEditPage } from '@/app/routes/team-edit'
 import { TeamsPage } from '@/app/routes/teams'
-import { AppShell } from '@/components/layout/app-shell'
 import { paths } from '@/config/paths'
 
 export const router = createBrowserRouter([
   {
-    Component: AppShell,
+    Component: AppLayout,
     children: [
       { index: true, Component: TeamsPage },
       { path: paths.team.path, Component: TeamPage },

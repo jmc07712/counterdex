@@ -3,12 +3,7 @@ import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import {
-  servePokemon,
-  servePokemonChanges,
-  servePokemonDetails,
-  serveSyncStatus,
-} from '@/test/handlers'
+import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
@@ -35,11 +30,6 @@ function twoPages(query: URLSearchParams) {
 }
 
 describe('PokedexPage', () => {
-  // The sync indicator has its own tests; here it only needs an answer.
-  beforeEach(() => {
-    serveSyncStatus()
-  })
-
   it('shows a card for each Pokémon', async () => {
     servePokemon(makePage(['bulbasaur', 'charizard-mega-x']))
 

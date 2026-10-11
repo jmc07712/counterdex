@@ -39,6 +39,15 @@ describe('SyncIndicator', () => {
     ).toBeInTheDocument()
   })
 
+  it('has a shorter age to show on small screens', async () => {
+    serveSyncStatus(syncedThreeHoursAgo())
+
+    renderWithProviders(<SyncIndicator />)
+
+    const button = await screen.findByRole('button', { name: 'Synced about 3 hours ago' })
+    expect(within(button).getByText('3h ago')).toBeInTheDocument()
+  })
+
   it('opens the details of the latest sync', async () => {
     serveSyncStatus(syncedThreeHoursAgo())
     const { user } = renderWithProviders(<SyncIndicator />)

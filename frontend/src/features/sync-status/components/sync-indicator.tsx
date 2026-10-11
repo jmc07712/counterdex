@@ -12,7 +12,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { formatAge, formatDateTime } from '@/lib/dates'
+import { formatAge, formatDateTime, formatShortAge } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -30,8 +30,15 @@ export function SyncIndicator() {
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="shrink-0 rounded-full">
           <StatusLight failed={failed} />
-          {failed ? m.sync_last_failed() : m.sync_synced_ago({ ago: age })}
-          <Info className="text-muted-foreground" aria-hidden="true" />
+          {/* Below lg the header only has room for the light and a short age. The full words are
+              still read out. */}
+          <span className="max-lg:sr-only">
+            {failed ? m.sync_last_failed() : m.sync_synced_ago({ ago: age })}
+          </span>
+          <span aria-hidden="true" className="tabular-nums lg:hidden">
+            {formatShortAge(syncedAt)}
+          </span>
+          <Info className="text-muted-foreground max-lg:hidden" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">

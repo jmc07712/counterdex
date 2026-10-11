@@ -1,4 +1,9 @@
-import { format, formatDistanceToNow, type Locale as DateFnsLocale } from 'date-fns'
+import {
+  format,
+  formatDistanceToNow,
+  intlFormatDistance,
+  type Locale as DateFnsLocale,
+} from 'date-fns'
 import { enUS } from 'date-fns/locale'
 
 import { getLocale, type Locale } from '@/paraglide/runtime.js'
@@ -23,6 +28,15 @@ export function formatDateTime(date: Date | string) {
 /** "about 3 hours ago" */
 export function formatAge(date: Date | string) {
   return formatDistanceToNow(date, { addSuffix: true, locale: locale() })
+}
+
+/** "3h ago" */
+export function formatShortAge(date: Date | string) {
+  return intlFormatDistance(date, new Date(), {
+    locale: getLocale(),
+    style: 'narrow',
+    numeric: 'always',
+  })
 }
 
 /** "Fire, Flying" */

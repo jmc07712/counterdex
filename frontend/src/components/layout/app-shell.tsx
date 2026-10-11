@@ -8,7 +8,7 @@ import {
   type LucideIcon,
   UsersRound,
 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { Link, matchPath, Outlet, useLocation } from 'react-router'
 
 import { paths } from '@/config/paths'
@@ -74,7 +74,12 @@ const TAB_BAR_HIDES_AFTER = 56
 // Served by the API, not this app.
 const apiDocs = { href: '/api/docs', label: m.nav_api, icon: BookOpenText }
 
-export function AppShell() {
+type AppShellProps = {
+  // Shown in the header beside the theme switch on every page, such as the data's sync status.
+  status?: ReactNode
+}
+
+export function AppShell({ status }: AppShellProps) {
   // The phone tab bar hides while scrolling down the page and comes back on any scroll up,
   // like the toolbars in mobile browsers.
   const scrollDirection = useScrollDirection()
@@ -104,7 +109,7 @@ export function AppShell() {
       </a>
 
       <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-8 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6 md:gap-8">
           <Link to={paths.home.getHref()} aria-label={m.nav_home()} className="rounded-md">
             <BrandMark />
           </Link>
@@ -120,7 +125,8 @@ export function AppShell() {
             </a>
           </nav>
 
-          <div className="ml-auto flex h-full items-center gap-4">
+          <div className="ml-auto flex h-full items-center gap-3 md:gap-4">
+            {status}
             <ThemeSwitch />
             <div className="hidden h-full items-stretch md:flex">
               {user ? (
