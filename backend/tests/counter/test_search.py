@@ -66,6 +66,14 @@ def test_adds_the_pokemon_that_raises_the_teams_score_most() -> None:
     assert sorted(ids(counter_team(pool, size=2))) == [1, 2]
 
 
+def test_adds_what_a_pokemon_adds_to_the_team_not_its_own_total() -> None:
+    # Once the first is on the team, the second adds nothing for all its points; the third
+    # answers the opponent no one else does.
+    pool = [contender(1, 3, 0), contender(2, 2.9, 0), contender(3, 0, 2)]
+
+    assert ids(counter_team(pool, size=2)) == [1, 3]
+
+
 def test_picks_one_pokemon_from_each_evolution_family() -> None:
     pool = [
         contender(1, 3, 3, family=7),
@@ -155,6 +163,14 @@ def test_follows_the_lead_in_the_order_of_the_opponents_each_answers_best() -> N
     team = [answers_third, also_second_but_weaker, lead, answers_second]
 
     assert ids(battle_order(team)) == [9, 2, 3, 1]
+
+
+def test_follows_the_first_of_the_opponents_a_pokemon_answers_equally_well() -> None:
+    lead = contender(9, 5, 0, 0)
+    tied = contender(2, 0, 2, 2)
+    third = contender(1, 0, 1, 5)
+
+    assert ids(battle_order([third, lead, tied])) == [9, 2, 1]
 
 
 def test_returns_a_counter_team_in_battle_order() -> None:
