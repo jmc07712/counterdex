@@ -16,3 +16,9 @@ export type TeamEditor = {
   reorder: (pokemonIds: number[]) => Promise<TeamShape | undefined>
   rename: (name: string) => Promise<TeamShape | undefined>
 }
+
+/**
+ * What a team's counter and threats are picked from besides each species' usual form: alternate
+ * forms, such as Mega Evolutions and regional forms, and legendary and mythical Pokémon.
+ */
+export type MatchupPool = { forms: boolean; legendaries: boolean }

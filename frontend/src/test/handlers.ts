@@ -1,8 +1,10 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 
 import {
+  type Challenger,
   type CredentialsWritable,
   type FindCounterTeamResponse,
+  type Matchup,
   type Pokemon,
   type PokemonChange,
   type PokemonDetails,
@@ -16,6 +18,7 @@ import {
   type User,
 } from '@/api'
 
+import { makeMatchup } from './matchups'
 import { makeDetails, makePage } from './pokemon'
 import { server } from './server'
 import { ASH } from './users'
@@ -420,15 +423,31 @@ export function holdTeamFetches() {
   return { release }
 }
 
+/** How a Pokémon matches up against the Pokémon `opponentId`, for a stand-in to answer with. */
+export type MatchupOf = (pokemon: Pokemon, opponentId: number) => Matchup
+
+// Even, with every type neutral both ways.
+const evenMatchup: MatchupOf = (_, opponentId) => makeMatchup({ opponent_id: opponentId })
+
+// Each of `pokemon` with its matchup against each of `theirs`, in their order.
+function challengers(pokemon: Pokemon[], theirs: number[], matchup: MatchupOf): Challenger[] {
+  return pokemon.map((each) => ({
+    pokemon: each,
+    matchups: theirs.map((opponentId) => matchup(each, opponentId)),
+  }))
+}
+
 /**
  * Stands in for the API's counter teams: answers a team with as many of `catalog`'s Pokémon as it
- * has, the first ones not on it, in `catalog`'s order; or, given `refuse`, with that status
- * instead. Returns each request's query string, in the order they came.
+ * has, the first ones not on it, in `catalog`'s order, each with its `matchup` against each of
+ * the team's; or, given `refuse`, with that status instead. Returns each request's query string,
+ * in the order they came.
  */
 export function serveCounterTeam({
   catalog = [],
+  matchup = evenMatchup,
   refuse,
-}: { catalog?: Pokemon[]; refuse?: number } = {}) {
+}: { catalog?: Pokemon[]; matchup?: MatchupOf; refuse?: number } = {}) {
   const requests: string[] = []
   server.use(
     http.get('/api/counter-team', ({ request }) => {
@@ -436,10 +455,10 @@ export function serveCounterTeam({
       requests.push(query.toString())
       if (refuse) return refusal(refuse)
       const theirs = query.getAll('pokemon_id').map(Number)
-      const counter: FindCounterTeamResponse = catalog
+      const picks = catalog
         .filter((pokemon) => !theirs.includes(pokemon.id))
         .slice(0, theirs.length)
-        .map((pokemon) => ({ pokemon, matchups: [] }))
+      const counter: FindCounterTeamResponse = challengers(picks, theirs, matchup)
       return HttpResponse.json(counter)
     }),
   )

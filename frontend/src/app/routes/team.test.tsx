@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { Route, Routes } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
@@ -36,6 +36,11 @@ const CHANGED_ON = '2026-10-09T09:00:00Z'
 
 const VIEW = `/teams/${TEAM_ID}`
 const EDIT = `/teams/${TEAM_ID}/edit`
+
+// Someone else's team shows how to beat it, which these tests leave to team-matchups.test.tsx.
+beforeEach(() => {
+  serveCounterTeam()
+})
 
 function renderTeam(path = VIEW) {
   return renderWithProviders(
@@ -1015,10 +1020,13 @@ describe.each([
       ).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute('href', '/')
       expect(screen.queryByRole('link', { name: 'My teams' })).not.toBeInTheDocument()
-      // Besides building a counter to the team, each member opens its details, and that's all
-      // there is to press.
+      // Besides building a counter to the team, and how to beat it below, each member opens its
+      // details, and that's all there is to press.
+      const howToBeat = screen.getByRole('region', { name: 'How to beat this team' })
       expect(
-        screen.getAllByRole('button', { name: (name) => name !== 'Build a counter to Team 1' }),
+        screen
+          .getAllByRole('button', { name: (name) => name !== 'Build a counter to Team 1' })
+          .filter((button) => !howToBeat.contains(button)),
       ).toEqual([
         screen.getByRole('button', { name: 'Charmander' }),
         screen.getByRole('button', { name: 'Pikachu' }),

@@ -18,10 +18,12 @@ import { paths } from '@/config/paths'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
+import { useMatchupPool } from '../hooks/use-matchup-pool'
 import { useTeam } from '../hooks/use-team'
 import { BackLink } from './back-link'
 import { BuildYourOwnTeam } from './build-your-own-team'
 import { CounterTeamButton } from './counter-team-button'
+import { HowToBeatTeam } from './how-to-beat-team'
 import { TeamParty } from './team-party'
 
 type SavedTeamProps = {
@@ -39,6 +41,8 @@ type SavedTeamProps = {
 export function SavedTeam({ teamId, onOpenPokemon, children }: SavedTeamProps) {
   const team = useTeam(teamId)
   const currentUser = useCurrentUser()
+  // What a counter to someone else's team is picked from, the same as the one shown below it.
+  const [pool] = useMatchupPool()
 
   if (team.isPending || currentUser.isPending) return <Skeleton className="h-72 rounded-2xl" />
 
@@ -84,8 +88,11 @@ export function SavedTeam({ teamId, onOpenPokemon, children }: SavedTeamProps) {
           team={team.data}
           onOpenPokemon={onOpenPokemon}
           back={<BackLink to={paths.home.getHref()}>{m.teams_everyones()}</BackLink>}
-          actions={team.data.members.length > 0 && <CounterTeamButton team={team.data} />}
+          actions={
+            team.data.members.length > 0 && <CounterTeamButton team={team.data} pool={pool} />
+          }
         />
+        {team.data.members.length > 0 && <HowToBeatTeam team={team.data} />}
         <BuildYourOwnTeam />
       </>
     )
