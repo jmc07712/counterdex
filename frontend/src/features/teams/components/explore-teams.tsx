@@ -1,5 +1,7 @@
 import { Compass } from 'lucide-react'
 
+import { DealtInItem } from '@/components/lists/dealt-in-item'
+import { LoadMore } from '@/components/lists/load-more'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,9 +50,9 @@ export function ExploreTeams() {
     )
   }
 
-  const shown = teams.data.pages.flatMap((page) => page.items)
+  const { pages } = teams.data
 
-  if (shown.length === 0) {
+  if (pages.every((page) => page.items.length === 0)) {
     return (
       <Empty className="border">
         <EmptyHeader>
@@ -67,28 +69,24 @@ export function ExploreTeams() {
   return (
     <>
       <ul aria-label={m.explore_title()} className={GRID}>
-        {shown.map((team) => (
-          <li key={team.id}>
-            <TeamCard
-              to={paths.team.getHref(team.id)}
-              name={team.name}
-              members={team.members}
-              note={m.team_by({ username: team.owner.username })}
-            />
-          </li>
-        ))}
+        {pages.flatMap((page) =>
+          page.items.map((team, index) => (
+            <DealtInItem key={team.id} index={index}>
+              <TeamCard
+                to={paths.team.getHref(team.id)}
+                name={team.name}
+                members={team.members}
+                note={m.team_by({ username: team.owner.username })}
+              />
+            </DealtInItem>
+          )),
+        )}
       </ul>
       {teams.hasNextPage && (
-        <div className="mt-8 flex justify-center">
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            disabled={teams.isFetchingNextPage}
-            onClick={() => void teams.fetchNextPage()}
-          >
-            {teams.isFetchingNextPage ? m.common_loading_more() : m.common_load_more()}
-          </Button>
-        </div>
+        <LoadMore
+          loading={teams.isFetchingNextPage}
+          onLoadMore={() => void teams.fetchNextPage()}
+        />
       )}
     </>
   )

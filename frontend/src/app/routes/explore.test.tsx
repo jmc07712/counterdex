@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { serveTeams } from '@/test/handlers'
@@ -50,6 +51,16 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Rain/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
+  })
+
+  it('loads more teams as the end of the list scrolls into view', async () => {
+    serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
+    renderWithProviders(<ExplorePage />)
+    await screen.findByRole('link', { name: /Rain/ })
+
+    mockAllIsIntersecting(true)
+
+    expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
   })
 
   it('says when there are no teams yet', async () => {
