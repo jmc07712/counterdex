@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { type ReactNode, useId } from 'react'
 import Tilt from 'react-parallax-tilt'
 import { useMediaQuery } from 'usehooks-ts'
 
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { BaseStats } from './base-stats'
@@ -30,9 +31,11 @@ type PokemonCardProps = {
   // PokéAPI no longer lists it.
   removed?: boolean
   onOpen?: () => void
+  // At its foot, under its stat total, such as a button to add it to a team.
+  action?: ReactNode
 }
 
-export function PokemonCard({ pokemon, removed = false, onOpen }: PokemonCardProps) {
+export function PokemonCard({ pokemon, removed = false, onOpen, action }: PokemonCardProps) {
   const headingId = useId()
   const canTilt = useMediaQuery(TILT_MEDIA_QUERY)
   const [primary, secondary = primary] = pokemon.types
@@ -89,16 +92,21 @@ export function PokemonCard({ pokemon, removed = false, onOpen }: PokemonCardPro
               )}
             </SpriteWindow>
 
-            <BaseStats stats={pokemon.stats} className="mt-auto" />
+            {/* Not pinned to the footer, which an action's note can make taller than its row's. */}
+            <BaseStats stats={pokemon.stats} />
           </CardContent>
 
-          <CardFooter className="justify-end text-xs">
-            <dl className="flex gap-1 text-muted-foreground">
+          <CardFooter
+            className={cn('justify-end text-xs', action && 'flex-col items-stretch gap-2')}
+          >
+            <dl className="flex gap-1 self-end text-muted-foreground">
               <dt>{m.pokemon_stat_total()}</dt>
               <dd className="font-semibold text-foreground tabular-nums">
                 {statTotal(pokemon.stats)}
               </dd>
             </dl>
+            {/* Over the open button, so it can be pressed on its own. */}
+            {action && <div className="relative z-10">{action}</div>}
           </CardFooter>
         </Card>
         {onOpen && (

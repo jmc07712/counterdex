@@ -1,6 +1,7 @@
 import { SearchX } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-import { ListingStatus } from '@/api'
+import { ListingStatus, type Pokemon } from '@/api'
 import { DealtInItem } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
 import { ResultsStatus } from '@/components/lists/results-status'
@@ -28,9 +29,11 @@ type PokemonGridProps = {
   filters: PokedexFilters
   onClearFilters: () => void
   onOpen: (pokemonId: number) => void
+  // On each card of a Pokémon PokéAPI lists, such as a button to add it to a team.
+  cardAction?: (pokemon: Pokemon) => ReactNode
 }
 
-export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProps) {
+export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: PokemonGridProps) {
   const search = useDebouncedSearch(filters.search)
   const query = usePokemonList({ ...filters, search })
 
@@ -61,6 +64,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
 
   const { pages } = query.data
   const { view } = filters
+  const removed = view === ListingStatus.REMOVED
   const shown = pages.reduce((count, page) => count + page.items.length, 0)
   const settled = !query.isPlaceholderData
 
@@ -102,8 +106,9 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
             <DealtInItem key={each.id} index={index}>
               <PokemonCard
                 pokemon={each}
-                removed={view === ListingStatus.REMOVED}
+                removed={removed}
                 onOpen={() => onOpen(each.id)}
+                action={removed ? undefined : cardAction?.(each)}
               />
             </DealtInItem>
           )),

@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { PokemonType } from '@/api'
 import { makePokemon } from '@/test/pokemon'
@@ -60,6 +61,24 @@ describe('PokemonCard', () => {
 
     // Its empty alt text makes it presentational, so screen readers skip it.
     expect(screen.getByRole('presentation')).toHaveAttribute('src', pokemon.sprite_url)
+  })
+
+  it('shows an action at its foot, pressed apart from opening the card', async () => {
+    const onOpen = vi.fn()
+    const onAdd = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <PokemonCard
+        pokemon={makePokemon()}
+        onOpen={onOpen}
+        action={<button onClick={onAdd}>Add</button>}
+      />,
+    )
+
+    await user.click(within(screen.getByRole('article')).getByRole('button', { name: 'Add' }))
+
+    expect(onAdd).toHaveBeenCalledOnce()
+    expect(onOpen).not.toHaveBeenCalled()
   })
 
   it('still renders when PokéAPI has no sprite', () => {

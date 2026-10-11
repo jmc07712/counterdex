@@ -49,6 +49,17 @@ describe('PokedexPage', () => {
     expect(screen.getByRole('article', { name: 'Charizard Mega X' })).toBeInTheDocument()
   })
 
+  it('offers nothing on a card but opening it', async () => {
+    servePokemon(makePage(['bulbasaur']))
+
+    renderWithProviders(<PokedexPage />)
+
+    const card = await screen.findByRole('article', { name: 'Bulbasaur' })
+    expect(within(card).getAllByRole('button')).toEqual([
+      within(card).getByRole('button', { name: 'Bulbasaur' }),
+    ])
+  })
+
   it('searches by name once you pause typing, and keeps the search in the URL', async () => {
     const requests = servePokemon()
     const { user, router } = renderWithProviders(<PokedexPage />)
