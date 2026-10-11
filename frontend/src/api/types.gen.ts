@@ -5,6 +5,36 @@ export type ClientOptions = {
 };
 
 /**
+ * Answer
+ *
+ * Our best answer to one of their Pokémon.
+ */
+export type Answer = {
+    /**
+     * Opponent Id
+     *
+     * Their Pokémon's `id`.
+     */
+    opponent_id: number;
+    /**
+     * Pokemon Id
+     *
+     * The `id` of our Pokémon with the best score against it; the first in our order, on a tie.
+     */
+    pokemon_id: number;
+    /**
+     * Score
+     *
+     * That Pokémon's score against it.
+     */
+    score: number;
+    /**
+     * That score's rating.
+     */
+    rating: Rating;
+};
+
+/**
  * Attack
  *
  * A Pokémon's most effective type against its opponent: of its own types, the one whose
@@ -961,6 +991,32 @@ export const TeamConflictReason = {
  * Why a change can't be made to a team as it is now.
  */
 export type TeamConflictReason = typeof TeamConflictReason[keyof typeof TeamConflictReason];
+
+/**
+ * TeamMatchups
+ *
+ * Our team scored against theirs.
+ */
+export type TeamMatchups = {
+    /**
+     * Members
+     *
+     * Our Pokémon, in the order given, each with its matchup against each of theirs.
+     */
+    members: Array<Challenger>;
+    /**
+     * Answers
+     *
+     * Our best answer to each of their Pokémon, in their order.
+     */
+    answers: Array<Answer>;
+    /**
+     * Every Opponent Answered
+     *
+     * Whether every one of their Pokémon has an answer rated `good`.
+     */
+    every_opponent_answered: boolean;
+};
 
 /**
  * TeamMember
@@ -2065,3 +2121,45 @@ export type ListTeamThreatsResponses = {
 };
 
 export type ListTeamThreatsResponse = ListTeamThreatsResponses[keyof ListTeamThreatsResponses];
+
+export type ScoreTeamsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Pokemon Id
+         *
+         * One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle order, from one to six.
+         */
+        pokemon_id: Array<number>;
+        /**
+         * Opponent Id
+         *
+         * One of their Pokémon's `id`. Repeat it for each of their Pokémon, in battle order, from one to six.
+         */
+        opponent_id: Array<number>;
+    };
+    url: '/api/matchups';
+};
+
+export type ScoreTeamsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * The Pokédex hasn't been synced enough to answer: run a sync first.
+     */
+    503: unknown;
+};
+
+export type ScoreTeamsError = ScoreTeamsErrors[keyof ScoreTeamsErrors];
+
+export type ScoreTeamsResponses = {
+    /**
+     * Successful Response
+     */
+    200: TeamMatchups;
+};
+
+export type ScoreTeamsResponse = ScoreTeamsResponses[keyof ScoreTeamsResponses];

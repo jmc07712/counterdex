@@ -1479,10 +1479,115 @@
           }
         }
       }
+    },
+    "/api/matchups": {
+      "get": {
+        "tags": [
+          "Counter team"
+        ],
+        "summary": "Score a team against another",
+        "description": "Our team scored against theirs, the way Find a counter team scores its picks: each of our\nPokémon against each of theirs, in the orders given, and our best answer to each of theirs,\nwith whether every one of theirs has a `good` answer. For a team being edited against the\nteam it's meant to counter.\n\nEither team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.",
+        "operationId": "score_teams",
+        "parameters": [
+          {
+            "name": "pokemon_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "maximum": 2147483647,
+                "minimum": 1
+              },
+              "maxItems": 6,
+              "minItems": 1,
+              "description": "One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle order, from one to six.",
+              "title": "Pokemon Id"
+            },
+            "description": "One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle order, from one to six."
+          },
+          {
+            "name": "opponent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "maximum": 2147483647,
+                "minimum": 1
+              },
+              "maxItems": 6,
+              "minItems": 1,
+              "description": "One of their Pokémon's `id`. Repeat it for each of their Pokémon, in battle order, from one to six.",
+              "title": "Opponent Id"
+            },
+            "description": "One of their Pokémon's `id`. Repeat it for each of their Pokémon, in battle order, from one to six."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMatchups"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Pokédex hasn't been synced enough to answer: run a sync first."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Answer": {
+        "properties": {
+          "opponent_id": {
+            "type": "integer",
+            "title": "Opponent Id",
+            "description": "Their Pokémon's `id`."
+          },
+          "pokemon_id": {
+            "type": "integer",
+            "title": "Pokemon Id",
+            "description": "The `id` of our Pokémon with the best score against it; the first in our order, on a tie."
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "That Pokémon's score against it."
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating",
+            "description": "That score's rating."
+          }
+        },
+        "type": "object",
+        "required": [
+          "opponent_id",
+          "pokemon_id",
+          "score",
+          "rating"
+        ],
+        "title": "Answer",
+        "description": "Our best answer to one of their Pokémon."
+      },
       "Attack": {
         "properties": {
           "type": {
@@ -2729,6 +2834,39 @@
         ],
         "title": "TeamConflictReason",
         "description": "Why a change can't be made to a team as it is now."
+      },
+      "TeamMatchups": {
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/Challenger"
+            },
+            "type": "array",
+            "title": "Members",
+            "description": "Our Pokémon, in the order given, each with its matchup against each of theirs."
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/Answer"
+            },
+            "type": "array",
+            "title": "Answers",
+            "description": "Our best answer to each of their Pokémon, in their order."
+          },
+          "every_opponent_answered": {
+            "type": "boolean",
+            "title": "Every Opponent Answered",
+            "description": "Whether every one of their Pokémon has an answer rated `good`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "members",
+          "answers",
+          "every_opponent_answered"
+        ],
+        "title": "TeamMatchups",
+        "description": "Our team scored against theirs."
       },
       "TeamMember": {
         "properties": {

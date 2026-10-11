@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listSyncRuns, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListSyncRunsData, ListSyncRunsError, ListSyncRunsResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listSyncRuns, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, scoreTeams, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListSyncRunsData, ListSyncRunsError, ListSyncRunsResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, ScoreTeamsData, ScoreTeamsError, ScoreTeamsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -681,4 +681,29 @@ export const listTeamThreatsOptions = (options: Options<ListTeamThreatsData>) =>
         return data;
     },
     queryKey: listTeamThreatsQueryKey(options)
+});
+
+export const scoreTeamsQueryKey = (options: Options<ScoreTeamsData>) => createQueryKey('scoreTeams', options);
+
+/**
+ * Score a team against another
+ *
+ * Our team scored against theirs, the way Find a counter team scores its picks: each of our
+ * Pokémon against each of theirs, in the orders given, and our best answer to each of theirs,
+ * with whether every one of theirs has a `good` answer. For a team being edited against the
+ * team it's meant to counter.
+ *
+ * Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+ */
+export const scoreTeamsOptions = (options: Options<ScoreTeamsData>) => queryOptions<ScoreTeamsResponse, ScoreTeamsError, ScoreTeamsResponse, ReturnType<typeof scoreTeamsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await scoreTeams({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: scoreTeamsQueryKey(options)
 });

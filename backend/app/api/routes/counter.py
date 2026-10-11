@@ -14,7 +14,7 @@ from app.counter.exceptions import (
     TypeChartMissingError,
     UnknownPokemonError,
 )
-from app.counter.schemas import Challenger, TeamMatchupQuery
+from app.counter.schemas import Challenger, MatchupsQuery, TeamMatchupQuery, TeamMatchups
 
 router = APIRouter(tags=[COUNTER_TEAM])
 
@@ -90,3 +90,20 @@ def list_team_threats(
         threats = service.list_team_threats(session, query)
     cache_publicly(response, COUNTER_TEAM_CACHE_CONTROL)
     return threats
+
+
+@router.get("/matchups", summary="Score a team against another", responses=NOT_SYNCED)
+def score_teams(
+    session: SessionDep, response: Response, query: Annotated[MatchupsQuery, Query()]
+) -> TeamMatchups:
+    """Our team scored against theirs, the way Find a counter team scores its picks: each of our
+    Pokémon against each of theirs, in the orders given, and our best answer to each of theirs,
+    with whether every one of theirs has a `good` answer. For a team being edited against the
+    team it's meant to counter.
+
+    Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+    """
+    with counter_errors():
+        scored = service.score_teams(session, query)
+    cache_publicly(response, COUNTER_TEAM_CACHE_CONTROL)
+    return scored

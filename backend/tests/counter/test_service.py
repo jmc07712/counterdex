@@ -7,8 +7,8 @@ from app.counter.exceptions import (
     TypeChartMissingError,
     UnknownPokemonError,
 )
-from app.counter.schemas import Challenger, TeamMatchupQuery
-from app.counter.service import find_counter_team, list_team_threats
+from app.counter.schemas import Challenger, MatchupsQuery, TeamMatchupQuery
+from app.counter.service import find_counter_team, list_team_threats, score_teams
 from app.pokemon.enums import PokemonType
 from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart, remove_pokemon
 from tests.support.pokemon import add_species, make_pokemon
@@ -143,3 +143,79 @@ def test_lists_one_threat_from_each_evolution_family(db_session: Session) -> Non
 
     families = [threat.pokemon.family_id for threat in threats]
     assert len(set(families)) == len(families)
+
+
+# --- One team against another ---
+
+GOLEM = 76
+
+
+def versus(ours: list[int], theirs: list[int]) -> MatchupsQuery:
+    return MatchupsQuery(pokemon_ids=ours, opponent_ids=theirs)
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_scores_each_of_ours_against_each_of_theirs_in_the_orders_given(
+    db_session: Session,
+) -> None:
+    scored = score_teams(db_session, versus([SNORLAX, GOLEM], [CHARIZARD, VENUSAUR]))
+
+    assert [member.pokemon.id for member in scored.members] == [SNORLAX, GOLEM]
+    for member in scored.members:
+        assert [matchup.opponent_id for matchup in member.matchups] == [CHARIZARD, VENUSAUR]
+    golem_on_charizard = scored.members[1].matchups[0]
+    assert (golem_on_charizard.attack.type, golem_on_charizard.score) == (
+        PokemonType.ROCK,
+        2.6525,
+    )
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_finds_our_best_answer_to_each_of_theirs(db_session: Session) -> None:
+    # Golem's Rock is 4x against Charizard; against Venusaur, whose Grass is 4x against Golem,
+    # Snorlax does better, though only evenly.
+    scored = score_teams(db_session, versus([SNORLAX, GOLEM], [CHARIZARD, VENUSAUR]))
+
+    assert [
+        (answer.opponent_id, answer.pokemon_id, answer.rating) for answer in scored.answers
+    ] == [
+        (CHARIZARD, GOLEM, Rating.GOOD),
+        (VENUSAUR, SNORLAX, Rating.EVEN),
+    ]
+    assert scored.answers[1].score == -0.2125
+    assert scored.every_opponent_answered is False
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_says_when_every_one_of_theirs_has_a_good_answer(db_session: Session) -> None:
+    scored = score_teams(db_session, versus([GOLEM], [CHARIZARD]))
+
+    assert scored.every_opponent_answered is True
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_scores_pokemon_pokeapi_no_longer_lists_on_either_team(db_session: Session) -> None:
+    remove_pokemon(db_session, GOLEM)
+    remove_pokemon(db_session, CHARIZARD)
+
+    scored = score_teams(db_session, versus([GOLEM], [CHARIZARD]))
+
+    assert scored.answers[0].pokemon_id == GOLEM
+
+
+@pytest.mark.usefixtures("pokedex")
+@pytest.mark.parametrize(
+    ("ours", "theirs"), [([GOLEM, 99999], [CHARIZARD]), ([GOLEM], [CHARIZARD, 99999])]
+)
+def test_refuses_an_id_no_pokemon_has_on_either_team(
+    db_session: Session, ours: list[int], theirs: list[int]
+) -> None:
+    with pytest.raises(UnknownPokemonError):
+        score_teams(db_session, versus(ours, theirs))
+
+
+def test_refuses_to_score_teams_without_a_type_chart(db_session: Session) -> None:
+    add_real_pokemon(db_session, GOLEM, CHARIZARD)
+
+    with pytest.raises(TypeChartMissingError):
+        score_teams(db_session, versus([GOLEM], [CHARIZARD]))

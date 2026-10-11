@@ -45,6 +45,31 @@ class TeamMatchupQuery(BaseModel):
     ] = False
 
 
+class MatchupsQuery(BaseModel):
+    """Our team and theirs, to score against each other."""
+
+    model_config = ConfigDict(frozen=True, validate_by_name=True)
+
+    pokemon_ids: Annotated[
+        PokemonIds,
+        Field(
+            alias="pokemon_id",
+            min_length=1,
+            description="One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle "
+            "order, from one to six.",
+        ),
+    ]
+    opponent_ids: Annotated[
+        PokemonIds,
+        Field(
+            alias="opponent_id",
+            min_length=1,
+            description="One of their Pokémon's `id`. Repeat it for each of their Pokémon, in "
+            "battle order, from one to six.",
+        ),
+    ]
+
+
 class Attack(BaseModel):
     """A Pokémon's most effective type against its opponent: of its own types, the one whose
     multiplier against the opponent's types is highest, its primary type on a tie.
@@ -104,3 +129,31 @@ class Challenger(BaseModel):
     pokemon: Pokemon
     matchups: list[Matchup]
     """Against each of the team's Pokémon, in the order the team was given."""
+
+
+class Answer(BaseModel):
+    """Our best answer to one of their Pokémon."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    opponent_id: int
+    """Their Pokémon's `id`."""
+    pokemon_id: int
+    """The `id` of our Pokémon with the best score against it; the first in our order, on a tie."""
+    score: float
+    """That Pokémon's score against it."""
+    rating: Rating
+    """That score's rating."""
+
+
+class TeamMatchups(BaseModel):
+    """Our team scored against theirs."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    members: list[Challenger]
+    """Our Pokémon, in the order given, each with its matchup against each of theirs."""
+    answers: list[Answer]
+    """Our best answer to each of their Pokémon, in their order."""
+    every_opponent_answered: bool
+    """Whether every one of their Pokémon has an answer rated `good`."""

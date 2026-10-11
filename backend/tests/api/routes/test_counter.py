@@ -162,3 +162,96 @@ def test_documents_each_parameter_and_error(openapi: dict[str, Any], path: str) 
     assert described == {"pokemon_id", "forms", "legendaries"}
     assert {"200", "422", "503"} <= operation["responses"].keys()
     assert operation["description"]
+
+
+# --- One team against another ---
+
+GOLEM = 76
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_scores_one_team_against_another(client: TestClient) -> None:
+    response = client.get("/api/matchups", params={"pokemon_id": GOLEM, "opponent_id": CHARIZARD})
+
+    assert response.status_code == 200
+    body = response.json()
+    (member,) = body["members"]
+    assert member["pokemon"]["name"] == "golem"
+    # Rock is 4x against Charizard (+2), and Charizard's Fire 1/2x against Golem (+1). Golem's
+    # base stat total is 495 to Charizard's 534 (0.25 * -39 / 100), and it's slower (-0.25).
+    assert member["matchups"] == [
+        {
+            "opponent_id": CHARIZARD,
+            "attack": {"type": "rock", "multiplier": 4},
+            "opponent_attack": {"type": "fire", "multiplier": 0.5},
+            "speed": "slower",
+            "stat_total_difference": -39,
+            "score": 2.6525,
+            "rating": "good",
+        }
+    ]
+    assert body["answers"] == [
+        {"opponent_id": CHARIZARD, "pokemon_id": GOLEM, "score": 2.6525, "rating": "good"}
+    ]
+    assert body["every_opponent_answered"] is True
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        pytest.param({"opponent_id": 6}, id="no-pokemon"),
+        pytest.param({"pokemon_id": 76}, id="no-opponents"),
+        pytest.param({"pokemon_id": [1, 2, 3, 4, 5, 6, 7], "opponent_id": 6}, id="seven-pokemon"),
+        pytest.param(
+            {"pokemon_id": 76, "opponent_id": [1, 2, 3, 4, 5, 6, 7]}, id="seven-opponents"
+        ),
+        pytest.param({"pokemon_id": [76, 76], "opponent_id": 6}, id="repeated-pokemon"),
+        pytest.param({"pokemon_id": 76, "opponent_id": [6, 6]}, id="repeated-opponent"),
+        pytest.param({"pokemon_id": 0, "opponent_id": 6}, id="not-an-id"),
+    ],
+)
+@pytest.mark.usefixtures("pokedex")
+def test_refuses_teams_that_cannot_be(client: TestClient, params: dict[str, Any]) -> None:
+    assert client.get("/api/matchups", params=params).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "params",
+    [{"pokemon_id": [76, 99999], "opponent_id": 6}, {"pokemon_id": 76, "opponent_id": 99999}],
+    ids=["ours", "theirs"],
+)
+@pytest.mark.usefixtures("pokedex")
+def test_refuses_an_id_no_pokemon_has_on_either_team(
+    client: TestClient, params: dict[str, Any]
+) -> None:
+    response = client.get("/api/matchups", params=params)
+
+    assert (response.status_code, response.json()) == (
+        422,
+        {"detail": "No Pokémon has one or more of these ids."},
+    )
+
+
+def test_asks_for_a_sync_before_scoring_teams(client: TestClient, db_session: Session) -> None:
+    add_real_pokemon(db_session, GOLEM, CHARIZARD)
+
+    response = client.get("/api/matchups", params={"pokemon_id": GOLEM, "opponent_id": CHARIZARD})
+
+    assert response.status_code == 503
+    assert "sync" in response.json()["detail"]
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_lets_browsers_and_the_cdn_cache_scored_teams(client: TestClient) -> None:
+    response = client.get("/api/matchups", params={"pokemon_id": GOLEM, "opponent_id": CHARIZARD})
+
+    assert response.headers["cache-control"] == COUNTER_TEAM_CACHE_CONTROL
+
+
+def test_documents_scoring_teams(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/matchups"]["get"]
+    described = {param["name"] for param in operation["parameters"] if param.get("description")}
+
+    assert described == {"pokemon_id", "opponent_id"}
+    assert {"200", "422", "503"} <= operation["responses"].keys()
+    assert operation["description"]

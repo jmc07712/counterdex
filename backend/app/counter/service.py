@@ -1,5 +1,5 @@
-"""Counter teams, and the threats to a team, worked out on request from the Pokédex and the
-type chart (see scoring and search).
+"""Counter teams, the threats to a team, and one team scored against another, worked out on
+request from the Pokédex and the type chart (see scoring and search).
 
 Nothing here writes to the database.
 """
@@ -10,13 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.counter import queries, schemas, search
 from app.counter.constants import MAX_THREATS
+from app.counter.enums import Rating
 from app.counter.exceptions import (
     TooFewCandidatesError,
     TypeChartMissingError,
     UnknownPokemonError,
 )
 from app.counter.scoring import matchup, weak_to
-from app.counter.types import Attack, Contender, Matchup
+from app.counter.types import Attack, Contender, Matchup, TypeChart
 
 
 def find_counter_team(
@@ -48,6 +49,57 @@ def list_team_threats(
     return _challengers(session, threats, query.pokemon_ids)
 
 
+def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamMatchups:
+    """Our team scored against theirs: each of ours against each of theirs, in the orders given,
+    and our best answer to each of theirs (see search.best_answers). Pokémon that PokéAPI no
+    longer lists are scored as stored.
+
+    Raises UnknownPokemonError if no Pokémon has one of the ids, and TypeChartMissingError if no
+    sync has stored the type chart.
+    """
+    found = queries.profiles(session, [*query.pokemon_ids, *query.opponent_ids])
+    if any(pokemon_id not in found for pokemon_id in [*query.pokemon_ids, *query.opponent_ids]):
+        raise UnknownPokemonError
+    chart = _type_chart(session)
+    ours = [found[pokemon_id] for pokemon_id in query.pokemon_ids]
+    theirs = [found[pokemon_id] for pokemon_id in query.opponent_ids]
+    team = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
+    pokemon = queries.pokemon(session, query.pokemon_ids)
+    answers = [
+        schemas.Answer(
+            opponent_id=opponent_id,
+            pokemon_id=query.pokemon_ids[position],
+            score=team[position][index].score,
+            rating=team[position][index].rating,
+        )
+        for index, (opponent_id, position) in enumerate(
+            zip(query.opponent_ids, search.best_answers(team), strict=True)
+        )
+    ]
+    return schemas.TeamMatchups(
+        members=[
+            schemas.Challenger(
+                pokemon=pokemon[pokemon_id],
+                matchups=[
+                    _matchup(opponent_id, scored)
+                    for opponent_id, scored in zip(query.opponent_ids, row, strict=True)
+                ],
+            )
+            for pokemon_id, row in zip(query.pokemon_ids, team, strict=True)
+        ],
+        answers=answers,
+        every_opponent_answered=all(answer.rating is Rating.GOOD for answer in answers),
+    )
+
+
+def _type_chart(session: Session) -> TypeChart:
+    """The stored type chart. Raises TypeChartMissingError if no sync has stored it."""
+    chart = queries.type_chart(session)
+    if not chart:
+        raise TypeChartMissingError
+    return chart
+
+
 def _contenders(session: Session, query: schemas.TeamMatchupQuery) -> list[Contender]:
     """Every Pokémon the query lets us choose from, scored against each of the team's Pokémon.
     The team's Pokémon are scored as stored, even if PokéAPI no longer lists them.
@@ -55,9 +107,7 @@ def _contenders(session: Session, query: schemas.TeamMatchupQuery) -> list[Conte
     found = queries.profiles(session, query.pokemon_ids)
     if any(pokemon_id not in found for pokemon_id in query.pokemon_ids):
         raise UnknownPokemonError
-    chart = queries.type_chart(session)
-    if not chart:
-        raise TypeChartMissingError
+    chart = _type_chart(session)
     team = [found[pokemon_id] for pokemon_id in query.pokemon_ids]
     attacking = {type_ for member in team for type_ in member.types}
     return [

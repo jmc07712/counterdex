@@ -79,6 +79,7 @@ def test_the_docs_sort_every_route_under_one_tag_in_a_group(openapi: dict[str, A
     assert tagged["PUT /api/teams/{team_id}/order"] == ["Team members"]
     assert tagged["GET /api/counter-team"] == ["Counter team"]
     assert tagged["GET /api/team-threats"] == ["Counter team"]
+    assert tagged["GET /api/matchups"] == ["Counter team"]
     assert tagged["GET /api/session"] == ["Session"]
     assert tagged["POST /api/users"] == ["Session"]
     # Every route is under exactly one tag, and every tag is in a group.

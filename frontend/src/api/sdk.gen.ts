@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListSyncRunsData, ListSyncRunsErrors, ListSyncRunsResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListTeamThreatsData, ListTeamThreatsErrors, ListTeamThreatsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListSyncRunsData, ListSyncRunsErrors, ListSyncRunsResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListTeamThreatsData, ListTeamThreatsErrors, ListTeamThreatsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, ScoreTeamsData, ScoreTeamsErrors, ScoreTeamsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -338,3 +338,15 @@ export const findCounterTeam = <ThrowOnError extends boolean = false>(options: O
  * with no Pokémon is a 422.
  */
 export const listTeamThreats = <ThrowOnError extends boolean = false>(options: Options<ListTeamThreatsData, ThrowOnError>): RequestResult<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError> => (options.client ?? client).get<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError>({ url: '/api/team-threats', ...options });
+
+/**
+ * Score a team against another
+ *
+ * Our team scored against theirs, the way Find a counter team scores its picks: each of our
+ * Pokémon against each of theirs, in the orders given, and our best answer to each of theirs,
+ * with whether every one of theirs has a `good` answer. For a team being edited against the
+ * team it's meant to counter.
+ *
+ * Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+ */
+export const scoreTeams = <ThrowOnError extends boolean = false>(options: Options<ScoreTeamsData, ThrowOnError>): RequestResult<ScoreTeamsResponses, ScoreTeamsErrors, ThrowOnError> => (options.client ?? client).get<ScoreTeamsResponses, ScoreTeamsErrors, ThrowOnError>({ url: '/api/matchups', ...options });

@@ -2,7 +2,7 @@ from collections.abc import Collection
 
 from app.counter.enums import RelativeSpeed
 from app.counter.scoring import rating
-from app.counter.search import battle_order, counter_team, threats
+from app.counter.search import battle_order, best_answers, counter_team, threats
 from app.counter.types import Attack, Candidate, Contender, Matchup
 from app.pokemon.enums import PokemonType
 from tests.support.counter import profile
@@ -214,3 +214,21 @@ def test_lists_threats_up_to_the_limit() -> None:
     pool = [contender(pokemon_id, -pokemon_id) for pokemon_id in range(1, 6)]
 
     assert ids(threats(pool, limit=3)) == [1, 2, 3]
+
+
+# --- Best answers ---
+
+
+def test_finds_the_pokemon_with_the_best_score_against_each_opponent() -> None:
+    team = [
+        [scored(1), scored(-2), scored(0)],
+        [scored(3), scored(-1), scored(0)],
+    ]
+
+    assert best_answers(team) == [1, 1, 0]
+
+
+def test_takes_the_first_in_the_teams_order_on_a_tie() -> None:
+    team = [[scored(2)], [scored(3)], [scored(3)]]
+
+    assert best_answers(team) == [1]
