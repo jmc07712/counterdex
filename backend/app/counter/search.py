@@ -104,7 +104,7 @@ def _best_answered(member: Contender) -> int:
 
 def best_answers(team: Sequence[Sequence[Matchup]]) -> list[int]:
     """For each of their Pokémon, the position in our team of the Pokémon that scores best
-    against it, the first on a tie, from each of ours' matchups against each of theirs.
+    against it, the first on a tie, from our Pokémon's matchups against theirs.
     """
     return [_first_best(matchups) for matchups in zip(*team, strict=True)]
 

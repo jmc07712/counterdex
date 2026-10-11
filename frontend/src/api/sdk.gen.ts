@@ -321,8 +321,8 @@ export const reorderTeam = <ThrowOnError extends boolean = false>(options: Optio
  * Pokémon they score best against.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their
- * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no
- * Pokémon is a 422.
+ * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` given twice,
+ * or with no Pokémon, is a 422.
  */
 export const findCounterTeam = <ThrowOnError extends boolean = false>(options: Options<FindCounterTeamData, ThrowOnError>): RequestResult<FindCounterTeamResponses, FindCounterTeamErrors, ThrowOnError> => (options.client ?? client).get<FindCounterTeamResponses, FindCounterTeamErrors, ThrowOnError>({ url: '/api/counter-team', ...options });
 
@@ -335,7 +335,7 @@ export const findCounterTeam = <ThrowOnError extends boolean = false>(options: O
  * threat's side, so a threat's `good` rating is good for the threat and bad for the team.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
- * with no Pokémon is a 422.
+ * given twice, or with no Pokémon, is a 422.
  */
 export const listTeamThreats = <ThrowOnError extends boolean = false>(options: Options<ListTeamThreatsData, ThrowOnError>): RequestResult<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError> => (options.client ?? client).get<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError>({ url: '/api/team-threats', ...options });
 
@@ -347,6 +347,7 @@ export const listTeamThreats = <ThrowOnError extends boolean = false>(options: O
  * with whether every one of theirs has a `good` answer. For a team being edited against the
  * team it's meant to counter.
  *
- * Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+ * Either team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,
+ * or with no Pokémon, is a 422. The same Pokémon may be on both teams.
  */
 export const scoreTeams = <ThrowOnError extends boolean = false>(options: Options<ScoreTeamsData, ThrowOnError>): RequestResult<ScoreTeamsResponses, ScoreTeamsErrors, ThrowOnError> => (options.client ?? client).get<ScoreTeamsResponses, ScoreTeamsErrors, ThrowOnError>({ url: '/api/matchups', ...options });

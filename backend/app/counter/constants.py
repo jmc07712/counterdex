@@ -17,10 +17,9 @@ MAX_THREATS = 12
 # An attacking type's points are log2 of its multiplier: 4x is +2, 2x +1, 1x 0, 1/2x -1 and
 # 1/4x -2. A type that has no effect gets these points.
 NO_EFFECT_POINTS = -3
-# Power counts base stat total in steps of this many.
+# Power is +POWER_WEIGHT for each STAT_TOTAL_STEP of base stat total the Pokémon has over its
+# opponent and -POWER_WEIGHT for each it has under, counted in parts of a step too.
 STAT_TOTAL_STEP = 100
-# Power: +POWER_WEIGHT for each STAT_TOTAL_STEP of base stat total the Pokémon has over its
-# opponent, and -POWER_WEIGHT for each it has under.
 POWER_WEIGHT = 0.25
 # Speed: +SPEED_POINTS for a higher base Speed than the opponent's, -SPEED_POINTS for a lower
 # one, and 0 for the same.

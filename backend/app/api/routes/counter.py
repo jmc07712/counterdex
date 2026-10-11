@@ -65,8 +65,8 @@ def find_counter_team(
     Pokémon they score best against.
 
     Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their
-    team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no
-    Pokémon is a 422.
+    team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` given twice,
+    or with no Pokémon, is a 422.
     """
     with counter_errors():
         team = service.find_counter_team(session, query)
@@ -84,7 +84,7 @@ def list_team_threats(
     threat's side, so a threat's `good` rating is good for the threat and bad for the team.
 
     Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
-    with no Pokémon is a 422.
+    given twice, or with no Pokémon, is a 422.
     """
     with counter_errors():
         threats = service.list_team_threats(session, query)
@@ -101,7 +101,8 @@ def score_teams(
     with whether every one of theirs has a `good` answer. For a team being edited against the
     team it's meant to counter.
 
-    Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+    Either team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,
+    or with no Pokémon, is a 422. The same Pokémon may be on both teams.
     """
     with counter_errors():
         scored = service.score_teams(session, query)

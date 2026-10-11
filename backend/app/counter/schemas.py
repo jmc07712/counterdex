@@ -30,7 +30,7 @@ class TeamMatchupQuery(BaseModel):
             alias="pokemon_id",
             min_length=1,
             description="A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot "
-            "order, from one to six.",
+            "order, from one to six, each once.",
         ),
     ]
     forms: Annotated[
@@ -56,7 +56,7 @@ class MatchupsQuery(BaseModel):
             alias="pokemon_id",
             min_length=1,
             description="One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle "
-            "order, from one to six.",
+            "order, from one to six, each once.",
         ),
     ]
     opponent_ids: Annotated[
@@ -65,7 +65,7 @@ class MatchupsQuery(BaseModel):
             alias="opponent_id",
             min_length=1,
             description="One of their Pokémon's `id`. Repeat it for each of their Pokémon, in "
-            "battle order, from one to six.",
+            "battle order, from one to six, each once.",
         ),
     ]
 

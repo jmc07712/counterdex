@@ -641,8 +641,8 @@ export const findCounterTeamQueryKey = (options: Options<FindCounterTeamData>) =
  * Pokémon they score best against.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their
- * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no
- * Pokémon is a 422.
+ * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` given twice,
+ * or with no Pokémon, is a 422.
  */
 export const findCounterTeamOptions = (options: Options<FindCounterTeamData>) => queryOptions<FindCounterTeamResponse, FindCounterTeamError, FindCounterTeamResponse, ReturnType<typeof findCounterTeamQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -668,7 +668,7 @@ export const listTeamThreatsQueryKey = (options: Options<ListTeamThreatsData>) =
  * threat's side, so a threat's `good` rating is good for the threat and bad for the team.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
- * with no Pokémon is a 422.
+ * given twice, or with no Pokémon, is a 422.
  */
 export const listTeamThreatsOptions = (options: Options<ListTeamThreatsData>) => queryOptions<ListTeamThreatsResponse, ListTeamThreatsError, ListTeamThreatsResponse, ReturnType<typeof listTeamThreatsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -693,7 +693,8 @@ export const scoreTeamsQueryKey = (options: Options<ScoreTeamsData>) => createQu
  * with whether every one of theirs has a `good` answer. For a team being edited against the
  * team it's meant to counter.
  *
- * Either team may have Pokémon that PokéAPI no longer lists. An `id` with no Pokémon is a 422.
+ * Either team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,
+ * or with no Pokémon, is a 422. The same Pokémon may be on both teams.
  */
 export const scoreTeamsOptions = (options: Options<ScoreTeamsData>) => queryOptions<ScoreTeamsResponse, ScoreTeamsError, ScoreTeamsResponse, ReturnType<typeof scoreTeamsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

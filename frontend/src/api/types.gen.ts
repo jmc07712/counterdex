@@ -2035,7 +2035,7 @@ export type FindCounterTeamData = {
         /**
          * Pokemon Id
          *
-         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.
+         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six, each once.
          */
         pokemon_id: Array<number>;
         /**
@@ -2085,7 +2085,7 @@ export type ListTeamThreatsData = {
         /**
          * Pokemon Id
          *
-         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.
+         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six, each once.
          */
         pokemon_id: Array<number>;
         /**
@@ -2135,13 +2135,13 @@ export type ScoreTeamsData = {
         /**
          * Pokemon Id
          *
-         * One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle order, from one to six.
+         * One of our Pokémon's `id`. Repeat it for each of our Pokémon, in battle order, from one to six, each once.
          */
         pokemon_id: Array<number>;
         /**
          * Opponent Id
          *
-         * One of their Pokémon's `id`. Repeat it for each of their Pokémon, in battle order, from one to six.
+         * One of their Pokémon's `id`. Repeat it for each of their Pokémon, in battle order, from one to six, each once.
          */
         opponent_id: Array<number>;
     };
