@@ -145,11 +145,14 @@ export function SlotButton(props: ComponentProps<'button'>) {
 
 /** A link to swap a member for another Pokémon, drawn in the slot's text color. */
 export function ReplaceLink({ member, to }: { member: TeamMember; to: string }) {
+  const label = m.team_replace_named({ name: displayName(member.pokemon.name) })
   return (
     <Link
       to={to}
-      aria-label={m.team_replace_named({ name: displayName(member.pokemon.name) })}
-      className="inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-current text-sm font-semibold transition-colors hover:bg-current/15 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current sm:px-2.5"
+      aria-label={label}
+      // Below sm it's just its icon, so hovering it says what it does.
+      title={label}
+      className="inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-lg border border-current text-sm font-semibold transition-colors hover:bg-current/8 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current sm:px-2.5"
     >
       <Replace className="size-4" aria-hidden="true" />
       <span className="hidden sm:inline">{m.team_replace()}</span>

@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 import { makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
-import { asMember } from '@/test/teams'
+import { asMember, catalog } from '@/test/teams'
 
-import { TeamSlot, TeamSlots } from './team-slots'
+import { ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
 
 describe('TeamSlot', () => {
   it('fills its total’s bar for a total past the highest it measures against', () => {
@@ -26,5 +26,16 @@ describe('TeamSlot', () => {
     expect(bar.querySelector('[data-slot=progress-indicator]')).toHaveStyle({
       transform: 'translateX(-0%)',
     })
+  })
+})
+
+describe('ReplaceLink', () => {
+  it('says what it does on hover, as on phones it’s just its icon', () => {
+    const member = asMember(catalog.charizard, 0)
+
+    renderWithProviders(<ReplaceLink member={member} to="/teams/1/edit?replace=6" />)
+
+    const link = screen.getByRole('link', { name: 'Replace Charizard' })
+    expect(link).toHaveAttribute('title', 'Replace Charizard')
   })
 })
