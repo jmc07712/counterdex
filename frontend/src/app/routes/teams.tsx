@@ -24,13 +24,13 @@ export function TeamsPage() {
 
   function clearFilters() {
     setFilters({ ...filters, ...NO_FILTERS })
-    // Clear filters goes with the empty state it's in, so focus moves to the search.
+    // The button leaves with the empty state, so focus would fall to the page.
     search.current?.focus()
   }
 
   function showEveryone() {
     setFilters({ ...filters, scope: 'everyone' })
-    // As with Clear filters, the button goes with the empty state it's in.
+    // The button leaves with the empty state, so focus would fall to the page.
     search.current?.focus()
   }
 

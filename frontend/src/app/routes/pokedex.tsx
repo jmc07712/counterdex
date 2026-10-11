@@ -15,7 +15,7 @@ export function PokedexPage() {
 
   function clearFilters() {
     setFilters(NO_FILTERS)
-    // Clear filters goes with the empty state it's in, so focus moves to the search.
+    // The button leaves with the empty state, so focus would fall to the page.
     search.current?.focus()
   }
 
