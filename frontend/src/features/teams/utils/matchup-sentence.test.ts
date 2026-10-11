@@ -75,7 +75,9 @@ describe('matchupSentence', () => {
   })
 
   it.each([
+    [100, 'Golem’s base stats total 100 more.'],
     [120, 'Golem’s base stats total 120 more.'],
+    [-100, 'Charizard’s base stats total 100 more.'],
     [-150, 'Charizard’s base stats total 150 more.'],
   ])('adds a gap in base stat totals of %s', (difference, stats) => {
     const matchup = { ...ROCK_BEATS_FIRE, stat_total_difference: difference }
