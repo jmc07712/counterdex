@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 
+from app.api.caching import NoStoreByDefault
 from app.api.constants import API_PREFIX, API_TITLE, OPENAPI_URL
 from app.api.cross_origin import CrossOriginProtection
 from app.api.errors import ConflictError, conflict, validation_error
@@ -37,6 +38,8 @@ app = CounterdexAPI(
 )
 
 app.add_middleware(CrossOriginProtection)
+# Added last so it wraps CrossOriginProtection, whose 403s then get no-store too.
+app.add_middleware(NoStoreByDefault)
 
 app.include_router(docs.router)
 app.include_router(health.router, prefix=API_PREFIX)

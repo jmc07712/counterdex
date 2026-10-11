@@ -211,4 +211,4 @@ def test_tells_browsers_not_to_keep_pokemon_when_caching_is_off(client: TestClie
     "path", ["/api/pokemon?limit=0", "/api/pokemon/999", "/api/pokemon/999/changes"]
 )
 def test_errors_are_not_cached(client: TestClient, path: str) -> None:
-    assert "cache-control" not in client.get(path).headers
+    assert client.get(path).headers["cache-control"] == "no-store"

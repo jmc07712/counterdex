@@ -3,9 +3,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
-from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
 from app.api.tags import TEAM_MEMBERS, TEAMS
@@ -33,9 +32,9 @@ from app.teams.schemas import (
     TeamsQuery,
 )
 
-router = APIRouter(tags=[TEAMS], dependencies=[Depends(never_cache)])
+router = APIRouter(tags=[TEAMS])
 # The member routes get their own router: a route's tags add to its router's, not replace them.
-members_router = APIRouter(tags=[TEAM_MEMBERS], dependencies=[Depends(never_cache)])
+members_router = APIRouter(tags=[TEAM_MEMBERS])
 
 TEAM_NOT_FOUND = "No team has this id."
 NOT_TEAM_OWNER = "Only the team's owner can change it."
