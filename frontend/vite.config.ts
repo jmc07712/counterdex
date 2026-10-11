@@ -1,12 +1,14 @@
 import path from 'node:path'
 
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // Paraglide compiles messages/ into src/paraglide, with options from its config in project.inlang.
+  plugins: [react(), tailwindcss(), paraglideVitePlugin({ project: './project.inlang' })],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

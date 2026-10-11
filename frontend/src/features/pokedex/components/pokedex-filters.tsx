@@ -1,28 +1,16 @@
 import { Search } from 'lucide-react'
 
 import { FormFilter } from '@/api'
-import { displayName } from '@/components/pokemon/format'
 import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { m } from '@/paraglide/messages.js'
+
 import {
   type PokedexFilters as Filters,
-  POKEDEX_VIEWS,
-  type PokedexView,
   parseOption,
-} from '@/features/pokedex/hooks/use-pokedex-filters'
-
-const FORM_OPTIONS: Record<FormFilter, string> = {
-  all: 'All',
-  default: 'Standard',
-  alternate: 'Alternate',
-}
-
-const VIEW_OPTIONS: Record<PokedexView, string> = {
-  listed: 'Current',
-  changed: 'Changed',
-  removed: 'Removed',
-}
+  POKEDEX_VIEWS,
+} from '../hooks/use-pokedex-filters'
 
 type PokedexFiltersProps = {
   filters: Filters
@@ -32,7 +20,7 @@ type PokedexFiltersProps = {
 export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
   return (
     <section
-      aria-label="Filters"
+      aria-label={m.pokedex_filters()}
       // Pinned below the header on wider screens; on phones it would take a fifth of the screen.
       className="-mx-4 mb-6 flex flex-col gap-3 border-b bg-background px-4 py-3 sm:sticky sm:top-14 sm:z-30 sm:-mx-6 sm:px-6"
     >
@@ -44,8 +32,8 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
           />
           <Input
             type="search"
-            aria-label="Search Pokémon"
-            placeholder="Search Pokémon"
+            aria-label={m.pokedex_search()}
+            placeholder={m.pokedex_search()}
             value={filters.search}
             onChange={(event) => onChange({ ...filters, search: event.target.value })}
             className="pl-8"
@@ -55,7 +43,7 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
         <div className="flex flex-wrap gap-2">
           <ToggleGroup
             type="single"
-            aria-label="Forms"
+            aria-label={m.pokedex_forms_label()}
             variant="outline"
             size="sm"
             spacing={0}
@@ -67,13 +55,13 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
           >
             {Object.values(FormFilter).map((forms) => (
               <ToggleGroupItem key={forms} value={forms} className="px-3">
-                {FORM_OPTIONS[forms]}
+                {m.pokedex_forms_option({ forms })}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
           <ToggleGroup
             type="single"
-            aria-label="Status"
+            aria-label={m.pokedex_view_label()}
             variant="outline"
             size="sm"
             spacing={0}
@@ -85,18 +73,17 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
           >
             {POKEDEX_VIEWS.map((view) => (
               <ToggleGroupItem key={view} value={view} className="px-3">
-                {VIEW_OPTIONS[view]}
+                {m.pokedex_view_option({ view })}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
         </div>
       </div>
 
-      {/* One swipeable row on phones; wraps on wider screens. */}
       <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:overflow-visible sm:px-0">
         <ToggleGroup
           type="multiple"
-          aria-label="Types"
+          aria-label={m.pokemon_types()}
           variant="outline"
           size="sm"
           spacing={1.5}
@@ -116,7 +103,7 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
               className="rounded-full transition-colors data-[state=on]:border-transparent data-[state=on]:bg-(--type) data-[state=on]:text-(--type-foreground)"
             >
               <span aria-hidden="true" className="size-2 rounded-full bg-(--type)" />
-              {displayName(type)}
+              {m.pokemon_type({ type })}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

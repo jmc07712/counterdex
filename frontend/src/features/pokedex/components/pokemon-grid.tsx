@@ -15,30 +15,14 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PokedexFilters, PokedexView } from '@/features/pokedex/hooks/use-pokedex-filters'
-import { usePokemonList } from '@/features/pokedex/hooks/use-pokemon-list'
+import { m } from '@/paraglide/messages.js'
 
-// Wait for a pause in typing before searching, so each keystroke isn't a request.
+import type { PokedexFilters } from '../hooks/use-pokedex-filters'
+import { usePokemonList } from '../hooks/use-pokemon-list'
+
 const SEARCH_DELAY_MS = 250
-// Start loading the next page this far before the end of the list scrolls into view.
 const PRELOAD_MARGIN = '800px'
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-
-// What each view says when nothing matches.
-const NOTHING_FOUND: Record<PokedexView, { title: string; description: string }> = {
-  listed: {
-    title: 'No Pokémon match these filters',
-    description: 'Try a shorter search, or fewer types.',
-  },
-  changed: {
-    title: 'No recent changes',
-    description: 'No sync has changed these Pokémon in the last week.',
-  },
-  removed: {
-    title: 'No removed Pokémon',
-    description: 'PokéAPI still lists every Pokémon these filters match.',
-  },
-}
 
 type PokemonGridProps = {
   filters: PokedexFilters
@@ -61,11 +45,11 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
   if (query.isError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Couldn’t load the Pokédex</AlertTitle>
-        <AlertDescription>Check your connection and try again.</AlertDescription>
+        <AlertTitle>{m.pokedex_load_failed()}</AlertTitle>
+        <AlertDescription>{m.common_check_connection()}</AlertDescription>
         <AlertAction>
           <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-            Try again
+            {m.common_try_again()}
           </Button>
         </AlertAction>
       </Alert>
@@ -82,12 +66,12 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
           <EmptyMedia variant="icon">
             <SearchX />
           </EmptyMedia>
-          <EmptyTitle>{NOTHING_FOUND[view].title}</EmptyTitle>
-          <EmptyDescription>{NOTHING_FOUND[view].description}</EmptyDescription>
+          <EmptyTitle>{m.pokedex_nothing_found_title({ view })}</EmptyTitle>
+          <EmptyDescription>{m.pokedex_nothing_found_description({ view })}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button variant="outline" onClick={onClearFilters}>
-            Clear filters
+            {m.pokedex_clear_filters()}
           </Button>
         </EmptyContent>
       </Empty>
@@ -124,7 +108,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
             disabled={query.isFetchingNextPage}
             onClick={() => void query.fetchNextPage()}
           >
-            {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+            {query.isFetchingNextPage ? m.pokedex_loading_more() : m.pokedex_load_more()}
           </Button>
         </div>
       )}
@@ -134,7 +118,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
 
 function GridSkeleton() {
   return (
-    <ul aria-label="Loading Pokémon" className={GRID}>
+    <ul aria-label={m.pokedex_loading()} className={GRID}>
       {Array.from({ length: 12 }, (_, index) => (
         <li key={index}>
           <Skeleton className="aspect-[5/7] rounded-2xl" />

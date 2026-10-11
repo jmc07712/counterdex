@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { format, formatDistanceToNow } from 'date-fns'
 import { Info } from 'lucide-react'
 
-import { SyncStatus, type SyncRunSummary } from '@/api'
+import { SyncStatus } from '@/api'
 import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,25 +12,16 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { formatAge, formatDateTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
-// What the latest sync did, in the order shown. A Record, so each count has a label.
-const RUN_COUNT_LABELS: Record<Exclude<keyof SyncRunSummary, `${string}_at` | 'status'>, string> = {
-  inserted: 'New',
-  updated: 'Updated',
-  removed: 'Removed',
-  restored: 'Restored',
-  failed: 'Couldn’t sync',
-}
-const RUN_COUNTS = Object.keys(RUN_COUNT_LABELS) as (keyof typeof RUN_COUNT_LABELS)[]
-
-/** A status light for the Pokédex data, with the latest sync's details a click away. */
 export function SyncIndicator() {
   const { data } = useQuery(syncStatusOptions())
 
   if (!data?.last_synced_at) return null
   const syncedAt = new Date(data.last_synced_at)
-  const age = formatDistanceToNow(syncedAt, { addSuffix: true })
+  const age = formatAge(syncedAt)
   const run = data.latest_run
   const failed = run?.status === SyncStatus.FAILED
 
@@ -40,31 +30,29 @@ export function SyncIndicator() {
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="shrink-0 rounded-full">
           <StatusLight failed={failed} />
-          {failed ? 'Last sync failed' : `Synced ${age}`}
-          {/* Says there's more to see, which a status pill alone doesn't. */}
+          {failed ? m.sync_last_failed() : m.sync_synced_ago({ ago: age })}
           <Info className="text-muted-foreground" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">
         <PopoverHeader>
-          <PopoverTitle>Pokédex data</PopoverTitle>
+          <PopoverTitle>{m.sync_title()}</PopoverTitle>
           <PopoverDescription>
             {failed
-              ? `The latest sync with PokéAPI failed, so this is the data from ${age}.`
-              : `Synced with PokéAPI ${age}.`}
+              ? m.sync_failed_description({ ago: age })
+              : m.sync_succeeded_description({ ago: age })}
           </PopoverDescription>
         </PopoverHeader>
         <time dateTime={data.last_synced_at} className="text-sm">
-          {format(syncedAt, 'PPpp')}
+          {formatDateTime(syncedAt)}
         </time>
         {run && (
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-t pt-3 text-sm">
-            {RUN_COUNTS.map((count) => (
-              <div key={count} className="contents">
-                <dt className="text-muted-foreground">{RUN_COUNT_LABELS[count]}</dt>
-                <dd className="text-right tabular-nums">{run[count]}</dd>
-              </div>
-            ))}
+            <Count label={m.sync_inserted()} value={run.inserted} />
+            <Count label={m.sync_updated()} value={run.updated} />
+            <Count label={m.sync_removed()} value={run.removed} />
+            <Count label={m.sync_restored()} value={run.restored} />
+            <Count label={m.sync_failed()} value={run.failed} />
           </dl>
         )}
       </PopoverContent>
@@ -72,7 +60,15 @@ export function SyncIndicator() {
   )
 }
 
-// The Pokédex's green LED, softly pulsing while all is well; yellow when the last sync failed.
+function Count({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="contents">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right tabular-nums">{value}</dd>
+    </div>
+  )
+}
+
 function StatusLight({ failed }: { failed: boolean }) {
   return (
     <span aria-hidden="true" className="relative flex size-2">

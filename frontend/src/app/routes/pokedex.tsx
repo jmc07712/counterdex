@@ -5,6 +5,7 @@ import { NO_FILTERS, usePokedexFilters } from '@/features/pokedex/hooks/use-poke
 import { PokemonDetailsDialog } from '@/features/pokemon-details/components/pokemon-details-dialog'
 import { useSelectedPokemon } from '@/features/pokemon-details/hooks/use-selected-pokemon'
 import { SyncIndicator } from '@/features/sync-status/components/sync-indicator'
+import { m } from '@/paraglide/messages.js'
 
 export function PokedexPage() {
   const [filters, setFilters] = usePokedexFilters()
@@ -13,8 +14,8 @@ export function PokedexPage() {
   return (
     <>
       <PageHeader
-        title="Pokédex"
-        description="Every Pokémon with its types and base stats. Search, filter, and add any of them to a team."
+        title={m.pokedex_title()}
+        description={m.pokedex_description()}
         action={<SyncIndicator />}
       />
       <PokedexFilters filters={filters} onChange={setFilters} />

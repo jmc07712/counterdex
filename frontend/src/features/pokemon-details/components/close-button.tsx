@@ -2,6 +2,7 @@ import { XIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { DialogClose } from '@/components/ui/dialog'
+import { m } from '@/paraglide/messages.js'
 
 /**
  * Closes the details. A frosted disc, so it reads on any type's color as well as on plain ones,
@@ -17,7 +18,7 @@ export function CloseButton() {
           className="absolute top-3 right-3 rounded-full bg-background/70 backdrop-blur-sm hover:bg-background"
         >
           <XIcon />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{m.details_close()}</span>
         </Button>
       </DialogClose>
     </div>

@@ -8,9 +8,8 @@ const WHITE = '#ffffff'
 
 type TypeStyle = { background: string; foreground: string }
 
-// The games' color for each type (the only saturated colors in the app) and the text color that
-// reads on it; a test checks every pair meets WCAG AA. A Record, so a type added to the API
-// fails type-checking until it has a style.
+// The games' color for each type, and a text color that reads on it. A test checks every pair
+// meets WCAG AA.
 export const TYPE_STYLES: Record<PokemonType, TypeStyle> = {
   normal: { background: '#a8a77a', foreground: INK },
   fighting: { background: '#c22e28', foreground: WHITE },

@@ -1,125 +1,95 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
-import type {
-  EvolutionMethod,
-  EvolutionTrigger,
-  Gender,
-  RelativePhysicalStats,
-  TimeOfDay,
-} from '@/api'
+import type { EvolutionMethod } from '@/api'
 import { displayName } from '@/components/pokemon/format'
+import { itemSpriteUrl } from '@/components/pokemon/sprites'
 import { Badge } from '@/components/ui/badge'
-
-// PokéAPI's item sprites, from the same CDN as its Pokémon sprites. Newer items have none.
-const ITEM_SPRITES_URL = 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/'
-
-// Each Record covers every value the API can send, so a value it adds needs a label.
-
-// What sets each evolution off.
-const TRIGGER_LABELS: Record<EvolutionTrigger, string> = {
-  'level-up': 'Level up',
-  'in-battle-level-up': 'Level up in battle',
-  'use-item': 'Use',
-  trade: 'Trade',
-  shed: 'Free party slot and a Poké Ball',
-  spin: 'Spin around',
-  'use-move': 'Use move',
-  'agile-style-move': 'Agile Style',
-  'strong-style-move': 'Strong Style',
-  'take-damage': 'Take damage',
-  'recoil-damage': 'Recoil damage',
-  'three-critical-hits': '3 critical hits in a battle',
-  'three-defeated-bisharp': 'Defeat 3 Bisharp',
-  'tower-of-darkness': 'Tower of Darkness',
-  'tower-of-waters': 'Tower of Waters',
-  'gimmighoul-coins': '999 Gimmighoul Coins',
-  'meltan-candies': '400 Meltan Candies',
-  unclassified: 'Special',
-}
-
-const TIMES_OF_DAY: Record<TimeOfDay, string> = {
-  day: 'Day',
-  night: 'Night',
-  dusk: 'Dusk',
-  'full-moon': 'Full moon',
-}
-
-const GENDERS: Record<Gender, string> = { female: '♀ Female', male: '♂ Male' }
-
-const PHYSICAL_STATS: Record<RelativePhysicalStats, string> = {
-  'attack-higher': 'Attack > Defense',
-  equal: 'Attack = Defense',
-  'defense-higher': 'Attack < Defense',
-}
-
-type Condition = Exclude<keyof EvolutionMethod, 'trigger'>
-type ConditionLabels = { [C in Condition]: (value: NonNullable<EvolutionMethod[C]>) => string }
-
-// Each condition's chip, in the order shown. Typed over every condition the API sends, so one it
-// adds needs a label.
-const CONDITION_LABELS: ConditionLabels = {
-  min_level: (level) => `Lv. ${level}`,
-  item: displayName,
-  held_item: displayName,
-  known_move: (move) => `Knows ${displayName(move)}`,
-  known_move_type: (type) => `Knows a ${displayName(type)} move`,
-  used_move: displayName,
-  min_move_count: (count) => `${count} times`,
-  trade_species: (species) => `For ${displayName(species)}`,
-  party_species: (species) => `${displayName(species)} in party`,
-  party_type: (type) => `${displayName(type)} type in party`,
-  min_happiness: () => 'High friendship',
-  min_steps: (steps) => `${steps.toLocaleString('en')} steps`,
-  min_damage_taken: (damage) => `${damage} damage`,
-  relative_physical_stats: (stats) => PHYSICAL_STATS[stats],
-  location: displayName,
-  region: displayName,
-  time_of_day: (time) => TIMES_OF_DAY[time],
-  gender: (gender) => GENDERS[gender],
-  needs_overworld_rain: () => 'Raining',
-  needs_multiplayer: () => 'With another player',
-  turn_upside_down: () => 'Console upside down',
-  chance: (percent) => `${percent}% chance`,
-}
-const CONDITIONS = Object.keys(CONDITION_LABELS) as Condition[]
-
-// A level-up's level, or the item used, already says what sets the evolution off.
-const TRIGGER_SHOWN_BY: Partial<Record<EvolutionTrigger, Condition>> = {
-  'level-up': 'min_level',
-  'use-item': 'item',
-}
+import { m } from '@/paraglide/messages.js'
 
 /** One way a Pokémon evolves, as chips: "Lv. 16", or a Thunder Stone and "Alola". */
 export function EvolutionMethodChips({ method }: { method: EvolutionMethod }) {
-  const conditions = CONDITIONS.filter((condition) => method[condition])
-  const shownBy = TRIGGER_SHOWN_BY[method.trigger]
+  // A level, or the item used, already says what sets the evolution off.
+  const triggerShown =
+    (method.trigger === 'level-up' && method.min_level != null) ||
+    (method.trigger === 'use-item' && method.item != null)
 
   return (
-    <ul aria-label="How it evolves" className="flex flex-wrap items-center gap-1">
-      {!(shownBy && method[shownBy]) && (
-        <li>
-          <Badge variant="secondary">{TRIGGER_LABELS[method.trigger]}</Badge>
-        </li>
+    <ul aria-label={m.evolution_how()} className="flex flex-wrap items-center gap-1">
+      {!triggerShown && (
+        <Chip variant="secondary">{m.evolution_trigger({ trigger: method.trigger })}</Chip>
       )}
-      {conditions.map((condition) => (
-        <li key={condition}>
-          <Badge variant="outline">
-            {(condition === 'item' || condition === 'held_item') && method[condition] && (
-              <ItemSprite item={method[condition]} />
-            )}
-            {label(method, condition)}
-          </Badge>
-        </li>
-      ))}
+      {method.min_level != null && (
+        <Chip>{m.evolution_min_level({ level: method.min_level })}</Chip>
+      )}
+      {method.item != null && (
+        <Chip>
+          <ItemSprite item={method.item} />
+          {displayName(method.item)}
+        </Chip>
+      )}
+      {method.held_item != null && (
+        <Chip>
+          <ItemSprite item={method.held_item} />
+          {displayName(method.held_item)}
+        </Chip>
+      )}
+      {method.known_move != null && (
+        <Chip>{m.evolution_known_move({ move: displayName(method.known_move) })}</Chip>
+      )}
+      {method.known_move_type != null && (
+        <Chip>
+          {m.evolution_known_move_type({ type: m.pokemon_type({ type: method.known_move_type }) })}
+        </Chip>
+      )}
+      {method.used_move != null && <Chip>{displayName(method.used_move)}</Chip>}
+      {method.min_move_count != null && (
+        <Chip>{m.evolution_min_move_count({ count: method.min_move_count })}</Chip>
+      )}
+      {method.trade_species != null && (
+        <Chip>{m.evolution_trade_species({ species: displayName(method.trade_species) })}</Chip>
+      )}
+      {method.party_species != null && (
+        <Chip>{m.evolution_party_species({ species: displayName(method.party_species) })}</Chip>
+      )}
+      {method.party_type != null && (
+        <Chip>{m.evolution_party_type({ type: m.pokemon_type({ type: method.party_type }) })}</Chip>
+      )}
+      {method.min_happiness != null && <Chip>{m.evolution_high_friendship()}</Chip>}
+      {method.min_steps != null && (
+        <Chip>{m.evolution_min_steps({ count: method.min_steps })}</Chip>
+      )}
+      {method.min_damage_taken != null && (
+        <Chip>{m.evolution_min_damage_taken({ damage: method.min_damage_taken })}</Chip>
+      )}
+      {method.relative_physical_stats != null && (
+        <Chip>{m.evolution_physical_stats({ stats: method.relative_physical_stats })}</Chip>
+      )}
+      {method.location != null && <Chip>{displayName(method.location)}</Chip>}
+      {method.region != null && <Chip>{displayName(method.region)}</Chip>}
+      {method.time_of_day != null && (
+        <Chip>{m.evolution_time_of_day({ time: method.time_of_day })}</Chip>
+      )}
+      {method.gender != null && <Chip>{m.evolution_gender({ gender: method.gender })}</Chip>}
+      {method.needs_overworld_rain && <Chip>{m.evolution_raining()}</Chip>}
+      {method.needs_multiplayer && <Chip>{m.evolution_with_another_player()}</Chip>}
+      {method.turn_upside_down && <Chip>{m.evolution_console_upside_down()}</Chip>}
+      {method.chance != null && <Chip>{m.evolution_chance({ percent: method.chance })}</Chip>}
     </ul>
   )
 }
 
-function label<C extends Condition>(method: EvolutionMethod, condition: C): string {
-  // Typed by C, so TypeScript pairs this condition's value with this condition's label.
-  const toLabel: ConditionLabels[C] = CONDITION_LABELS[condition]
-  const value = method[condition]
-  return value ? toLabel(value) : ''
+function Chip({
+  variant = 'outline',
+  children,
+}: {
+  variant?: 'outline' | 'secondary'
+  children: ReactNode
+}) {
+  return (
+    <li>
+      <Badge variant={variant}>{children}</Badge>
+    </li>
+  )
 }
 
 function ItemSprite({ item }: { item: string }) {
@@ -127,7 +97,7 @@ function ItemSprite({ item }: { item: string }) {
   if (missing) return null
   return (
     <img
-      src={`${ITEM_SPRITES_URL}${item}.png`}
+      src={itemSpriteUrl(item)}
       alt=""
       width={20}
       height={20}

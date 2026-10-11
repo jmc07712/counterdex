@@ -1,0 +1,391 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "brand_name": "Counterdex",
+  "nav_skip_to_content": "Skip to content",
+  "nav_home": "Counterdex home",
+  "nav_primary": "Primary",
+  "nav_pokedex": "Pokédex",
+  "nav_teams": "Teams",
+  "nav_api": "API",
+  "nav_sign_in": "Sign in",
+  "nav_opens_in_new_tab": "(opens in a new tab)",
+  "theme_label": "Theme",
+  "theme_light": "Light",
+  "theme_system": "System",
+  "theme_dark": "Dark",
+  "account_menu": "Account: {username}",
+  "account_signed_in_as": "Signed in as {username}",
+  "account_sign_out": "Sign out",
+  "account_signing_out": "Signing out…",
+  "account_sign_out_failed": "Couldn’t sign out. Try again.",
+  "common_try_again": "Try again",
+  "common_check_connection": "Check your connection and try again.",
+  "not_found_title": "Page not found",
+  "not_found_description": "There’s nothing at this address.",
+  "not_found_go_to_pokedex": "Go to the Pokédex",
+  "pokedex_title": "Pokédex",
+  "pokedex_description": "Every Pokémon with its types and base stats. Search, filter, and add any of them to a team.",
+  "teams_title": "Teams",
+  "teams_description": "Build teams of up to six Pokémon, put them in battle order, and keep as many teams as you like.",
+  "teams_session_check_failed": "Couldn’t check whether you’re signed in",
+  "teams_sign_in_title": "Sign in to build teams",
+  "teams_sign_in_description": "Teams are saved to your account, so you’ll need one.",
+  "team_title": "Team",
+  "team_description": "Team {teamId}",
+  "team_all_teams": "All teams",
+  "auth_username": "Username",
+  "auth_password": "Password",
+  "auth_go_to_sign_in": "Sign in",
+  "auth_go_to_sign_up": "Create an account",
+  "auth_sign_in_title": "Sign in",
+  "auth_sign_in_description": "Sign in to build teams and keep them.",
+  "auth_sign_in_submit": "Sign in",
+  "auth_sign_in_submitting": "Signing in…",
+  "auth_sign_in_switch_prompt": "New to Counterdex?",
+  "auth_sign_up_title": "Create an account",
+  "auth_sign_up_description": "All it takes is a username and a password.",
+  "auth_sign_up_username_hint": "{min} to {max} letters, numbers, underscores or hyphens.",
+  "auth_sign_up_password_hint": "At least {min} characters.",
+  "auth_sign_up_submit": "Create account",
+  "auth_sign_up_submitting": "Creating account…",
+  "auth_sign_up_switch_prompt": "Already have an account?",
+  "auth_problem_wrong_credentials": "Wrong username or password.",
+  "auth_problem_username_taken": "Someone already has this username.",
+  "auth_problem_invalid": "Check the username and password, then try again.",
+  "auth_problem_failed": "Something went wrong. Try again in a moment.",
+  "auth_panel_headline": "Build teams of up to six.",
+  "auth_panel_description": "Choose from every Pokémon in the Pokédex. Your teams are kept in your account.",
+  "pokemon_dex_number": "No. {number}",
+  "pokemon_types": "Types",
+  "pokemon_stat_total": "Total",
+  "pokemon_removed": "Removed",
+  "pokemon_changed_recently": "Changed recently",
+  "pokemon_removed_from_pokeapi": "Removed from PokéAPI",
+  "details_load_failed": "Couldn’t load this Pokémon",
+  "details_removed_description": "PokéAPI stopped listing it on {date}, so this is its data from before then.",
+  "details_base_stats": "Base stats",
+  "details_forms": "Forms",
+  "details_evolution": "Evolution",
+  "details_changes": "Changes",
+  "details_loading_title": "Loading Pokémon",
+  "details_loading_description": "Its details are on their way.",
+  "details_close": "Close",
+  "details_genus_unknown": "Species not synced yet",
+  "details_no_evolution": "Doesn’t evolve.",
+  "details_changes_load_failed": "Couldn’t load its changes.",
+  "changes_none": "No changes since it joined the Pokédex.",
+  "changes_field_name": "Name",
+  "changes_field_form": "Form",
+  "changes_field_sprite": "Sprite",
+  "changes_form_standard": "Standard",
+  "changes_new_image": "New image",
+  "changes_before_after": "{before} → {after}",
+  "evolution_show_fewer": "Show fewer",
+  "evolution_more_ways": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} more way",
+        "countPlural=other": "{count} more ways"
+      }
+    }
+  ],
+  "evolution_how": "How it evolves",
+  "evolution_min_level": "Lv. {level}",
+  "evolution_known_move": "Knows {move}",
+  "evolution_known_move_type": "{type}-type move",
+  "evolution_min_move_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} time",
+        "countPlural=other": "{count} times"
+      }
+    }
+  ],
+  "evolution_trade_species": "For {species}",
+  "evolution_party_species": "{species} in party",
+  "evolution_party_type": "{type} type in party",
+  "evolution_high_friendship": "High friendship",
+  "evolution_min_steps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local steps = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{steps} step",
+        "countPlural=other": "{steps} steps"
+      }
+    }
+  ],
+  "evolution_min_damage_taken": "{damage} damage",
+  "evolution_raining": "Raining",
+  "evolution_with_another_player": "With another player",
+  "evolution_console_upside_down": "Console upside down",
+  "evolution_chance": "{percent}% chance",
+  "pokemon_type": [
+    {
+      "declarations": [
+        "input type"
+      ],
+      "selectors": [
+        "type"
+      ],
+      "match": {
+        "type=normal": "Normal",
+        "type=fighting": "Fighting",
+        "type=flying": "Flying",
+        "type=poison": "Poison",
+        "type=ground": "Ground",
+        "type=rock": "Rock",
+        "type=bug": "Bug",
+        "type=ghost": "Ghost",
+        "type=steel": "Steel",
+        "type=fire": "Fire",
+        "type=water": "Water",
+        "type=grass": "Grass",
+        "type=electric": "Electric",
+        "type=psychic": "Psychic",
+        "type=ice": "Ice",
+        "type=dragon": "Dragon",
+        "type=dark": "Dark",
+        "type=fairy": "Fairy",
+        "type=*": "{type}"
+      }
+    }
+  ],
+  "pokemon_form": [
+    {
+      "declarations": [
+        "input form"
+      ],
+      "selectors": [
+        "form"
+      ],
+      "match": {
+        "form=mega": "Mega",
+        "form=gigantamax": "Gigantamax",
+        "form=alolan": "Alolan",
+        "form=galarian": "Galarian",
+        "form=hisuian": "Hisuian",
+        "form=paldean": "Paldean",
+        "form=other": "Form",
+        "form=*": "{form}"
+      }
+    }
+  ],
+  "pokemon_stat": [
+    {
+      "declarations": [
+        "input stat"
+      ],
+      "selectors": [
+        "stat"
+      ],
+      "match": {
+        "stat=hp": "HP",
+        "stat=attack": "Attack",
+        "stat=defense": "Defense",
+        "stat=sp_attack": "Sp. Atk",
+        "stat=sp_defense": "Sp. Def",
+        "stat=speed": "Speed",
+        "stat=*": "{stat}"
+      }
+    }
+  ],
+  "changes_kind": [
+    {
+      "declarations": [
+        "input kind"
+      ],
+      "selectors": [
+        "kind"
+      ],
+      "match": {
+        "kind=updated": "Updated",
+        "kind=removed": "Removed from PokéAPI",
+        "kind=restored": "Back in PokéAPI",
+        "kind=*": "{kind}"
+      }
+    }
+  ],
+  "evolution_trigger": [
+    {
+      "declarations": [
+        "input trigger"
+      ],
+      "selectors": [
+        "trigger"
+      ],
+      "match": {
+        "trigger=level-up": "Level up",
+        "trigger=in-battle-level-up": "Level up in battle",
+        "trigger=use-item": "Use",
+        "trigger=trade": "Trade",
+        "trigger=shed": "Free party slot and a Poké Ball",
+        "trigger=spin": "Spin around",
+        "trigger=use-move": "Use move",
+        "trigger=agile-style-move": "Agile Style",
+        "trigger=strong-style-move": "Strong Style",
+        "trigger=take-damage": "Take damage",
+        "trigger=recoil-damage": "Recoil damage",
+        "trigger=three-critical-hits": "3 critical hits in a battle",
+        "trigger=three-defeated-bisharp": "Defeat 3 Bisharp",
+        "trigger=tower-of-darkness": "Tower of Darkness",
+        "trigger=tower-of-waters": "Tower of Waters",
+        "trigger=gimmighoul-coins": "999 Gimmighoul Coins",
+        "trigger=meltan-candies": "400 Meltan Candies",
+        "trigger=unclassified": "Special",
+        "trigger=*": "{trigger}"
+      }
+    }
+  ],
+  "evolution_time_of_day": [
+    {
+      "declarations": [
+        "input time"
+      ],
+      "selectors": [
+        "time"
+      ],
+      "match": {
+        "time=day": "Day",
+        "time=night": "Night",
+        "time=dusk": "Dusk",
+        "time=full-moon": "Full moon",
+        "time=*": "{time}"
+      }
+    }
+  ],
+  "evolution_gender": [
+    {
+      "declarations": [
+        "input gender"
+      ],
+      "selectors": [
+        "gender"
+      ],
+      "match": {
+        "gender=female": "♀ Female",
+        "gender=male": "♂ Male",
+        "gender=*": "{gender}"
+      }
+    }
+  ],
+  "evolution_physical_stats": [
+    {
+      "declarations": [
+        "input stats"
+      ],
+      "selectors": [
+        "stats"
+      ],
+      "match": {
+        "stats=attack-higher": "Attack > Defense",
+        "stats=equal": "Attack = Defense",
+        "stats=defense-higher": "Attack < Defense",
+        "stats=*": "{stats}"
+      }
+    }
+  ],
+  "pokedex_filters": "Filters",
+  "pokedex_search": "Search Pokémon",
+  "pokedex_forms_label": "Forms",
+  "pokedex_view_label": "Status",
+  "pokedex_forms_option": [
+    {
+      "declarations": [
+        "input forms"
+      ],
+      "selectors": [
+        "forms"
+      ],
+      "match": {
+        "forms=all": "All",
+        "forms=default": "Standard",
+        "forms=alternate": "Alternate",
+        "forms=*": "{forms}"
+      }
+    }
+  ],
+  "pokedex_view_option": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=listed": "Current",
+        "view=changed": "Changed",
+        "view=removed": "Removed",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "pokedex_nothing_found_title": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=listed": "No Pokémon match these filters",
+        "view=changed": "No recent changes",
+        "view=removed": "No removed Pokémon",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "pokedex_nothing_found_description": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=listed": "Try a shorter search, or fewer types.",
+        "view=changed": "No sync has changed these Pokémon in the last week.",
+        "view=removed": "PokéAPI still lists every Pokémon these filters match.",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "pokedex_load_failed": "Couldn’t load the Pokédex",
+  "pokedex_clear_filters": "Clear filters",
+  "pokedex_load_more": "Load more",
+  "pokedex_loading_more": "Loading…",
+  "pokedex_loading": "Loading Pokémon",
+  "sync_last_failed": "Last sync failed",
+  "sync_synced_ago": "Synced {ago}",
+  "sync_title": "Pokédex data",
+  "sync_failed_description": "The latest sync with PokéAPI failed, so this is the data from {ago}.",
+  "sync_succeeded_description": "Synced with PokéAPI {ago}.",
+  "sync_inserted": "New",
+  "sync_updated": "Updated",
+  "sync_removed": "Removed",
+  "sync_restored": "Restored",
+  "sync_failed": "Couldn’t sync"
+}

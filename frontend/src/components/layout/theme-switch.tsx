@@ -8,11 +8,12 @@ import {
   SYSTEM_DARK_QUERY,
   type ThemePreference,
 } from '@/lib/theme'
+import { m } from '@/paraglide/messages.js'
 
 const options = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'system', label: 'System', icon: Monitor },
-  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'light', label: m.theme_light, icon: Sun },
+  { value: 'system', label: m.theme_system, icon: Monitor },
+  { value: 'dark', label: m.theme_dark, icon: Moon },
 ] as const
 
 /** A three-position slider (Light · System · Dark) built on native radio buttons. */
@@ -34,7 +35,7 @@ export function ThemeSwitch() {
 
   return (
     <fieldset className="relative grid grid-cols-3 rounded-full border bg-muted p-0.5">
-      <legend className="sr-only">Theme</legend>
+      <legend className="sr-only">{m.theme_label()}</legend>
       <span
         aria-hidden="true"
         className="absolute inset-y-0.5 left-0.5 w-[calc((100%-0.25rem)/3)] rounded-full bg-background shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
@@ -43,7 +44,7 @@ export function ThemeSwitch() {
       {options.map(({ value, label, icon: Icon }) => (
         <label
           key={value}
-          title={label}
+          title={label()}
           className="relative flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground has-checked:text-foreground has-focus-visible:ring-2 has-focus-visible:ring-ring"
         >
           <input
@@ -58,7 +59,7 @@ export function ThemeSwitch() {
             className="sr-only"
           />
           <Icon className="size-3.5" aria-hidden="true" />
-          <span className="sr-only">{label}</span>
+          <span className="sr-only">{label()}</span>
         </label>
       ))}
     </fieldset>

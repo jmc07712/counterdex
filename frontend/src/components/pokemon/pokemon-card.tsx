@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { m } from '@/paraglide/messages.js'
 
 import { BaseStats } from './base-stats'
 import { ChangedMark } from './changed-mark'
@@ -28,7 +29,6 @@ type PokemonCardProps = {
   pokemon: Pokemon
   // PokéAPI no longer lists it.
   removed?: boolean
-  // Called when the card is chosen, to show the Pokémon's details.
   onOpen?: () => void
 }
 
@@ -84,7 +84,7 @@ export function PokemonCard({ pokemon, removed = false, onOpen }: PokemonCardPro
               )}
               {removed && (
                 <Badge variant="destructive" className="absolute top-1.5 right-1.5">
-                  Removed
+                  {m.pokemon_removed()}
                 </Badge>
               )}
             </SpriteWindow>
@@ -94,7 +94,7 @@ export function PokemonCard({ pokemon, removed = false, onOpen }: PokemonCardPro
 
           <CardFooter className="justify-end text-xs">
             <dl className="flex gap-1 text-muted-foreground">
-              <dt>Total</dt>
+              <dt>{m.pokemon_stat_total()}</dt>
               <dd className="font-semibold text-foreground tabular-nums">
                 {statTotal(pokemon.stats)}
               </dd>

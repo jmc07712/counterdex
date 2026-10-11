@@ -5,14 +5,10 @@ import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { m } from '@/paraglide/messages.js'
 
 type PokemonHeroProps = { pokemon: Pokemon; species: Species | null }
 
-/**
- * The top of a Pokémon's details, like a Pokédex entry: its number, name, genus and types on its
- * primary type's color, beside its sprite. A Poké Ball behind the sprite takes its second type's
- * color, or white for a single-type Pokémon.
- */
 export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
   const [primary, secondary] = pokemon.types
   const { background, foreground } = TYPE_STYLES[primary]
@@ -22,7 +18,6 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
       style={{ backgroundColor: background, color: foreground }}
       className="relative isolate overflow-hidden px-5 pt-5 pb-4 sm:px-6"
     >
-
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1 pb-1">
           <p className="flex items-center gap-1 font-heading text-sm font-bold tabular-nums">
@@ -33,7 +28,7 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
             {displayName(pokemon.name)}
           </DialogTitle>
           <DialogDescription className="text-current opacity-80">
-            {species?.genus ?? 'Species not synced yet'}
+            {species?.genus ?? m.details_genus_unknown()}
           </DialogDescription>
           {/* Ringed, so a badge in the hero's own color still stands out. */}
           <TypeBadges

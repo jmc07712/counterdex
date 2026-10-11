@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { EvolutionMethod, EvolutionStage } from '@/api'
 import { PokemonChip } from '@/components/pokemon/pokemon-chip'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 import { EvolutionMethodChips } from './evolution-method-chips'
 
@@ -19,7 +20,7 @@ type EvolutionTreeProps = {
 /** An evolution family from its first stage, branching where a species evolves into several. */
 export function EvolutionTree({ first, ...stageProps }: EvolutionTreeProps) {
   return (
-    <ol aria-label="Evolution" className="flex flex-col gap-3">
+    <ol aria-label={m.details_evolution()} className="flex flex-col gap-3">
       <Stage stage={first} {...stageProps} />
     </ol>
   )
@@ -72,7 +73,9 @@ function Methods({ methods }: { methods: EvolutionMethod[] }) {
             className="h-auto p-0"
             onClick={() => setUnfolded(!unfolded)}
           >
-            {unfolded ? 'Show fewer' : `${methods.length - UNFOLDED_METHODS} more ways`}
+            {unfolded
+              ? m.evolution_show_fewer()
+              : m.evolution_more_ways({ count: methods.length - UNFOLDED_METHODS })}
           </Button>
         )}
       </div>

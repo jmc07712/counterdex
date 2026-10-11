@@ -1,56 +1,65 @@
-import { format } from 'date-fns'
-
 import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
-import { displayName, formLabel, STAT_LABELS, STATS } from '@/components/pokemon/format'
+import { displayName, formLabel, STATS } from '@/components/pokemon/format'
+import { formatDate, formatList } from '@/lib/dates'
+import type { Message } from '@/lib/messages'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
-// How each kind of change shows. A Record, so a kind the API adds needs one.
-const KINDS: Record<ChangeKind, { label: string; dot: string }> = {
-  updated: { label: 'Updated', dot: 'bg-primary' },
-  removed: { label: 'Removed from PokéAPI', dot: 'bg-destructive' },
-  restored: { label: 'Back in PokéAPI', dot: 'bg-led-green' },
+const DOTS: Record<ChangeKind, string> = {
+  updated: 'bg-led-yellow',
+  removed: 'bg-destructive',
+  restored: 'bg-led-green',
 }
 
 type Field = {
-  label: string
-  value: (pokemon: Pokemon) => string | null
+  label: Message
+  value: (pokemon: Pokemon) => string
   // How a change to it reads, if not "before → after".
-  change?: string
+  change?: Message
 }
 
 // What a sync can change about a Pokémon, in the order shown.
 const FIELDS: Field[] = [
-  { label: 'Name', value: (pokemon) => displayName(pokemon.name) },
-  { label: 'Types', value: (pokemon) => pokemon.types.map(displayName).join(', ') },
+  { label: m.changes_field_name, value: (pokemon) => displayName(pokemon.name) },
+  {
+    label: m.pokemon_types,
+    value: (pokemon) => formatList(pokemon.types.map((type) => m.pokemon_type({ type }))),
+  },
   ...STATS.map((stat) => ({
-    label: STAT_LABELS[stat],
+    label: () => m.pokemon_stat({ stat }),
     value: (pokemon: Pokemon) => String(pokemon.stats[stat]),
   })),
-  { label: 'Form', value: (pokemon) => formLabel(pokemon) ?? 'Standard' },
-  { label: 'Sprite', value: (pokemon) => pokemon.sprite_url, change: 'New image' },
+  {
+    label: m.changes_field_form,
+    value: (pokemon) => formLabel(pokemon) ?? m.changes_form_standard(),
+  },
+  {
+    label: m.changes_field_sprite,
+    value: (pokemon) => pokemon.sprite_url ?? '',
+    change: m.changes_new_image,
+  },
 ]
 
 /** The changes syncs have found to a Pokémon, newest first. */
 export function ChangeHistory({ changes }: { changes: PokemonChange[] }) {
   if (changes.length === 0) {
-    return <p className="text-sm text-muted-foreground">No changes since it joined the Pokédex.</p>
+    return <p className="text-sm text-muted-foreground">{m.changes_none()}</p>
   }
   return (
-    // A timeline: a line down the left, with a dot in each change's color.
-    <ol aria-label="Changes" className="ml-1.5 flex flex-col gap-4 border-l-2 pl-5">
+    <ol aria-label={m.details_changes()} className="ml-1.5 flex flex-col gap-4 border-l-2 pl-5">
       {changes.map((change) => (
         <li key={`${change.detected_at}-${change.kind}`} className="relative flex flex-col gap-1.5">
           <span
             aria-hidden="true"
             className={cn(
-              'absolute top-1.5 -left-[27px] size-3 rounded-full ring-4 ring-popover',
-              KINDS[change.kind].dot,
+              'absolute top-1.5 -left-6.75 size-3 rounded-full ring-4 ring-popover',
+              DOTS[change.kind],
             )}
           />
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-semibold">{KINDS[change.kind].label}</span>
+            <span className="font-semibold">{m.changes_kind({ kind: change.kind })}</span>
             <time dateTime={change.detected_at} className="text-xs text-muted-foreground">
-              {format(new Date(change.detected_at), 'PP')}
+              {formatDate(change.detected_at)}
             </time>
           </div>
           {change.before && change.after && (
@@ -67,9 +76,11 @@ function Differences({ before, after }: { before: Pokemon; after: Pokemon }) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
       {changed.map(({ label, value, change }) => (
-        <div key={label} className="contents">
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="tabular-nums">{change ?? `${value(before)} → ${value(after)}`}</dd>
+        <div key={label()} className="contents">
+          <dt className="text-muted-foreground">{label()}</dt>
+          <dd className="tabular-nums">
+            {change?.() ?? m.changes_before_after({ before: value(before), after: value(after) })}
+          </dd>
         </div>
       ))}
     </dl>

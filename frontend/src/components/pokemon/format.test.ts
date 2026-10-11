@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { makePokemon } from '@/test/pokemon'
 
-import { dexNumber, displayName, formLabel } from './format'
+import { dexNumber, displayName, formLabel, STATS } from './format'
 
 describe('formatting a Pokémon', () => {
   it.each([
@@ -28,5 +28,9 @@ describe('formatting a Pokémon', () => {
 
   it('gives default forms no label', () => {
     expect(formLabel(makePokemon({ form: null }))).toBeNull()
+  })
+
+  it('lists every base stat the API sends', () => {
+    expect([...STATS].sort()).toEqual(Object.keys(makePokemon().stats).sort())
   })
 })

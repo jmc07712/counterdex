@@ -1,3 +1,5 @@
+import { m } from '@/paraglide/messages.js'
+
 /**
  * The Counterdex wordmark. The mark borrows the Pokédex's lens and indicator
  * lights rather than any trademarked artwork.
@@ -11,7 +13,7 @@ export function BrandMark() {
         <circle cx="24" cy="4" r="2" className="fill-led-yellow" />
         <circle cx="30" cy="4" r="2" className="fill-led-green" />
       </svg>
-      <span className="font-heading text-lg font-bold tracking-tight">Counterdex</span>
+      <span className="font-heading text-lg font-bold tracking-tight">{m.brand_name()}</span>
     </span>
   )
 }

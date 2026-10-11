@@ -1,8 +1,9 @@
 import type { Stats } from '@/api'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
-import { STAT_LABELS, STATS } from './format'
+import { STATS } from './format'
 
 // Bars measure against the highest base stat the API allows, so they compare across Pokémon.
 const MAX_BASE_STAT = 255
@@ -13,7 +14,7 @@ export function BaseStats({ stats, className }: { stats: Stats; className?: stri
     <dl className={cn('flex flex-col gap-1 text-xs', className)}>
       {STATS.map((stat) => (
         <div key={stat} className="flex items-center gap-2">
-          <dt className="w-12 shrink-0 text-muted-foreground">{STAT_LABELS[stat]}</dt>
+          <dt className="w-12 shrink-0 text-muted-foreground">{m.pokemon_stat({ stat })}</dt>
           <dd className="flex flex-1 items-center gap-2">
             <Progress
               aria-hidden="true"

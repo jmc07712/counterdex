@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
@@ -16,8 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { formatDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { m } from '@/paraglide/messages.js'
 
 import { ChangeHistory } from './change-history'
 import { CloseButton } from './close-button'
@@ -91,11 +92,11 @@ function PokemonDetails({
     return (
       <div className="flex flex-col items-start gap-4 p-5 pr-14">
         <DialogHeader>
-          <DialogTitle>Couldn’t load this Pokémon</DialogTitle>
-          <DialogDescription>Check your connection and try again.</DialogDescription>
+          <DialogTitle>{m.details_load_failed()}</DialogTitle>
+          <DialogDescription>{m.common_check_connection()}</DialogDescription>
         </DialogHeader>
         <Button variant="outline" onClick={() => void details.refetch()}>
-          Try again
+          {m.common_try_again()}
         </Button>
       </div>
     )
@@ -115,22 +116,21 @@ function PokemonDetails({
       <div className="flex flex-col gap-6 p-5 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
         {removed_at && (
           <Alert>
-            <AlertTitle>Removed from PokéAPI</AlertTitle>
+            <AlertTitle>{m.pokemon_removed_from_pokeapi()}</AlertTitle>
             <AlertDescription>
-              PokéAPI stopped listing it on {format(new Date(removed_at), 'PP')}, so this is its
-              data from before then.
+              {m.details_removed_description({ date: formatDate(removed_at) })}
             </AlertDescription>
           </Alert>
         )}
 
-        <Section title="Base stats">
+        <Section title={m.details_base_stats()}>
           <div className="flex flex-col gap-2 rounded-xl bg-muted/60 p-4">
             <BaseStats
               stats={pokemon.stats}
               className="gap-2 text-sm [&_[data-slot=progress]]:h-2"
             />
             <dl className="flex justify-end gap-1 text-sm text-muted-foreground">
-              <dt>Total</dt>
+              <dt>{m.pokemon_stat_total()}</dt>
               <dd className="font-semibold text-foreground tabular-nums">
                 {statTotal(pokemon.stats)}
               </dd>
@@ -139,8 +139,8 @@ function PokemonDetails({
         </Section>
 
         {forms.length > 1 && (
-          <Section title="Forms">
-            <ul aria-label="Forms" className="flex flex-wrap gap-2">
+          <Section title={m.details_forms()}>
+            <ul aria-label={m.details_forms()} className="flex flex-wrap gap-2">
               {forms.map((form) => (
                 <li key={form.id}>
                   <PokemonChip
@@ -156,7 +156,7 @@ function PokemonDetails({
         )}
 
         {evolution && (
-          <Section title="Evolution">
+          <Section title={m.details_evolution()}>
             {evolution.evolves_to.length > 0 ? (
               <EvolutionTree
                 first={evolution}
@@ -164,16 +164,16 @@ function PokemonDetails({
                 onSelect={onSelect}
               />
             ) : (
-              <p className="text-sm text-muted-foreground">Doesn’t evolve.</p>
+              <p className="text-sm text-muted-foreground">{m.details_no_evolution()}</p>
             )}
           </Section>
         )}
 
-        <Section title="Changes">
+        <Section title={m.details_changes()}>
           {changes.isPending ? (
             <Skeleton className="h-6 w-2/3" />
           ) : changes.isError ? (
-            <p className="text-sm text-muted-foreground">Couldn’t load its changes.</p>
+            <p className="text-sm text-muted-foreground">{m.details_changes_load_failed()}</p>
           ) : (
             <ChangeHistory changes={changes.data} />
           )}
@@ -195,8 +195,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function DetailsSkeleton() {
   return (
     <>
-      <DialogTitle className="sr-only">Loading Pokémon</DialogTitle>
-      <DialogDescription className="sr-only">Its details are on their way.</DialogDescription>
+      <DialogTitle className="sr-only">{m.details_loading_title()}</DialogTitle>
+      <DialogDescription className="sr-only">{m.details_loading_description()}</DialogDescription>
       <Skeleton className="h-44 rounded-none" />
       <div className="flex flex-col gap-3 p-5 sm:p-6">
         <Skeleton className="h-5 w-24" />

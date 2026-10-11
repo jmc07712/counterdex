@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router'
 import { FormFilter, ListingStatus, type PokemonType } from '@/api'
 import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 
-/** Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed lately, or those
- * PokéAPI removed. */
+/**
+ * Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed lately, or those
+ * PokéAPI removed.
+ */
 export type PokedexView = ListingStatus | 'changed'
 export const POKEDEX_VIEWS: PokedexView[] = [ListingStatus.LISTED, 'changed', ListingStatus.REMOVED]
 
@@ -22,7 +24,6 @@ export const NO_FILTERS: PokedexFilters = {
   view: ListingStatus.LISTED,
 }
 
-/** The option a value names, if it names one of `options`. */
 export function parseOption<T extends string>(options: T[], value: string | null): T | undefined {
   return options.find((option) => option === value)
 }

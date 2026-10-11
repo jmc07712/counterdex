@@ -36,7 +36,6 @@ export function PokemonChip({
       className={cn(
         CHIP,
         'font-medium transition-colors hover:border-(--chip-type)',
-        // The open Pokémon: ringed in its type's color.
         'aria-[current]:border-(--chip-type) aria-[current]:font-semibold aria-[current]:ring-2 aria-[current]:ring-(--chip-type)/40',
       )}
     >
