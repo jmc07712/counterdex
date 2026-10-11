@@ -86,7 +86,15 @@ export const signOut = <ThrowOnError extends boolean = false>(options?: Options<
  *
  * Who the session cookie signs in.
  */
-export const getCurrentUser = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentUserData, ThrowOnError>): RequestResult<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError> => (options?.client ?? client).get<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError>({ url: '/api/session', ...options });
+export const getCurrentUser = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentUserData, ThrowOnError>): RequestResult<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError> => (options?.client ?? client).get<GetCurrentUserResponses, GetCurrentUserErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/session',
+    ...options
+});
 
 /**
  * Sign in
@@ -109,21 +117,45 @@ export const signIn = <ThrowOnError extends boolean = false>(options: Options<Si
  *
  * Your teams, most recently changed first, each with its Pokémon in slot order.
  */
-export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({ url: '/api/teams', ...options });
+export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/teams',
+    ...options
+});
 
 /**
  * Delete a team
  *
  * Deletes one of your teams.
  */
-export const deleteTeam = <ThrowOnError extends boolean = false>(options: Options<DeleteTeamData, ThrowOnError>): RequestResult<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError> => (options.client ?? client).delete<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError>({ url: '/api/teams/{team_id}', ...options });
+export const deleteTeam = <ThrowOnError extends boolean = false>(options: Options<DeleteTeamData, ThrowOnError>): RequestResult<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError> => (options.client ?? client).delete<DeleteTeamResponses, DeleteTeamErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/teams/{team_id}',
+    ...options
+});
 
 /**
  * Get a team
  *
  * One of your teams, with its Pokémon in slot order.
  */
-export const getTeam = <ThrowOnError extends boolean = false>(options: Options<GetTeamData, ThrowOnError>): RequestResult<GetTeamResponses, GetTeamErrors, ThrowOnError> => (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>({ url: '/api/teams/{team_id}', ...options });
+export const getTeam = <ThrowOnError extends boolean = false>(options: Options<GetTeamData, ThrowOnError>): RequestResult<GetTeamResponses, GetTeamErrors, ThrowOnError> => (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/teams/{team_id}',
+    ...options
+});
 
 /**
  * Rename a team
@@ -131,6 +163,11 @@ export const getTeam = <ThrowOnError extends boolean = false>(options: Options<G
  * Gives one of your teams a new name.
  */
 export const renameTeam = <ThrowOnError extends boolean = false>(options: Options<RenameTeamData, ThrowOnError>): RequestResult<RenameTeamResponses, RenameTeamErrors, ThrowOnError> => (options.client ?? client).patch<RenameTeamResponses, RenameTeamErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
     url: '/api/teams/{team_id}',
     ...options,
     headers: {
@@ -149,6 +186,11 @@ export const renameTeam = <ThrowOnError extends boolean = false>(options: Option
  * `id` that no Pokémon has is a 422.
  */
 export const createTeam = <ThrowOnError extends boolean = false>(options: Options<CreateTeamData, ThrowOnError>): RequestResult<CreateTeamResponses, CreateTeamErrors, ThrowOnError> => (options.client ?? client).put<CreateTeamResponses, CreateTeamErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
     url: '/api/teams/{team_id}',
     ...options,
     headers: {
@@ -172,6 +214,11 @@ export const previewTeam = <ThrowOnError extends boolean = false>(options?: Opti
  * Charizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.
  */
 export const addTeamMember = <ThrowOnError extends boolean = false>(options: Options<AddTeamMemberData, ThrowOnError>): RequestResult<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError> => (options.client ?? client).post<AddTeamMemberResponses, AddTeamMemberErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
     url: '/api/teams/{team_id}/members',
     ...options,
     headers: {
@@ -185,7 +232,15 @@ export const addTeamMember = <ThrowOnError extends boolean = false>(options: Opt
  *
  * Takes a Pokémon off the team; the members after it move up a slot.
  */
-export const removeTeamMember = <ThrowOnError extends boolean = false>(options: Options<RemoveTeamMemberData, ThrowOnError>): RequestResult<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError> => (options.client ?? client).delete<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError>({ url: '/api/teams/{team_id}/members/{pokemon_id}', ...options });
+export const removeTeamMember = <ThrowOnError extends boolean = false>(options: Options<RemoveTeamMemberData, ThrowOnError>): RequestResult<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError> => (options.client ?? client).delete<RemoveTeamMemberResponses, RemoveTeamMemberErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/teams/{team_id}/members/{pokemon_id}',
+    ...options
+});
 
 /**
  * Replace a Pokémon on a team
@@ -195,6 +250,11 @@ export const removeTeamMember = <ThrowOnError extends boolean = false>(options: 
  * with no Pokémon is a 422.
  */
 export const replaceTeamMember = <ThrowOnError extends boolean = false>(options: Options<ReplaceTeamMemberData, ThrowOnError>): RequestResult<ReplaceTeamMemberResponses, ReplaceTeamMemberErrors, ThrowOnError> => (options.client ?? client).put<ReplaceTeamMemberResponses, ReplaceTeamMemberErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
     url: '/api/teams/{team_id}/members/{pokemon_id}',
     ...options,
     headers: {
@@ -210,6 +270,11 @@ export const replaceTeamMember = <ThrowOnError extends boolean = false>(options:
  * the team has changed since you read it, that's a 409 with `order_out_of_date`.
  */
 export const reorderTeam = <ThrowOnError extends boolean = false>(options: Options<ReorderTeamData, ThrowOnError>): RequestResult<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError> => (options.client ?? client).put<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
     url: '/api/teams/{team_id}/order',
     ...options,
     headers: {

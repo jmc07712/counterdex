@@ -22,3 +22,30 @@ def test_operations_are_named_after_their_routes(openapi: dict[str, Any]) -> Non
 
     assert paths["/api/pokemon"]["get"]["operationId"] == "list_pokemon"
     assert paths["/api/health"]["get"]["operationId"] == "health"
+
+
+SIGNED_IN_ROUTES = {
+    "GET /api/session",
+    "GET /api/teams",
+    "PUT /api/teams/{team_id}",
+    "GET /api/teams/{team_id}",
+    "PATCH /api/teams/{team_id}",
+    "DELETE /api/teams/{team_id}",
+    "POST /api/teams/{team_id}/members",
+    "PUT /api/teams/{team_id}/members/{pokemon_id}",
+    "DELETE /api/teams/{team_id}/members/{pokemon_id}",
+    "PUT /api/teams/{team_id}/order",
+}
+
+
+def test_the_docs_mark_the_routes_that_need_signing_in(openapi: dict[str, Any]) -> None:
+    marked = {
+        f"{method.upper()} {path}"
+        for path, operations in openapi["paths"].items()
+        for method, operation in operations.items()
+        if operation.get("security") == [{"SessionCookie": []}]
+    }
+
+    assert marked == SIGNED_IN_ROUTES
+    scheme = openapi["components"]["securitySchemes"]["SessionCookie"]
+    assert (scheme["type"], scheme["in"], scheme["name"]) == ("apiKey", "cookie", "__Host-session")

@@ -340,7 +340,12 @@
           "401": {
             "description": "Sign in first."
           }
-        }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
       },
       "post": {
         "summary": "Sign in",
@@ -416,7 +421,12 @@
           "401": {
             "description": "Sign in first."
           }
-        }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
       }
     },
     "/api/teams/{team_id}": {
@@ -424,6 +434,11 @@
         "summary": "Create a team",
         "description": "Creates a team with the `id` you choose, a new UUID, and any Pokémon to start with.\n\nSending the same `id` again returns the team it made, unchanged, with 200 instead of 201, so\na create that's retried can't make two teams. An `id` someone else has is a 409, and a Pokémon\n`id` that no Pokémon has is a 422.",
         "operationId": "create_team",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -498,6 +513,11 @@
         "summary": "Get a team",
         "description": "One of your teams, with its Pokémon in slot order.",
         "operationId": "get_team",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -545,6 +565,11 @@
         "summary": "Rename a team",
         "description": "Gives one of your teams a new name.",
         "operationId": "rename_team",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -602,6 +627,11 @@
         "summary": "Delete a team",
         "description": "Deletes one of your teams.",
         "operationId": "delete_team",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -696,6 +726,11 @@
         "summary": "Add a Pokémon to a team",
         "description": "Puts a Pokémon in the team's next free slot. A team holds up to six, one of each species:\nCharizard and Mega Charizard X can't share one. An `id` with no Pokémon is a 422.",
         "operationId": "add_team_member",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -765,6 +800,11 @@
         "summary": "Replace a Pokémon on a team",
         "description": "Puts another Pokémon in this member's slot, such as Charizard in Charmander's. If the new\nPokémon is on the team already, it moves into the slot and the gap it leaves closes. An `id`\nwith no Pokémon is a 422.",
         "operationId": "replace_team_member",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -845,6 +885,11 @@
         "summary": "Remove a Pokémon from a team",
         "description": "Takes a Pokémon off the team; the members after it move up a slot.",
         "operationId": "remove_team_member",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -907,6 +952,11 @@
         "summary": "Reorder a team",
         "description": "Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if\nthe team has changed since you read it, that's a 409 with `order_out_of_date`.",
         "operationId": "reorder_team",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "team_id",
@@ -2114,6 +2164,14 @@
           "type"
         ],
         "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "SessionCookie": {
+        "type": "apiKey",
+        "description": "Set by signing in (`POST /api/session`) or up (`POST /api/users`). Running locally over HTTP, it's named `session`, as browsers keep `__Host-` cookies only over HTTPS.",
+        "in": "cookie",
+        "name": "__Host-session"
       }
     }
   }

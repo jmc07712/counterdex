@@ -3,6 +3,7 @@
 from datetime import UTC
 
 from fastapi import Request, Response
+from fastapi.security import APIKeyCookie
 
 from app.accounts.types import SignedIn
 from app.core.config import get_settings
@@ -15,6 +16,26 @@ def session_cookie_name() -> str:
 
 def read_session_cookie(request: Request) -> str | None:
     return request.cookies.get(session_cookie_name())
+
+
+class SessionCookie(APIKeyCookie):
+    """The session cookie as a security scheme, so the API's docs mark the routes that need
+    signing in. The cookie's name depends on the settings, so it's read when a request comes in,
+    not fixed when the app starts.
+    """
+
+    async def __call__(self, request: Request) -> str | None:
+        return read_session_cookie(request)
+
+
+session_cookie = SessionCookie(
+    # Its name in production; see the description.
+    name="__Host-session",
+    scheme_name="SessionCookie",
+    description="Set by signing in (`POST /api/session`) or up (`POST /api/users`). Running "
+    "locally over HTTP, it's named `session`, as browsers keep `__Host-` cookies only over HTTPS.",
+    auto_error=False,
+)
 
 
 def set_session_cookie(response: Response, signed_in: SignedIn) -> None:
