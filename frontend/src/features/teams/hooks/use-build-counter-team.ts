@@ -22,8 +22,8 @@ type CounterTo = {
 
 /**
  * Builds a counter to `team`, picked from `pool`: the counter already shown for them if it's
- * cached, or a new one from the API, created as a new team named after `team`, with the counter's
- * Pokémon in its battle order. If the API finds no counter, no team is created.
+ * cached and fresh, or a new one from the API, created as a new team named after `team`, with the
+ * counter's Pokémon in its battle order. If the API finds no counter, no team is created.
  */
 export function useBuildCounterTeam() {
   const queryClient = useQueryClient()

@@ -451,6 +451,30 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(within(section).queryByRole('table')).not.toBeInTheDocument()
   })
 
+  it('asks again when building, once the Pokédex may have synced since it said it hadn’t', async () => {
+    const api = serveTheirs()
+    const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    // Added last, so it answers the first request; the stand-in answers the next.
+    server.use(
+      http.get(
+        '/api/counter-team',
+        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
+        { once: true },
+      ),
+    )
+    const { user, router } = renderTeam()
+    const section = await findSection()
+    await within(section).findByText('Counter teams need a Pokédex sync first')
+
+    await user.click(screen.getByRole('button', { name: 'Build a counter to Team 1' }))
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(EDIT_PAGE))
+    expect(counters).toHaveLength(1)
+    expect(api.teams()[0].members.map((member) => member.pokemon.id)).toEqual(
+      PICKS.map((pick) => pick.id),
+    )
+  })
+
   it('says when the counter couldn’t load, and tries again', async () => {
     serveTheirs()
     const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
@@ -619,6 +643,33 @@ describe('TeamPage, threats to your own team', () => {
       await within(section).findByText('Threats need a Pokédex sync first'),
     ).toBeInTheDocument()
     expect(within(section).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('asks again for threats it was told needed a sync, when they’re shown again', async () => {
+    serveTheirs({ viewer: ASH })
+    const threats = serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    // Added last, so it answers the first request; the stand-in answers the next.
+    server.use(
+      http.get(
+        '/api/team-threats',
+        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
+        { once: true },
+      ),
+    )
+    const { user } = renderTeam()
+    const section = await findThreats()
+    await within(section).findByText('Threats need a Pokédex sync first')
+    const forms = within(section).getByRole('button', { name: 'Alternate forms' })
+
+    await user.click(forms)
+    await waitFor(() => expect(threats).toHaveLength(1))
+    await user.click(forms)
+
+    const ids = `pokemon_id=${charizard.id}&pokemon_id=${pikachu.id}&pokemon_id=${gengar.id}`
+    await waitFor(() => expect(threats).toEqual([`${ids}&forms=true`, ids]))
+    expect(
+      await within(section).findByRole('list', { name: 'Threats, the biggest first' }),
+    ).toBeInTheDocument()
   })
 
   it('says when threats couldn’t load, and tries again', async () => {

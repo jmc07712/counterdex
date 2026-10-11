@@ -4,7 +4,7 @@ import { type Challenger, findCounterTeam, type TeamMember } from '@/api'
 import { findCounterTeamQueryKey } from '@/api/@tanstack/react-query.gen'
 
 import type { MatchupPool } from '../types'
-import { matchupQuery } from '../utils/matchup-query'
+import { matchupQuery, matchupStaleTime } from '../utils/matchup-query'
 
 /**
  * A counter to a team with these members, picked from `pool`: our picks in battle order, each
@@ -20,6 +20,7 @@ export function counterTeamQueryOptions(members: TeamMember[], pool: MatchupPool
       if (data === undefined) throw new Error(`GET /api/counter-team failed: ${response?.status}`)
       return data
     },
+    staleTime: matchupStaleTime,
   })
 }
 
