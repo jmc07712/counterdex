@@ -1,16 +1,17 @@
 import type { ReactNode } from 'react'
 
 type ResultsStatusProps = {
-  // False while the last results stay on screen as new ones load.
+  // False while results load: the first, or new ones while the last stay on screen.
   settled: boolean
   // What to say once settled. Nothing while the first results load.
   children?: ReactNode
 }
 
 /**
- * Tells screen readers what a list shows, such as how many results, once new results have
- * loaded. While they load it's empty, so the next results are read out even if they're worded
- * the same as the last.
+ * Tells screen readers what a list shows, such as how many results, once its results have loaded.
+ * It's empty while results load, so results that had to load are read out even when they're
+ * worded as the last were. Results the app already has show at once, and are read out only if
+ * their words change.
  */
 export function ResultsStatus({ settled, children }: ResultsStatusProps) {
   return (
