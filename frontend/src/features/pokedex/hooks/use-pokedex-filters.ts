@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router'
 
 import { FormFilter, ListingStatus, type PokemonType } from '@/api'
 import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
+import { parseOption } from '@/lib/search-params'
 
 /**
  * Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed lately, or those
@@ -22,10 +23,6 @@ export const NO_FILTERS: PokedexFilters = {
   types: [],
   forms: FormFilter.ALL,
   view: ListingStatus.LISTED,
-}
-
-export function parseOption<T extends string>(options: T[], value: string | null): T | undefined {
-  return options.find((option) => option === value)
 }
 
 /**

@@ -1,9 +1,8 @@
 import { useCombobox } from 'downshift'
-import { Search } from 'lucide-react'
 import { useState } from 'react'
 
+import { SearchInput } from '@/components/filters/search-input'
 import { dexNumber, displayName } from '@/components/pokemon/format'
-import { Input } from '@/components/ui/input'
 import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
@@ -43,17 +42,11 @@ export function PokemonSearch({ value, onChange, onOpen }: PokemonSearchProps) {
   const showSuggestions = isOpen && value.trim() !== '' && items.length > 0
 
   return (
-    <div className="relative flex-1">
+    <div className="relative">
       <label {...getLabelProps()} className="sr-only">
         {m.pokedex_search()}
       </label>
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <Input
-        {...getInputProps({ type: 'search', placeholder: m.pokedex_search(), className: 'pl-8' })}
-      />
+      <SearchInput {...getInputProps({ placeholder: m.pokedex_search() })} />
       <ul
         {...getMenuProps()}
         className={cn(
