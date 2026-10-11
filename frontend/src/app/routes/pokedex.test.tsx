@@ -213,6 +213,18 @@ describe('PokedexPage', () => {
     expect(await screen.findByText(message, { ignore: '[role=status]' })).toBeInTheDocument()
   })
 
+  it('keeps a search within the 50 characters the API takes', async () => {
+    const requests = servePokemon()
+
+    renderWithProviders(<PokedexPage />, { path: `/?q=${'a'.repeat(60)}` })
+
+    await waitFor(() => expect(requests).toEqual([`q=${'a'.repeat(50)}`]))
+    expect(screen.getByRole('combobox', { name: 'Search Pokémon' })).toHaveAttribute(
+      'maxlength',
+      '50',
+    )
+  })
+
   it('keeps only the last two types from a hand-edited URL', async () => {
     const requests = servePokemon()
 

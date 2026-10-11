@@ -2,16 +2,17 @@ import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 
 import type { ListTeamsData } from '@/api'
 import { listTeamsInfiniteOptions } from '@/api/@tanstack/react-query.gen'
+import { MAX_SEARCH_LENGTH } from '@/lib/search-params'
 
 import type { ExploreFilters } from './use-explore-filters'
 
 type TeamsQuery = NonNullable<ListTeamsData['query']>
 
 // Only the filters in use, so the unfiltered list always requests the same URL. The API rejects
-// an empty search.
+// an empty search, and one longer than it takes, as a hand-edited URL can have.
 function toQuery({ search, types, view }: ExploreFilters): TeamsQuery {
   return {
-    q: search.trim() || undefined,
+    q: search.trim().slice(0, MAX_SEARCH_LENGTH) || undefined,
     type: types.length > 0 ? types : undefined,
     changed: view === 'changed' ? true : undefined,
   }

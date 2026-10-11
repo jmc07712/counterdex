@@ -131,6 +131,18 @@ describe('ExplorePage', () => {
     expect(screen.getByRole('radio', { name: 'Changed this week' })).toBeChecked()
   })
 
+  it('keeps a search within the 50 characters the API takes', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    renderWithProviders(<ExplorePage />, { path: `/?q=${'a'.repeat(60)}` })
+
+    await waitFor(() => expect(listQueries).toEqual([`q=${'a'.repeat(50)}`]))
+    expect(screen.getByRole('searchbox', { name: /Search teams/ })).toHaveAttribute(
+      'maxlength',
+      '50',
+    )
+  })
+
   it('ignores what isn’t a filter in a hand-edited URL', async () => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
 
