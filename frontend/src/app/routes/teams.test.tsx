@@ -213,6 +213,7 @@ describe('TeamsPage, signed in', () => {
     )
     const { user } = await renderTeams()
     await screen.findByRole('article', { name: 'Rain' })
+    const status = screen.getByRole('status')
 
     await user.click(screen.getByRole('radio', { name: 'My teams' }))
 
@@ -221,6 +222,26 @@ describe('TeamsPage, signed in', () => {
     release()
     expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
+    // The same status throughout, so what it says about your teams is read out.
+    expect(screen.getByRole('status')).toBe(status)
+    expect(status).toHaveTextContent('1 team shown')
+  })
+
+  it('shows your teams at once when you go back to them, and says how many', async () => {
+    serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+    const { user } = await renderTeams('/?scope=mine')
+    await screen.findByRole('article', { name: 'Draft' })
+    await user.click(screen.getByRole('radio', { name: 'Everyone' }))
+    await screen.findByRole('article', { name: 'Rain' })
+    const status = screen.getByRole('status')
+
+    await user.click(screen.getByRole('radio', { name: 'My teams' }))
+
+    const mine = screen.getByRole('list', { name: 'My teams' })
+    expect(within(mine).getByRole('article', { name: 'Draft' })).toBeInTheDocument()
+    expect(within(mine).queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toBe(status)
+    await waitFor(() => expect(status).toHaveTextContent('2 teams shown'))
   })
 
   it('filters your teams as it does everyone’s', async () => {

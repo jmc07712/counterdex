@@ -90,9 +90,6 @@ export function TeamsPage() {
           />
           <ResultsRegion ref={results}>
             <TeamsGrid
-              // A new grid for each scope and owner, so it starts from its skeleton rather than
-              // showing the last scope's teams while its own load.
-              key={`${filters.scope}:${owner ?? ''}`}
               filters={filters}
               owner={owner}
               onClearFilters={clearFilters}

@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 
 import type { ListTeamsData } from '@/api'
 import { listTeamsInfiniteOptions } from '@/api/@tanstack/react-query.gen'
@@ -28,7 +28,9 @@ export function useTeamsList(filters: TeamsFilters, owner: string | undefined) {
     ...listTeamsInfiniteOptions({ query: toQuery(filters, owner) }),
     initialPageParam: {},
     getNextPageParam: (page) => page.next_cursor ?? undefined,
-    // Keep showing the current teams while a changed filter loads, instead of a skeleton.
-    placeholderData: keepPreviousData,
+    // Keep showing the current teams while a changed filter loads, instead of a skeleton; but not
+    // while another owner's, or everyone's, load in their place.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[0].query?.owner === owner ? previous : undefined,
   })
 }
