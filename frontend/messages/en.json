@@ -129,6 +129,24 @@
   ],
   "teams_view_info_label": "About what’s shown",
   "teams_view_info": "All is every team. Changed this week is the teams with a Pokémon a sync changed in the last week.",
+  "teams_sort_label": "Sort",
+  "teams_sort_option": [
+    {
+      "declarations": [
+        "input sort"
+      ],
+      "selectors": [
+        "sort"
+      ],
+      "match": {
+        "sort=newest": "Newest",
+        "sort=power": "Most powerful",
+        "sort=*": "{sort}"
+      }
+    }
+  ],
+  "teams_sort_info_label": "About sorting",
+  "teams_sort_info": "Most powerful: the sum of each team’s base stats, highest first.",
   "teams_types_info": "Teams with a Pokémon of every type you pick, on one Pokémon or several. Pick as many types as you like.",
   "teams_nothing_found_title": [
     {

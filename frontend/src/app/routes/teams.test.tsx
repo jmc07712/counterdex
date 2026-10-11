@@ -292,6 +292,57 @@ describe('TeamsPage, signed in', () => {
     expect(router.state.location.search).toBe('?scope=mine')
   })
 
+  it('lists your teams by power as it does everyone’s', async () => {
+    const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+
+    await renderTeams('/?scope=mine&sort=power')
+
+    await waitFor(() => expect(listQueries).toEqual(['owner=ash&sort=power']))
+    expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
+  })
+
+  it('keeps the sort as you switch whose teams are shown', async () => {
+    const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+    const { user, router } = await renderTeams('/?sort=power')
+
+    await user.click(screen.getByRole('radio', { name: 'My teams' }))
+
+    await waitFor(() => expect(listQueries.at(-1)).toBe('owner=ash&sort=power'))
+    expect(router.state.location.search).toBe('?scope=mine&sort=power')
+  })
+
+  it.each([
+    ['everyone’s teams', '/?q=zzz&sort=power', '?sort=power', 'sort=power'],
+    [
+      'your teams',
+      '/?scope=mine&q=zzz&sort=power',
+      '?scope=mine&sort=power',
+      'owner=ash&sort=power',
+    ],
+  ])(
+    'keeps the sort when the filters are cleared on %s, as it isn’t a filter',
+    async (_, path, search, query) => {
+      const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
+      // Added last, so it answers first: nothing matches a search, and anything else goes on to
+      // the stand-in.
+      server.use(
+        http.get('/api/teams', ({ request }) => {
+          if (new URL(request.url).searchParams.has('q')) {
+            return HttpResponse.json({ items: [], next_cursor: null })
+          }
+        }),
+      )
+      const { user, router } = await renderTeams(path)
+
+      await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
+
+      await screen.findByRole('article', { name: 'Fire' })
+      expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
+      expect(router.state.location.search).toBe(search)
+      expect(listQueries.at(-1)).toBe(query)
+    },
+  )
+
   it('shows each team as six tiles: its members, in their types, then its empty slots', async () => {
     serveTeams({
       teams: [
@@ -658,6 +709,64 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(router.state.location.search).toBe('')
   })
 
+  it('opens on the newest teams, and asks for no sort', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    await renderTeams()
+
+    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Most powerful' })).not.toBeChecked()
+    await waitFor(() => expect(listQueries).toEqual(['']))
+  })
+
+  it('can list the most powerful teams first, keeping the choice in the URL', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+    const { user, router } = await renderTeams()
+
+    await user.click(screen.getByRole('radio', { name: 'Most powerful' }))
+
+    await waitFor(() => expect(listQueries.at(-1)).toBe('sort=power'))
+    expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
+    expect(router.state.location.search).toBe('?sort=power')
+
+    await user.click(screen.getByRole('radio', { name: 'Newest' }))
+
+    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('always keeps one sort chosen', async () => {
+    serveTeams({ teams: [RAIN] })
+    const { user, router } = await renderTeams('/?sort=power')
+
+    await user.click(screen.getByRole('radio', { name: 'Most powerful' }))
+
+    expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
+    expect(router.state.location.search).toBe('?sort=power')
+  })
+
+  it('lists the teams in the order the API gives, newest or most powerful', async () => {
+    serveTeams({ teams: [FIRE, RAIN] })
+    // Added last, so it answers first: asked for the most powerful, the API puts Fire first.
+    server.use(
+      http.get('/api/teams', ({ request }) => {
+        if (new URL(request.url).searchParams.get('sort') === 'power') {
+          return HttpResponse.json({ items: [FIRE, RAIN], next_cursor: null })
+        }
+      }),
+    )
+    const { user } = await renderTeams()
+    const names = () =>
+      within(screen.getByRole('list', { name: 'Everyone’s teams' }))
+        .getAllByRole('article')
+        .map((card) => card.querySelector('h2')?.textContent)
+    await waitFor(() => expect(names()).toEqual(['Rain', 'Fire']))
+
+    await user.click(screen.getByRole('radio', { name: 'Most powerful' }))
+
+    await waitFor(() => expect(names()).toEqual(['Fire', 'Rain']))
+  })
+
   it('starts from the filters in the URL', async () => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
 
@@ -668,6 +777,33 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(screen.getByRole('button', { name: 'Water' })).toBePressed()
     expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
     expect(screen.getByRole('radio', { name: 'Changed this week' })).toBeChecked()
+  })
+
+  it('starts from the sort in the URL', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    await renderTeams('/?sort=power')
+
+    await waitFor(() => expect(listQueries).toEqual(['sort=power']))
+    expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
+  })
+
+  it('asks for no sort when the URL names the newest, which is the default', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    await renderTeams('/?sort=newest')
+
+    await waitFor(() => expect(listQueries).toEqual(['']))
+    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
+  })
+
+  it('lists the newest teams for a sort it doesn’t know', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    await renderTeams('/?sort=weakest')
+
+    await waitFor(() => expect(listQueries).toEqual(['']))
+    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
   })
 
   it('keeps a search within the 50 characters the API takes', async () => {
@@ -693,6 +829,7 @@ describe('TeamsPage, everyone’s teams', () => {
 
   it.each([
     ['About what’s shown', 'Changed this week is the teams with a Pokémon a sync changed'],
+    ['About sorting', 'Most powerful: the sum of each team’s base stats, highest first.'],
     ['About types', 'Teams with a Pokémon of every type you pick'],
   ])('explains a filter from its info button: %s', async (button, explanation) => {
     serveTeams({ teams: [RAIN] })

@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router'
 
-import type { PokemonType } from '@/api'
+import { type PokemonType, TeamSort } from '@/api'
 import { toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { parseOption } from '@/lib/search-params'
 
@@ -12,15 +12,26 @@ export const TEAMS_SCOPES: TeamsScope[] = ['mine', 'everyone']
 export type TeamsView = 'all' | 'changed'
 export const TEAMS_VIEWS: TeamsView[] = ['all', 'changed']
 
+/** How it orders them: the newest first, or the most powerful. */
+export const TEAMS_SORTS: TeamSort[] = Object.values(TeamSort)
+
 export type TeamsFilters = {
   scope: TeamsScope
   search: string
   types: PokemonType[]
   view: TeamsView
+  sort: TeamSort
 }
 
-/** What Clear filters goes back to. Whose teams are shown stays as it is. */
-export const NO_FILTERS: Omit<TeamsFilters, 'scope'> = { search: '', types: [], view: 'all' }
+/**
+ * What Clear filters goes back to. Whose teams are shown stays as it is, and so does their order:
+ * a sort doesn't narrow the teams down.
+ */
+export const NO_FILTERS: Omit<TeamsFilters, 'scope' | 'sort'> = {
+  search: '',
+  types: [],
+  view: 'all',
+}
 
 /** Whether the filters narrow down whose teams are shown, which Clear filters undoes. */
 export function isFiltered({ search, types, view }: TeamsFilters) {
@@ -28,9 +39,9 @@ export function isFiltered({ search, types, view }: TeamsFilters) {
 }
 
 /**
- * The Teams page's filters, kept in the URL (?scope=mine&q=rain&type=water&view=changed) so a
- * filtered view can be shared, bookmarked, or reloaded. It shows everyone's teams unless someone
- * signed in asks for their own.
+ * The Teams page's filters, kept in the URL (?scope=mine&q=rain&type=water&view=changed&sort=power)
+ * so a filtered view can be shared, bookmarked, or reloaded. It shows everyone's teams, newest
+ * first, unless someone signed in asks for their own, or anyone asks for the most powerful first.
  */
 export function useTeamsFilters({ signedIn }: { signedIn: boolean }) {
   const [params, setParams] = useSearchParams()
@@ -41,14 +52,16 @@ export function useTeamsFilters({ signedIn }: { signedIn: boolean }) {
     // Each type once, as a hand-edited URL can repeat one.
     types: [...new Set(toPokemonTypes(params.getAll('type')))],
     view: parseOption(TEAMS_VIEWS, params.get('view')) ?? 'all',
+    sort: parseOption(TEAMS_SORTS, params.get('sort')) ?? TeamSort.NEWEST,
   }
 
-  function setFilters({ scope, search, types, view }: TeamsFilters) {
+  function setFilters({ scope, search, types, view, sort }: TeamsFilters) {
     const next = new URLSearchParams()
     if (signedIn && scope === 'mine') next.set('scope', scope)
     if (search) next.set('q', search)
     for (const type of types) next.append('type', type)
     if (view !== 'all') next.set('view', view)
+    if (sort !== TeamSort.NEWEST) next.set('sort', sort)
     // Replace rather than push, so typing a search doesn't add a history entry per keystroke.
     setParams(next, { replace: true })
   }

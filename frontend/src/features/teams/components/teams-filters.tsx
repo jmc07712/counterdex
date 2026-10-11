@@ -11,6 +11,7 @@ import { m } from '@/paraglide/messages.js'
 import {
   type TeamsFilters as Filters,
   TEAMS_SCOPES,
+  TEAMS_SORTS,
   TEAMS_VIEWS,
 } from '../hooks/use-teams-filters'
 
@@ -25,6 +26,7 @@ type TeamsFiltersProps = {
 export function TeamsFilters({ filters, onChange, showScope, searchRef }: TeamsFiltersProps) {
   const scopeId = useId()
   const viewId = useId()
+  const sortId = useId()
 
   return (
     <FilterBar
@@ -79,6 +81,27 @@ export function TeamsFilters({ filters, onChange, showScope, searchRef }: TeamsF
               {TEAMS_VIEWS.map((view) => (
                 <ChoiceToggle key={view} value={view}>
                   {m.teams_view_option({ view })}
+                </ChoiceToggle>
+              ))}
+            </ChoiceToggles>
+          </FilterGroup>
+          <FilterGroup
+            id={sortId}
+            label={m.teams_sort_label()}
+            infoLabel={m.teams_sort_info_label()}
+            info={m.teams_sort_info()}
+          >
+            <ChoiceToggles
+              labelledBy={sortId}
+              value={filters.sort}
+              onChange={(value) => {
+                const sort = parseOption(TEAMS_SORTS, value)
+                if (sort) onChange({ ...filters, sort })
+              }}
+            >
+              {TEAMS_SORTS.map((sort) => (
+                <ChoiceToggle key={sort} value={sort}>
+                  {m.teams_sort_option({ sort })}
                 </ChoiceToggle>
               ))}
             </ChoiceToggles>
