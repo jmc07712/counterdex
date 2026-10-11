@@ -94,7 +94,24 @@ The sync adds:
 - `GET /api/teams` lists everyone's teams that have a Pokémon, newest first, a page at a time.
   `q` matches a team's name, its owner's username or a member's name, ignoring case; `type`,
   repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
-  week. Filters combine.
+  week; `owner` keeps one user's teams, including those with no Pokémon yet. Filters combine.
+
+## The type chart and legendary flags
+
+Two pieces of PokéAPI data exist for the counter team and the threats list, and nothing else
+reads them.
+
+- **`type_matchups`** is the type chart: one row for each pair of the 18 types, 324 in all, with
+  the share of damage a move of the attacking type does to a Pokémon of the defending type: 0, ½,
+  1 or 2. A Pokémon with two types takes the product of both rows, so Rock against Charizard
+  (Fire/Flying) is 2 × 2 = 4×. It's how a Pokémon's weaknesses, resistances and immunities are
+  worked out. It's stored rather than written into the code because it's PokéAPI's data like the
+  rest, refreshed by every sync, and checks allow only known types and those four multipliers.
+  Until a sync has stored it, the counter routes answer 503 and say to run one.
+- **`species.is_legendary`** and **`species.is_mythical`** mark species such as Mewtwo and Mew.
+  The counter search leaves them out unless `legendaries=true`, so it suggests Pokémon a player
+  would usually field. PokéAPI doesn't flag Paradox Pokémon or Ultra Beasts, so they count as
+  regular Pokémon.
 
 ## How the sync works
 
@@ -123,8 +140,9 @@ The limits are in `app/sync/constants.py`:
   `REQUEST_TIMEOUT_SECONDS` (15).
 - Only rate limiting, server errors (`RETRYABLE_STATUS_CODES`: 429, 500, 502, 503 and 504) and
   network failures are retried, up to `MAX_ATTEMPTS` (3) tries in all, waiting
-  `RETRY_DELAY_SECONDS` (0.5) and then twice as long before each further retry. The client doesn't
-  read `Retry-After` yet.
+  `RETRY_DELAY_SECONDS` (0.5) and then twice as long before each further retry. A 429 or 503 that
+  asks in `Retry-After` for a number of seconds gets that wait instead, up to
+  `MAX_RETRY_AFTER_SECONDS` (30).
 
 PokéAPI answers from Cloudflare's cache, with `cache-control: public, max-age=86400`, so syncing
 more than once a day can't see newer data.
