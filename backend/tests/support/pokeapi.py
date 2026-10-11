@@ -10,6 +10,7 @@ from typing import Any
 
 import httpx2
 
+from app.pokemon.enums import PokemonType
 from app.sync.client import PokeApiClient
 from app.sync.constants import POKEAPI_BASE_URL
 
@@ -42,6 +43,10 @@ def evolution_chain_response(chain_id: int) -> dict[str, Any]:
     return recorded_response(f"evolution-chain-{chain_id}")
 
 
+def type_response(name: str) -> dict[str, Any]:
+    return recorded_response(f"type-{name}")
+
+
 def listing_response(
     *ids: int, next_page: str | None = None, resource: str = "pokemon"
 ) -> dict[str, Any]:
@@ -68,7 +73,8 @@ def fake_pokeapi(
     requested: list[str] | None = None,
     edit: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> PokeApiClient:
-    """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species.
+    """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species, and
+    serving every type the app knows.
 
     Requests for the `failing` paths, such as "pokemon/6" (or "pokemon" for the listing), get a
     server error every time. `speeds` changes Pokémon's speed by id, `extra_urls` are listed
@@ -97,6 +103,8 @@ def fake_pokeapi(
                 data = species_response(int(species_id))
             case ["evolution-chain", chain_id]:
                 data = evolution_chain_response(int(chain_id))
+            case ["type", name] if name in PokemonType:
+                data = type_response(name)
             case _:
                 return httpx2.Response(404)
         if edit is not None:

@@ -13,6 +13,16 @@ MAX_BASE_STAT = 255
 MIN_TYPES = 1
 MAX_TYPES = 2
 
+# --- Type chart ---
+# How much of a move's damage a Pokémon of one type takes: none, half, normal or double, by the
+# move's type. A Pokémon with two types takes the product of both multipliers.
+
+NO_DAMAGE = 0.0
+HALF_DAMAGE = 0.5
+NORMAL_DAMAGE = 1.0
+DOUBLE_DAMAGE = 2.0
+TYPE_MULTIPLIERS = (NO_DAMAGE, HALF_DAMAGE, NORMAL_DAMAGE, DOUBLE_DAMAGE)
+
 # --- Alternate forms ---
 # PokéAPI names a form after its kind (charizard-mega-x, raichu-alola); the first marker found
 # in an alternate form's name decides it, and anything else is PokemonForm.OTHER.

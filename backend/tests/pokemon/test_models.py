@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.pokemon.models import TypeMatchup
 from tests.support.pokemon import make_pokemon
 
 
@@ -39,4 +40,31 @@ def test_names_are_unique(db_session: Session) -> None:
     db_session.add(make_pokemon(id=10080))
 
     with pytest.raises(IntegrityError, match="uq_pokemon_name"):
+        db_session.flush()
+
+
+@pytest.mark.parametrize(
+    ("columns", "constraint"),
+    [
+        pytest.param(
+            {"attacking_type": "shadow"},
+            "ck_type_matchups_known_attacking_type",
+            id="unknown-attacking-type",
+        ),
+        pytest.param(
+            {"defending_type": "stellar"},
+            "ck_type_matchups_known_defending_type",
+            id="unknown-defending-type",
+        ),
+        pytest.param({"multiplier": 4}, "ck_type_matchups_known_multiplier", id="four-times"),
+        pytest.param({"multiplier": 0.25}, "ck_type_matchups_known_multiplier", id="quarter"),
+    ],
+)
+def test_rejects_a_type_matchup_with_an_unknown_type_or_multiplier(
+    db_session: Session, columns: dict[str, Any], constraint: str
+) -> None:
+    matchup = {"attacking_type": "water", "defending_type": "fire", "multiplier": 2} | columns
+    db_session.add(TypeMatchup(**matchup))
+
+    with pytest.raises(IntegrityError, match=constraint):
         db_session.flush()

@@ -1,3 +1,4 @@
+from itertools import product
 from typing import Any
 
 import pytest
@@ -11,20 +12,24 @@ from app.pokemon.enums import (
     TimeOfDay,
 )
 from app.pokemon.schemas import EvolutionMethod, Pokemon, Stats
-from app.sync.normalize import content_hash, normalize, normalize_species
+from app.sync.normalize import content_hash, normalize, normalize_species, normalize_type_chart
 from app.sync.pokeapi import (
     ChainLink,
+    DamageRelations,
     EvolutionDetail,
+    NamedResource,
     PokeApiEvolutionChain,
     PokeApiPokemon,
     PokeApiSpecies,
+    PokeApiType,
 )
-from app.sync.types import SpeciesRecord
+from app.sync.types import SpeciesRecord, TypeMatchupRecord
 from tests.support.pokeapi import (
     SPECIES_IDS,
     evolution_chain_response,
     pokemon_response,
     species_response,
+    type_response,
 )
 from tests.support.pokemon import LEVEL_16, LEVEL_36, PIKACHU, with_columns
 
@@ -242,3 +247,83 @@ def test_reads_pokeapis_blank_time_of_day_as_any_time() -> None:
 def test_rejects_what_the_app_does_not_know(detail: dict[str, Any], field: str) -> None:
     with pytest.raises(ValidationError, match=field):
         method_from(detail)
+
+
+# --- Type chart ---
+
+
+@pytest.fixture
+def types() -> list[PokeApiType]:
+    """Every type the app knows, as PokéAPI returns them."""
+    return [PokeApiType.model_validate(type_response(type_)) for type_ in PokemonType]
+
+
+def multipliers(types: list[PokeApiType]) -> dict[tuple[PokemonType, PokemonType], float]:
+    """The normalized type chart, by attacking and defending type."""
+    return {
+        (matchup.attacking_type, matchup.defending_type): matchup.multiplier
+        for matchup in normalize_type_chart(types)
+    }
+
+
+def test_reads_how_much_damage_each_type_does_to_each_other(types: list[PokeApiType]) -> None:
+    chart = multipliers(types)
+
+    assert chart[PokemonType.FIRE, PokemonType.GRASS] == 2
+    assert chart[PokemonType.FIRE, PokemonType.WATER] == 0.5
+    assert chart[PokemonType.NORMAL, PokemonType.GHOST] == 0
+    # PokéAPI lists only the types that take more or less than normal damage.
+    assert chart[PokemonType.FIRE, PokemonType.NORMAL] == 1
+
+
+def test_reads_the_damage_a_type_does_not_the_damage_it_takes(types: list[PokeApiType]) -> None:
+    # Ground does double damage to Electric, and takes none from it.
+    chart = multipliers(types)
+
+    assert (
+        chart[PokemonType.GROUND, PokemonType.ELECTRIC],
+        chart[PokemonType.ELECTRIC, PokemonType.GROUND],
+    ) == (2, 0)
+
+
+def test_covers_every_pair_of_types_once(types: list[PokeApiType]) -> None:
+    chart = normalize_type_chart(types)
+
+    pairs = [(matchup.attacking_type, matchup.defending_type) for matchup in chart]
+    assert sorted(pairs) == sorted(product(PokemonType, repeat=2))
+
+
+def test_ignores_types_the_app_does_not_have(types: list[PokeApiType]) -> None:
+    stellar = PokeApiType(
+        id=19,
+        name="stellar",
+        damage_relations=DamageRelations(double_damage_to=[], half_damage_to=[], no_damage_to=[]),
+    )
+    fire = next(each for each in types if each.name == "fire")
+    fire.damage_relations.double_damage_to.append(NamedResource(name="stellar"))
+
+    assert normalize_type_chart([*types, stellar]) == normalize_type_chart(
+        [PokeApiType.model_validate(type_response(type_)) for type_ in PokemonType]
+    )
+
+
+def test_leaves_out_the_chart_when_a_type_is_missing(types: list[PokeApiType]) -> None:
+    # Fire failed to fetch, so the chart stored before is kept until the next sync.
+    without_fire = [each for each in types if each.name != "fire"]
+
+    assert normalize_type_chart(without_fire) == []
+
+
+def test_gives_each_matchup_one_of_the_known_multipliers(types: list[PokeApiType]) -> None:
+    assert {matchup.multiplier for matchup in normalize_type_chart(types)} == {0, 0.5, 1, 2}
+
+
+def test_reads_a_matchup_into_the_apps_types(types: list[PokeApiType]) -> None:
+    matchup = next(
+        each
+        for each in normalize_type_chart(types)
+        if (each.attacking_type, each.defending_type) == ("water", "fire")
+    )
+
+    assert matchup == TypeMatchupRecord(PokemonType.WATER, PokemonType.FIRE, 2)
+    assert type(matchup.attacking_type) is PokemonType

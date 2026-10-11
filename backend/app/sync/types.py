@@ -5,9 +5,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import EvolutionMethod
 from app.sync.enums import ChangeKind
-from app.sync.pokeapi import PokeApiEvolutionChain, PokeApiPokemon, PokeApiSpecies
+from app.sync.pokeapi import PokeApiEvolutionChain, PokeApiPokemon, PokeApiSpecies, PokeApiType
 
 Clock = Callable[[], datetime]
 
@@ -35,6 +36,15 @@ class SpeciesFetchResult:
 
 
 @dataclass(frozen=True)
+class TypeFetchResult:
+    """What one pass over PokéAPI's types returned."""
+
+    types: list[PokeApiType]
+    # URLs that still failed after retrying.
+    failed: list[str]
+
+
+@dataclass(frozen=True)
 class SpeciesRecord:
     """A species ready to store: its place in its evolution family and its Pokémon."""
 
@@ -48,6 +58,16 @@ class SpeciesRecord:
     evolution_methods: tuple[EvolutionMethod, ...]
     # Its default form and any alternate forms.
     pokemon_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class TypeMatchupRecord:
+    """How much damage a move of one type does to a Pokémon of another, ready to store."""
+
+    attacking_type: PokemonType
+    defending_type: PokemonType
+    # One of the type chart's multipliers: 0, 0.5, 1 or 2.
+    multiplier: float
 
 
 @dataclass(frozen=True)

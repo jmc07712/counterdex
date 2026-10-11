@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 
-from app.pokemon.models import Pokemon, Species
+from app.pokemon.enums import PokemonType
+from app.pokemon.models import Pokemon, Species, TypeMatchup
 from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SyncAlreadyRunningError
@@ -22,7 +24,7 @@ def clock() -> datetime:
     return NOW
 
 
-def count(session: Session, model: type[Pokemon | SyncRun | PokemonChange]) -> int:
+def count(session: Session, model: type[Pokemon | SyncRun | PokemonChange | TypeMatchup]) -> int:
     return session.scalar(select(func.count()).select_from(model)) or 0
 
 
@@ -130,6 +132,35 @@ async def test_reports_species_it_could_not_sync(db_session: Session) -> None:
 
     assert report.failed == ["charizard", "charmander", f"{BASE_URL}pokemon-species/5/"]
     assert sorted(db_session.scalars(select(Species.id))) == [25, 26, 172]
+
+
+async def test_syncs_how_much_damage_each_type_does_to_each_other(db_session: Session) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    assert count(db_session, TypeMatchup) == len(PokemonType) ** 2
+    water_on_fire = db_session.get(TypeMatchup, (PokemonType.WATER, PokemonType.FIRE))
+    assert water_on_fire is not None
+    assert water_on_fire.multiplier == 2
+
+
+async def test_keeps_the_stored_type_chart_when_a_type_fails(db_session: Session) -> None:
+    await run_sync(fake_pokeapi(), db_session, clock=clock)
+
+    def water_does_normal_damage(path: str, data: dict[str, Any]) -> None:
+        if path == "type/water":
+            data["damage_relations"]["double_damage_to"] = []
+
+    report = await run_sync(
+        fake_pokeapi(failing=("type/fire",), edit=water_does_normal_damage),
+        db_session,
+        clock=clock,
+    )
+
+    assert report.failed == [f"{BASE_URL}type/fire/"]
+    water_on_fire = db_session.get(TypeMatchup, (PokemonType.WATER, PokemonType.FIRE))
+    assert water_on_fire is not None
+    db_session.refresh(water_on_fire)
+    assert water_on_fire.multiplier == 2
 
 
 def test_records_a_failed_sync(db_session: Session) -> None:

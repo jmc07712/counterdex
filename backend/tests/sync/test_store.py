@@ -1,17 +1,20 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from itertools import product
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import Base
 from app.pokemon import models, schemas
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import EvolutionMethod
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SuspiciousRemovalError
 from app.sync.normalize import content_hash
-from app.sync.store import store_pokemon, store_species
-from app.sync.types import Change, SpeciesRecord, StoreResult
+from app.sync.store import store_pokemon, store_species, store_type_chart
+from app.sync.types import Change, SpeciesRecord, StoreResult, TypeMatchupRecord
 from tests.support.pokemon import (
     LEVEL_16,
     LEVEL_36,
@@ -225,3 +228,49 @@ def test_overwrites_species_already_stored(db_session: Session) -> None:
     store_species(db_session, [replace(CHARIZARD_SPECIES, genus="Blaze Pokémon")])
 
     assert stored(db_session, models.Species, 6).genus == "Blaze Pokémon"
+
+
+# --- Type chart ---
+
+FIRE_ON_GRASS = (PokemonType.FIRE, PokemonType.GRASS)
+
+
+def type_chart(fire_on_grass: float) -> list[TypeMatchupRecord]:
+    """Every pair of types at normal damage, except Fire attacking Grass."""
+    return [
+        TypeMatchupRecord(
+            attacking, defending, fire_on_grass if (attacking, defending) == FIRE_ON_GRASS else 1
+        )
+        for attacking, defending in product(PokemonType, repeat=2)
+    ]
+
+
+def stored_type_chart(session: Session) -> dict[tuple[PokemonType, PokemonType], float]:
+    """The stored multipliers, by attacking and defending type."""
+    session.expire_all()
+    matchups = session.scalars(select(models.TypeMatchup))
+    return {(each.attacking_type, each.defending_type): each.multiplier for each in matchups}
+
+
+def test_stores_how_much_damage_each_type_does_to_each_other(db_session: Session) -> None:
+    store_type_chart(db_session, type_chart(fire_on_grass=2))
+
+    chart = stored_type_chart(db_session)
+    assert len(chart) == len(PokemonType) ** 2
+    assert (chart[FIRE_ON_GRASS], chart[PokemonType.GRASS, PokemonType.FIRE]) == (2, 1)
+
+
+def test_overwrites_the_stored_type_chart(db_session: Session) -> None:
+    store_type_chart(db_session, type_chart(fire_on_grass=1))
+
+    store_type_chart(db_session, type_chart(fire_on_grass=2))
+
+    assert stored_type_chart(db_session)[FIRE_ON_GRASS] == 2
+
+
+def test_keeps_the_stored_type_chart_without_a_new_one(db_session: Session) -> None:
+    store_type_chart(db_session, type_chart(fire_on_grass=2))
+
+    store_type_chart(db_session, [])
+
+    assert stored_type_chart(db_session)[FIRE_ON_GRASS] == 2

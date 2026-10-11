@@ -13,8 +13,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.db import Base
-from app.pokemon.constants import MAX_BASE_STAT, MAX_TYPES, MIN_BASE_STAT, MIN_TYPES
+from app.core.db import Base, text_enum
+from app.pokemon.constants import (
+    MAX_BASE_STAT,
+    MAX_TYPES,
+    MIN_BASE_STAT,
+    MIN_TYPES,
+    TYPE_MULTIPLIERS,
+)
 from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import STAT_NAMES
 
@@ -100,3 +106,27 @@ class SpeciesVariety(Base):
 
     pokemon_id: Mapped[int] = mapped_column(ForeignKey("pokemon.id"), primary_key=True)
     species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), index=True)
+
+
+class TypeMatchup(Base):
+    """How much damage a move of one type does to a Pokémon of another: one cell of the type
+    chart, which has a row for every pair of types.
+
+    Reference data refreshed by every sync, like species: changes aren't tracked.
+    """
+
+    __tablename__ = "type_matchups"
+    __table_args__ = (
+        CheckConstraint(
+            f"multiplier in ({', '.join(map(str, TYPE_MULTIPLIERS))})", name="known_multiplier"
+        ),
+    )
+
+    attacking_type: Mapped[PokemonType] = mapped_column(
+        text_enum(PokemonType, check_name="known_attacking_type"), primary_key=True
+    )
+    defending_type: Mapped[PokemonType] = mapped_column(
+        text_enum(PokemonType, check_name="known_defending_type"), primary_key=True
+    )
+    # The share of the move's damage the defending type takes.
+    multiplier: Mapped[float]

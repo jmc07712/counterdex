@@ -1,6 +1,9 @@
-"""Write a sync's Pokémon and species to the database, and work out which Pokémon changed."""
+"""Write a sync's Pokémon, species and type chart to the database, and work out which Pokémon
+changed.
+"""
 
 from collections.abc import Sequence
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 
@@ -14,7 +17,7 @@ from app.sync.constants import MAX_REMOVED_SHARE, MIN_REMOVALS_ALLOWED
 from app.sync.enums import ChangeKind
 from app.sync.exceptions import SuspiciousRemovalError
 from app.sync.normalize import content_hash
-from app.sync.types import Change, SpeciesRecord, StoreResult
+from app.sync.types import Change, SpeciesRecord, StoreResult, TypeMatchupRecord
 
 
 def store_pokemon(
@@ -131,6 +134,17 @@ def store_species(session: Session, species: Sequence[SpeciesRecord]) -> None:
     ]
     if varieties:
         _upsert(session, models.SpeciesVariety, varieties)
+
+
+def store_type_chart(session: Session, chart: Sequence[TypeMatchupRecord]) -> None:
+    """Bring the type chart in line with PokéAPI. An empty chart, one that wasn't fetched whole,
+    leaves the stored chart as it is.
+
+    The chart is reference data, like species: it's overwritten and its changes aren't recorded.
+    """
+    if not chart:
+        return
+    _upsert(session, models.TypeMatchup, [asdict(matchup) for matchup in chart])
 
 
 def _upsert(session: Session, model: type[Base], rows: list[dict[str, Any]]) -> None:

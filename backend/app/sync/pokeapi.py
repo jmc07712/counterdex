@@ -155,5 +155,26 @@ class PokeApiEvolutionChain(BaseModel):
     chain: ChainLink
 
 
+# --- GET /type ---
+
+
+class DamageRelations(BaseModel):
+    """The types a type's moves do double, half or no damage to. The types they do normal
+    damage to aren't listed.
+    """
+
+    double_damage_to: list[NamedResource]
+    half_damage_to: list[NamedResource]
+    no_damage_to: list[NamedResource]
+
+
+class PokeApiType(BaseModel):
+    """GET /type/{name}"""
+
+    id: int
+    name: str
+    damage_relations: DamageRelations
+
+
 def _last_segment(url: str) -> str:
     return urlsplit(url).path.rstrip("/").rsplit("/", 1)[-1]

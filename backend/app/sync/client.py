@@ -7,6 +7,7 @@ import anyio
 import httpx2
 from pydantic import BaseModel
 
+from app.pokemon.enums import PokemonType
 from app.sync.constants import (
     CONCURRENT_REQUESTS,
     MAX_ATTEMPTS,
@@ -22,20 +23,22 @@ from app.sync.pokeapi import (
     PokeApiListing,
     PokeApiPokemon,
     PokeApiSpecies,
+    PokeApiType,
 )
-from app.sync.types import PokemonFetchResult, SpeciesFetchResult
+from app.sync.types import PokemonFetchResult, SpeciesFetchResult, TypeFetchResult
 
 logger = logging.getLogger(__name__)
 
 
 class PokeApiClient:
-    """Reads everything the sync needs from PokéAPI: every Pokémon, every species, and the
-    evolution chains that link species into families.
+    """Reads everything the sync needs from PokéAPI: every Pokémon, every species, the evolution
+    chains that link species into families, and how much damage each type does to the others.
 
-    Each fetch lists a resource page by page, then fetches each entry's details concurrently,
-    at most `concurrency` requests at a time. A request that hits rate limiting, a server error
-    or a network failure is tried up to `attempts` times in all, waiting `retry_delay` seconds
-    before the first retry and twice as long before each one after.
+    Pokémon and species are listed page by page; types are the ones the app knows. Each fetch
+    then fetches every entry's details concurrently, at most `concurrency` requests at a time.
+    A request that hits rate limiting, a server error or a network failure is tried up to
+    `attempts` times in all, waiting `retry_delay` seconds before the first retry and twice as
+    long before each one after.
 
     One entry that keeps failing doesn't fail the fetch: its URL is reported in the result's
     `failed`, and the caller decides what that means. A listing that can't be trusted (it
@@ -75,6 +78,12 @@ class PokeApiClient:
         )
         chains, failed_chains = await self._fetch_details(chain_urls, PokeApiEvolutionChain)
         return SpeciesFetchResult(species, chains, failed=failed_species + failed_chains)
+
+    async def fetch_types(self) -> TypeFetchResult:
+        """Every type a Pokémon can have, each with how much damage its moves do to the others."""
+        urls = [f"{self._http.base_url}type/{type_}/" for type_ in PokemonType]
+        types, failed = await self._fetch_details(urls, PokeApiType)
+        return TypeFetchResult(types, failed=failed)
 
     async def _list_entries(self, resource: str) -> list[NamedApiResource]:
         """Every entry in a resource's listing, e.g. "pokemon", read page by page. Raises rather

@@ -3,6 +3,7 @@ import httpx2
 import pytest
 from pydantic import ValidationError
 
+from app.pokemon.enums import PokemonType
 from app.sync.constants import MAX_PAGES
 from app.sync.exceptions import PokeApiError
 from tests.support.pokeapi import (
@@ -245,3 +246,22 @@ async def test_fails_when_a_species_links_to_an_evolution_chain_outside_pokeapi(
         await client_for(handler).fetch_species()
 
     assert outside_url not in requested
+
+
+async def test_fetches_every_type_the_app_knows_once() -> None:
+    requested: list[str] = []
+
+    result = await fake_pokeapi(requested=requested).fetch_types()
+
+    assert sorted(each.name for each in result.types) == sorted(PokemonType)
+    assert sorted(requested) == sorted(f"{BASE_URL}type/{type_}/" for type_ in PokemonType)
+    assert result.failed == []
+
+
+async def test_reports_a_type_that_keeps_failing_without_losing_the_rest() -> None:
+    result = await fake_pokeapi(failing=("type/fire",)).fetch_types()
+
+    assert sorted(each.name for each in result.types) == sorted(
+        type_ for type_ in PokemonType if type_ is not PokemonType.FIRE
+    )
+    assert result.failed == [f"{BASE_URL}type/fire/"]

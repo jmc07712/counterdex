@@ -12,8 +12,8 @@ from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.enums import SyncStatus
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
-from app.sync.normalize import normalize, normalize_species
-from app.sync.store import store_pokemon, store_species
+from app.sync.normalize import normalize, normalize_species, normalize_type_chart
+from app.sync.store import store_pokemon, store_species, store_type_chart
 from app.sync.types import Clock, SyncReport
 
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ def utc_now() -> datetime:
 async def run_sync(
     client: PokeApiClient, session: Session, *, clock: Clock = utc_now
 ) -> SyncReport:
-    """Fetch every Pokémon and species from PokéAPI, bring the tables up to date, and record
-    the run and every change to a Pokémon it found.
+    """Fetch every Pokémon, species and type from PokéAPI, bring the tables up to date, and
+    record the run and every change to a Pokémon it found.
 
     Doesn't commit: the caller owns the transaction, so the data, the changes and the run
     record are saved together or not at all.
@@ -39,7 +39,8 @@ async def run_sync(
     started_at = clock()
     fetched = await client.fetch_pokemon()
     fetched_species = await client.fetch_species()
-    failed = [*fetched.failed, *fetched_species.failed]
+    fetched_types = await client.fetch_types()
+    failed = [*fetched.failed, *fetched_species.failed, *fetched_types.failed]
 
     # Keyed by id: two listing URLs can resolve to the same Pokémon, and the upsert must
     # touch each row only once.
@@ -64,6 +65,9 @@ async def run_sync(
     # Species whose family wasn't fetched whole keep what was stored before.
     stored = {each.id for each in species}
     failed += [each.name for each in fetched_species.species if each.id not in stored]
+
+    # Stored whole or not at all: if a type failed to fetch, the chart stored before is kept.
+    store_type_chart(session, normalize_type_chart(fetched_types.types))
 
     run = SyncRun(
         started_at=started_at,

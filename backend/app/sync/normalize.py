@@ -1,4 +1,4 @@
-"""Turn PokéAPI responses into the Pokémon and species the app stores."""
+"""Turn PokéAPI responses into the Pokémon, species and type chart the app stores."""
 
 import hashlib
 import json
@@ -6,10 +6,19 @@ from collections.abc import Iterable, Iterator
 
 from pydantic import ValidationError
 
+from app.pokemon.constants import DOUBLE_DAMAGE, HALF_DAMAGE, NO_DAMAGE, NORMAL_DAMAGE
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import Pokemon
 from app.sync.constants import GENUS_LANGUAGE, POKEAPI_STAT_NAMES
-from app.sync.pokeapi import ChainLink, PokeApiEvolutionChain, PokeApiPokemon, PokeApiSpecies
-from app.sync.types import SpeciesRecord
+from app.sync.pokeapi import (
+    ChainLink,
+    DamageRelations,
+    PokeApiEvolutionChain,
+    PokeApiPokemon,
+    PokeApiSpecies,
+    PokeApiType,
+)
+from app.sync.types import SpeciesRecord, TypeMatchupRecord
 
 
 def normalize(raw: PokeApiPokemon) -> Pokemon:
@@ -94,3 +103,35 @@ def _species_record(
         ),
         pokemon_ids=tuple(variety.pokemon.id for variety in species.varieties),
     )
+
+
+def normalize_type_chart(types: Iterable[PokeApiType]) -> list[TypeMatchupRecord]:
+    """How much damage a move of each type does to a Pokémon of each type, for every pair of
+    the types the app knows: the type chart, ready to store.
+
+    Empty unless every one of those types was fetched, so the chart is stored whole or not at
+    all. Types the app doesn't have, such as PokéAPI's stellar, are ignored.
+    """
+    fetched = {
+        PokemonType(each.name): each.damage_relations for each in types if each.name in PokemonType
+    }
+    if fetched.keys() != set(PokemonType):
+        return []
+    return [
+        TypeMatchupRecord(attacking, defending, _multiplier(fetched[attacking], defending))
+        for attacking in PokemonType
+        for defending in PokemonType
+    ]
+
+
+def _multiplier(relations: DamageRelations, defending: PokemonType) -> float:
+    """How much of a move's damage a Pokémon of the defending type takes, by the move type's
+    damage relations.
+    """
+    if any(each.name == defending for each in relations.no_damage_to):
+        return NO_DAMAGE
+    if any(each.name == defending for each in relations.half_damage_to):
+        return HALF_DAMAGE
+    if any(each.name == defending for each in relations.double_damage_to):
+        return DOUBLE_DAMAGE
+    return NORMAL_DAMAGE
