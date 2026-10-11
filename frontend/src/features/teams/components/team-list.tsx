@@ -26,7 +26,7 @@ export function TeamList({ username }: { username: string }) {
 
   if (teams.isPending) {
     return (
-      <ul aria-label={m.teams_title()} className={GRID}>
+      <ul aria-label={m.teams_loading()} className={GRID}>
         {[0, 1, 2].map((each) => (
           <li key={each}>
             <Skeleton className="h-32 rounded-2xl" />

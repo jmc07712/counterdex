@@ -13,11 +13,11 @@ export function ReadOnlyTeam({ team }: { team: Team }) {
   return (
     <div className="max-w-2xl">
       <Link
-        to={paths.home.getHref()}
+        to={paths.explore.getHref()}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        {m.team_all_teams()}
+        {m.team_explore_teams()}
       </Link>
       <h1 className="text-3xl font-bold sm:text-4xl">{team.name}</h1>
       <p className="mt-1 mb-6 text-muted-foreground">

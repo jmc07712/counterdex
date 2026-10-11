@@ -17,6 +17,7 @@ describe('AppShell navigation', () => {
   it.each([
     ['/', 'Teams'],
     ['/teams/42', 'Teams'],
+    ['/explore', 'Explore'],
     ['/pokedex', 'Pokédex'],
     ['/sign-in', 'Sign in'],
   ])('at %s, marks only %s as the current page', async (path, section) => {
@@ -27,12 +28,12 @@ describe('AppShell navigation', () => {
     expect(current.map((link) => link.textContent)).toEqual([section, section])
   })
 
-  it('lists Teams first, then the Pokédex', async () => {
+  it.each([0, 1])('lists Teams first, then Explore, then the Pokédex (navigation %i)', (nav) => {
     renderWithProviders(<AppShell />)
 
-    const [header] = screen.getAllByRole('navigation', { name: 'Primary' })
-    const links = within(header).getAllByRole('link').map((link) => link.textContent)
-    expect(links.slice(0, 2)).toEqual(['Teams', 'Pokédex'])
+    const navigation = screen.getAllByRole('navigation', { name: 'Primary' })[nav]
+    const links = within(navigation).getAllByRole('link').map((link) => link.textContent)
+    expect(links.slice(0, 3)).toEqual(['Teams', 'Explore', 'Pokédex'])
   })
 
   it('links to the API docs, which open in a new tab outside the app', () => {

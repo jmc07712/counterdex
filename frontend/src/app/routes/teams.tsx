@@ -1,4 +1,5 @@
 import { UsersRound } from 'lucide-react'
+import { Link } from 'react-router'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -22,7 +23,17 @@ export function TeamsPage() {
     <>
       <PageHeader
         title={m.teams_title()}
-        description={m.teams_description()}
+        description={
+          <>
+            {m.teams_description()}{' '}
+            <Link
+              to={paths.explore.getHref()}
+              className="font-medium text-foreground underline underline-offset-4 hover:text-brand-deep"
+            >
+              {m.teams_explore_link()}
+            </Link>
+          </>
+        }
         action={hasTeams && <NewTeamButton teamCount={teams.data.length} />}
       />
       {currentUser.isError && (

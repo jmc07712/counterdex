@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
 
+import { ExplorePage } from '@/app/routes/explore'
 import { NotFoundPage } from '@/app/routes/not-found'
 import { PokedexPage } from '@/app/routes/pokedex'
 import { SignInPage } from '@/app/routes/sign-in'
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: TeamsPage },
       { path: paths.team.path, Component: TeamPage },
+      { path: paths.explore.path, Component: ExplorePage },
       { path: paths.pokedex.path, Component: PokedexPage },
       { path: paths.signIn.path, Component: SignInPage },
       { path: paths.signUp.path, Component: SignUpPage },

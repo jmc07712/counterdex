@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { serveSession, serveTeams } from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
-import { ASH } from '@/test/users'
+import { ASH, MISTY } from '@/test/users'
 
 import { TeamsPage } from './teams'
 
@@ -39,15 +39,46 @@ describe('TeamsPage', () => {
     await waitFor(() => expect(requests.checks).toBe(2))
   })
 
-  it('lists your teams, each linking to its builder', async () => {
+  it('lists your teams, and only yours, each linking to its builder', async () => {
     serveSession({ signedIn: ASH })
-    serveTeams({ teams: [makeTeam({ name: 'Fire', pokemon: [catalog.charizard] })] })
+    serveTeams({
+      teams: [
+        makeTeam({ name: 'Fire', pokemon: [catalog.charizard] }),
+        makeTeam({
+          id: '00000000-0000-4000-8000-00000000000a',
+          name: 'Rain',
+          owner: { username: MISTY.username },
+          pokemon: [catalog.vaporeon],
+        }),
+      ],
+    })
 
     renderWithProviders(<TeamsPage />)
 
-    const card = await screen.findByRole('link', { name: /Fire/ })
-    expect(card).toHaveAttribute('href', `/teams/${TEAM_ID}`)
-    expect(within(card).getByText('1 of 6')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Your teams' })).toBeInTheDocument()
+    const list = await screen.findByRole('list', { name: 'Your teams' })
+    const cards = within(list).getAllByRole('link')
+    expect(cards).toHaveLength(1)
+    expect(cards[0]).toHaveAttribute('href', `/teams/${TEAM_ID}`)
+    expect(cards[0]).toHaveTextContent('Fire')
+    expect(within(cards[0]).getByText('1 of 6')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['signed in', ASH],
+    ['signed out', null],
+  ])('says teams are public, and links to Explore, %s', async (_, signedIn) => {
+    serveSession({ signedIn })
+    serveTeams()
+
+    renderWithProviders(<TeamsPage />)
+
+    expect(
+      await screen.findByText(/Anyone can see your teams on Explore, but only you can change them/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'See what other trainers have built' }),
+    ).toHaveAttribute('href', '/explore')
   })
 
   it('invites you to build your first team', async () => {

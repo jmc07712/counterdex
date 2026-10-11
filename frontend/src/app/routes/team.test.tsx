@@ -352,6 +352,7 @@ describe.each([
     expect(rows).toHaveLength(6)
     expect(rows[0]).toHaveTextContent('Charmander')
     expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Explore teams' })).toHaveAttribute('href', '/explore')
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
