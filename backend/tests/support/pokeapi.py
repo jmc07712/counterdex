@@ -59,10 +59,12 @@ def requested_id(request: httpx2.Request) -> int:
     return int(request.url.path.rstrip("/").rsplit("/", 1)[1])
 
 
-def client_for(handler: Handler, *, concurrency: int = 20) -> PokeApiClient:
-    """A real PokeApiClient whose requests are answered by `handler`, with no retry delays."""
+def client_for(handler: Handler, *, concurrency: int = 20, retry_delay: float = 0) -> PokeApiClient:
+    """A real PokeApiClient whose requests are answered by `handler`, with no retry delay unless
+    one is given.
+    """
     http = httpx2.AsyncClient(base_url=BASE_URL, transport=httpx2.MockTransport(handler))
-    return PokeApiClient(http, concurrency=concurrency, retry_delay=0)
+    return PokeApiClient(http, concurrency=concurrency, retry_delay=retry_delay)
 
 
 def fake_pokeapi(

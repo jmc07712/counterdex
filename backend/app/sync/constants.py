@@ -18,6 +18,8 @@ MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.5
 # Rate limiting and server-side failures are worth retrying; other errors won't fix themselves.
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+# The longest the client waits when a 429's Retry-After asks for more.
+MAX_RETRY_AFTER_SECONDS = 30
 
 # What PokéAPI calls each of our stats; every PokéAPI Pokémon must have all six.
 POKEAPI_STAT_NAMES = {

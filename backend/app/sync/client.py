@@ -12,6 +12,7 @@ from app.sync.constants import (
     CONCURRENT_REQUESTS,
     MAX_ATTEMPTS,
     MAX_PAGES,
+    MAX_RETRY_AFTER_SECONDS,
     PAGE_SIZE,
     RETRY_DELAY_SECONDS,
     RETRYABLE_STATUS_CODES,
@@ -38,7 +39,8 @@ class PokeApiClient:
     then fetches every entry's details concurrently, at most `concurrency` requests at a time.
     A request that hits rate limiting, a server error or a network failure is tried up to
     `attempts` times in all, waiting `retry_delay` seconds before the first retry and twice as
-    long before each one after.
+    long before each one after. A 429 that says in Retry-After to wait a number of seconds is
+    waited that long instead, up to MAX_RETRY_AFTER_SECONDS.
 
     One entry that keeps failing doesn't fail the fetch: its URL is reported in the result's
     `failed`, and the caller decides what that means. A listing that can't be trusted (it
@@ -156,7 +158,10 @@ class PokeApiClient:
             except httpx2.HTTPError as error:
                 if not _is_retryable(error) or attempt >= self._attempts:
                     raise
-            await anyio.sleep(self._retry_delay * 2 ** (attempt - 1))
+                retry_after = _retry_after_seconds(error)
+            await anyio.sleep(
+                self._retry_delay * 2 ** (attempt - 1) if retry_after is None else retry_after
+            )
             attempt += 1
 
 
@@ -164,3 +169,19 @@ def _is_retryable(error: httpx2.HTTPError) -> bool:
     if isinstance(error, httpx2.HTTPStatusError):
         return error.response.status_code in RETRYABLE_STATUS_CODES
     return isinstance(error, httpx2.TransportError)
+
+
+def _retry_after_seconds(error: httpx2.HTTPError) -> int | None:
+    """How many seconds a 429 asks to wait in its Retry-After, at most MAX_RETRY_AFTER_SECONDS.
+    None for any other error, and for a Retry-After that isn't a whole number of seconds, such as
+    a date.
+    """
+    if (
+        not isinstance(error, httpx2.HTTPStatusError)
+        or error.response.status_code != httpx2.codes.TOO_MANY_REQUESTS
+    ):
+        return None
+    seconds = error.response.headers.get("Retry-After", "")
+    if not (seconds.isascii() and seconds.isdecimal()):
+        return None
+    return min(int(seconds), MAX_RETRY_AFTER_SECONDS)

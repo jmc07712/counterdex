@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.pokemon.enums import PokemonType
-from app.sync.constants import MAX_PAGES
+from app.sync.constants import MAX_PAGES, MAX_RETRY_AFTER_SECONDS
 from app.sync.exceptions import PokeApiError
 from tests.support.pokeapi import (
     BASE_URL,
@@ -68,6 +68,99 @@ async def test_retries_server_errors() -> None:
 
     assert [p.name for p in result.pokemon] == ["pikachu"]
     assert calls == 2
+
+
+@pytest.fixture
+def sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """The delays the client asks to wait. It doesn't wait for them."""
+    asked: list[float] = []
+
+    async def record(delay: float) -> None:
+        asked.append(delay)
+
+    monkeypatch.setattr(anyio, "sleep", record)
+    return asked
+
+
+def answering_first(*responses: httpx2.Response) -> Handler:
+    """PokéAPI listing Pikachu, whose details it answers with each of these responses in turn,
+    and then as it should.
+    """
+    first = iter(responses)
+
+    async def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/pokemon"):
+            return httpx2.Response(200, json=listing_response(25))
+        return next(first, httpx2.Response(200, json=pokemon_response(25)))
+
+    return handler
+
+
+@pytest.mark.parametrize(
+    ("retry_after", "waited"),
+    [
+        pytest.param("0", 0, id="no-time"),
+        pytest.param("2", 2, id="a-few-seconds"),
+        pytest.param(str(MAX_RETRY_AFTER_SECONDS), MAX_RETRY_AFTER_SECONDS, id="the-most"),
+        pytest.param(str(MAX_RETRY_AFTER_SECONDS + 1), MAX_RETRY_AFTER_SECONDS, id="over-the-most"),
+        pytest.param("3600", MAX_RETRY_AFTER_SECONDS, id="an-hour"),
+    ],
+)
+async def test_waits_as_long_as_a_429_asks_up_to_the_most(
+    sleeps: list[float], retry_after: str, waited: float
+) -> None:
+    handler = answering_first(httpx2.Response(429, headers={"Retry-After": retry_after}))
+
+    result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
+
+    assert [p.name for p in result.pokemon] == ["pikachu"]
+    assert sleeps == [waited]
+
+
+@pytest.mark.parametrize(
+    ("status", "headers"),
+    [
+        pytest.param(429, {}, id="429-without-Retry-After"),
+        pytest.param(429, {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, id="429-with-a-date"),
+        pytest.param(429, {"Retry-After": "-2"}, id="429-with-a-negative-number"),
+        pytest.param(503, {"Retry-After": "2"}, id="503-with-Retry-After"),
+    ],
+)
+async def test_waits_the_doubling_delay_unless_a_429_asks_for_seconds(
+    sleeps: list[float], status: int, headers: dict[str, str]
+) -> None:
+    handler = answering_first(httpx2.Response(status, headers=headers))
+
+    result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
+
+    assert [p.name for p in result.pokemon] == ["pikachu"]
+    assert sleeps == [0.5]
+
+
+async def test_goes_on_doubling_the_delay_after_waiting_as_a_429_asked(
+    sleeps: list[float],
+) -> None:
+    handler = answering_first(
+        httpx2.Response(429, headers={"Retry-After": "3"}), httpx2.Response(429)
+    )
+
+    result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
+
+    assert [p.name for p in result.pokemon] == ["pikachu"]
+    assert sleeps == [3, 1.0]
+
+
+async def test_gives_up_when_a_429_keeps_coming(sleeps: list[float]) -> None:
+    async def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/pokemon"):
+            return httpx2.Response(200, json=listing_response(25))
+        return httpx2.Response(429, headers={"Retry-After": "1"})
+
+    result = await client_for(handler).fetch_pokemon()
+
+    assert result.failed == [f"{BASE_URL}pokemon/25/"]
+    # Three attempts, so two waits.
+    assert sleeps == [1, 1]
 
 
 @pytest.mark.parametrize(
