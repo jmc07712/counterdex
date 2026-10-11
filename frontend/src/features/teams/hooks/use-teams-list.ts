@@ -19,13 +19,18 @@ function toQuery({ search, types, view }: TeamsFilters, owner: string | undefine
   }
 }
 
-/**
- * The teams that match `filters`, newest first, a page at a time: `owner`'s, empty ones too, or
- * without an owner, everyone's that have a Pokémon.
- */
-export function useTeamsList(filters: TeamsFilters, owner: string | undefined) {
+type ListOptions = {
+  // Whose teams to list, empty ones too; without an owner, everyone's that have a Pokémon.
+  owner: string | undefined
+  // Whether to ask for them yet.
+  enabled: boolean
+}
+
+/** The teams that match `filters`, newest first, a page at a time. */
+export function useTeamsList(filters: TeamsFilters, { owner, enabled }: ListOptions) {
   return useInfiniteQuery({
     ...listTeamsInfiniteOptions({ query: toQuery(filters, owner) }),
+    enabled,
     initialPageParam: {},
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     // Keep showing the current teams while a changed filter loads, instead of a skeleton; but not
@@ -34,3 +39,5 @@ export function useTeamsList(filters: TeamsFilters, owner: string | undefined) {
       previousQuery?.queryKey[0].query?.owner === owner ? previous : undefined,
   })
 }
+
+export type TeamsList = ReturnType<typeof useTeamsList>

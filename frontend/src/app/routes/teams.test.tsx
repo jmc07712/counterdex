@@ -466,6 +466,19 @@ describe('TeamsPage, signed in', () => {
     expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
 
+  it('offers New team when your teams couldn’t load, though you have none', async () => {
+    serveTeams()
+    // Added last, so it answers first: listing teams fails; counting yours finds none.
+    server.use(
+      http.get('/api/teams', () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 })),
+    )
+
+    await renderTeams('/?scope=mine')
+
+    expect(await screen.findByText('Couldn’t load teams')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
+  })
+
   it('offers New team when a filter finds none of your teams, though you have none', async () => {
     serveTeams()
 

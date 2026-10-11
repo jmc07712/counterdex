@@ -15,7 +15,9 @@ import {
   NO_FILTERS,
   useTeamsFilters,
 } from '@/features/teams/hooks/use-teams-filters'
+import { useTeamsList } from '@/features/teams/hooks/use-teams-list'
 import { useUserTeams } from '@/features/teams/hooks/use-user-teams'
+import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { useFocusAfterClearing } from '@/hooks/use-focus-after-clearing'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
@@ -24,6 +26,12 @@ export function TeamsPage() {
   const currentUser = useCurrentUser()
   const user = currentUser.data
   const [filters, setFilters] = useTeamsFilters({ signedIn: Boolean(user) })
+  const owner = filters.scope === 'mine' ? user?.username : undefined
+  // The filters the teams are listed for, with the search once typing pauses.
+  const pausedSearch = useDebouncedSearch(filters.search)
+  const listed = { ...filters, search: pausedSearch }
+  // Only once it's known who's signed in, so it never lists the wrong teams first.
+  const teams = useTeamsList(listed, { owner, enabled: user !== undefined })
   // How many teams you have, to name the next one.
   const teamCount = useUserTeams(user?.username).data?.length
   const search = useRef<HTMLInputElement>(null)
@@ -42,11 +50,12 @@ export function TeamsPage() {
     focusAfterClearing()
   }
 
-  const owner = filters.scope === 'mine' ? user?.username : undefined
-
-  // Your own teams, unfiltered, when you have none: their empty state has the button instead.
+  // Listing your own teams, unfiltered, found none: that empty state has its own New team.
   const emptyStateOffersNewTeam =
-    filters.scope === 'mine' && teamCount === 0 && !isFiltered(filters)
+    owner !== undefined &&
+    !isFiltered(listed) &&
+    teams.isSuccess &&
+    teams.data.pages.every((page) => page.items.length === 0)
   const offerNewTeam = Boolean(user) && !emptyStateOffersNewTeam
 
   return (
@@ -90,7 +99,8 @@ export function TeamsPage() {
           />
           <ResultsRegion ref={results}>
             <TeamsGrid
-              filters={filters}
+              teams={teams}
+              filters={listed}
               owner={owner}
               onClearFilters={clearFilters}
               onShowEveryone={showEveryone}

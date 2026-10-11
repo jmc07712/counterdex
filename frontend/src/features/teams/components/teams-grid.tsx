@@ -15,13 +15,12 @@ import {
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { paths } from '@/config/paths'
-import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { useCurrentUser } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { isFiltered, type TeamsFilters, type TeamsView } from '../hooks/use-teams-filters'
-import { useTeamsList } from '../hooks/use-teams-list'
+import type { TeamsList } from '../hooks/use-teams-list'
 import { CounterTeamButton } from './counter-team-button'
 import { NewTeamButton } from './new-team-button'
 import { TeamCard } from './team-card'
@@ -30,17 +29,23 @@ import { TeamCard } from './team-card'
 const GRID = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 type TeamsGridProps = {
+  teams: TeamsList
+  // The filters `teams` were listed for.
   filters: TeamsFilters
-  // The trainer whose teams to show, empty ones too, or no one for everyone's.
+  // The trainer whose teams they are, empty ones too, or no one for everyone's.
   owner: string | undefined
   onClearFilters: () => void
   onShowEveryone: () => void
 }
 
-/** The teams that match `filters`, with more a page at a time. */
-export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: TeamsGridProps) {
-  const search = useDebouncedSearch(filters.search)
-  const teams = useTeamsList({ ...filters, search }, owner)
+/** The teams listed for `filters`, with more a page at a time. */
+export function TeamsGrid({
+  teams,
+  filters,
+  owner,
+  onClearFilters,
+  onShowEveryone,
+}: TeamsGridProps) {
   const signedInAs = useCurrentUser().data?.username
 
   // Wherever there's a status, it's the first thing returned, from the first load on, so it stays
@@ -81,7 +86,7 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
   const settled = !teams.isPlaceholderData
 
   if (shown === 0) {
-    if (isFiltered({ ...filters, search })) {
+    if (isFiltered(filters)) {
       return (
         <>
           <ResultsStatus settled={settled}>
