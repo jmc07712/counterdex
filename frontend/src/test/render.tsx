@@ -17,8 +17,8 @@ function testQueryClient() {
 
 /**
  * Renders `ui` inside what the app gives every page: a query client and a router, here at `path`.
- * Returns the router, to check the URL, and a user-event `user`, set up before rendering as
- * user-event recommends.
+ * Returns the router, to check the URL; the query client, to wait for its requests to settle; and
+ * a user-event `user`, set up before rendering as user-event recommends.
  */
 export function renderWithProviders(ui: ReactElement, { path = '/' } = {}) {
   return renderRoutes([{ path: '*', element: ui }], { path })
@@ -34,7 +34,7 @@ export function renderRoutes(routes: RouteObject[], { path = '/' } = {}) {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   )
-  return { ...result, user, router }
+  return { ...result, user, router, queryClient }
 }
 
 /** Runs `hook` inside a query client, as renderWithProviders renders a page. */

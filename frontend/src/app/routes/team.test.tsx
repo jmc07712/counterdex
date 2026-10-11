@@ -289,36 +289,125 @@ describe('TeamPage, for the team’s owner', () => {
     expect(slotRows()[1]).toHaveTextContent('Pikachu')
   })
 
+  it('keeps focus on a card’s button as it adds the Pokémon, and then says it’s on the team', async () => {
+    onWideScreen()
+    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([pikachu])
+    const { user, queryClient } = renderTeam(EDIT)
+
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    const button = await within(pokedex).findByRole('button', { name: 'Add Pikachu' })
+    await user.click(button)
+
+    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([4, 25]))
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(button).toHaveAccessibleName('Pikachu is on the team')
+    expect(button).toHaveTextContent('On the team')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveFocus()
+  })
+
+  it('says a Pokémon on the team is on it, with nothing to press', async () => {
+    onWideScreen()
+    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([charmander])
+    const { user } = renderTeam(EDIT)
+
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    const card = await within(pokedex).findByRole('article', { name: 'Charmander' })
+    const button = within(card).getByRole('button', { name: 'Charmander is on the team' })
+    await user.click(button)
+
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(api.requests).toEqual([])
+  })
+
   it.each([
     ['a later stage', charizard],
     ['another form of a later stage', charizardMegaX],
   ])(
-    'says why a Pokémon from a family on the team can’t be added, in place of its Add button: %s',
+    'offers to replace the member from a Pokémon’s family on the team: %s',
     async (_, pokemon) => {
       onWideScreen()
-      serveAsh([makeTeam({ pokemon: [charmander] })])
+      const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
       browse([pokemon])
-      renderTeam(EDIT)
+      const { user } = renderTeam(EDIT)
 
+      const name = displayName(pokemon.name)
       const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-      const card = await within(pokedex).findByRole('article', { name: displayName(pokemon.name) })
-
-      expect(card).toHaveTextContent('Its family is on the team')
+      const card = await within(pokedex).findByRole('article', { name })
+      const button = within(card).getByRole('button', { name: `Replace Charmander with ${name}` })
+      expect(button).toHaveTextContent('Replace Charmander')
+      expect(button).toHaveAccessibleDescription('Charmander’s family is on the team')
       expect(within(card).queryByRole('button', { name: /Add/ })).not.toBeInTheDocument()
+
+      await user.click(button)
+
+      await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([pokemon.id, 25]))
+      expect(api.requests).toEqual([
+        {
+          method: 'PUT',
+          path: `/api/teams/${TEAM_ID}/members/${charmander.id}`,
+          body: { pokemon_id: pokemon.id },
+        },
+      ])
     },
   )
 
-  it('says when the team is full', async () => {
+  it('replaces the member from a Pokémon’s family when that member isn’t the lead', async () => {
     onWideScreen()
-    serveAsh([makeTeam({ pokemon: [charmander, pikachu, snorlax, gengar, eevee, lapras] })])
-    browse([catalog.dragonite])
-    renderTeam(EDIT)
+    const api = serveAsh([makeTeam({ pokemon: [pikachu, charmander] })])
+    browse([charizard])
+    const { user } = renderTeam(EDIT)
 
     const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    const card = await within(pokedex).findByRole('article', { name: 'Dragonite' })
+    await user.click(
+      await within(pokedex).findByRole('button', { name: 'Replace Charmander with Charizard' }),
+    )
 
-    expect(card).toHaveTextContent('Team is full')
-    expect(within(card).queryByRole('button', { name: /Add/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([25, 6]))
+    expect(api.requests).toEqual([
+      { method: 'PUT', path: `/api/teams/${TEAM_ID}/members/4`, body: { pokemon_id: 6 } },
+    ])
+  })
+
+  it('keeps focus on a card’s button in the sheet as it replaces a member', async () => {
+    const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
+    browse([charizard])
+    const { user, queryClient } = renderTeam(EDIT)
+
+    await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
+    const button = await within(sheet).findByRole('button', {
+      name: 'Replace Charmander with Charizard',
+    })
+    await user.click(button)
+
+    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([6, 25]))
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(button).toHaveAccessibleName('Charizard is on the team')
+    expect(button).toHaveFocus()
+  })
+
+  it('says when the team is full, with nothing to add, but still offers to replace', async () => {
+    onWideScreen()
+    const api = serveAsh([
+      makeTeam({ pokemon: [charmander, pikachu, snorlax, gengar, eevee, lapras] }),
+    ])
+    browse([catalog.dragonite, charizard])
+    const { user } = renderTeam(EDIT)
+
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    const dragonite = await within(pokedex).findByRole('article', { name: 'Dragonite' })
+    const full = within(dragonite).getByRole('button', { name: 'Team is full' })
+    await user.click(full)
+
+    expect(full).toHaveAttribute('aria-disabled', 'true')
+    expect(api.requests).toEqual([])
+    const charizardCard = within(pokedex).getByRole('article', { name: 'Charizard' })
+    expect(
+      within(charizardCard).getByRole('button', { name: 'Replace Charmander with Charizard' }),
+    ).not.toHaveAttribute('aria-disabled', 'true')
   })
 
   it('searches and filters the Pokédex beside the team, keeping the filters in the URL', async () => {

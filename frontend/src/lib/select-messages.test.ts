@@ -43,11 +43,6 @@ describe.each<[string, string[], (value: string) => string]>([
     [...Object.values(TeamConflictReason), 'signed_out', 'not_owner', 'not_found', 'failed'],
     (problem) => m.team_problem({ problem }),
   ],
-  [
-    'team_cant_add',
-    [TeamConflictReason.TEAM_FULL, TeamConflictReason.FAMILY_ON_TEAM],
-    (reason) => m.team_cant_add({ reason }),
-  ],
 ])('%s', (_, values, word) => {
   it.each(values)('words %s', (value) => {
     expect(word(value)).not.toBe(value)

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { TeamConflictReason } from '@/api'
 import { asMember, catalog } from '@/test/teams'
 
-import { cantAdd } from './can-add'
+import { cantAdd, familyMember } from './can-add'
 
 const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee } = catalog
 
@@ -24,5 +24,15 @@ describe('cantAdd', () => {
   it('refuses a seventh member', () => {
     const six = [pikachu, snorlax, gengar, lapras, eevee, charmander].map(asMember)
     expect(cantAdd(six, catalog.dragonite)).toBe(TeamConflictReason.TEAM_FULL)
+  })
+})
+
+describe('familyMember', () => {
+  it('finds the member from the Pokémon’s evolution family, or the Pokémon itself', () => {
+    const members = [asMember(pikachu, 0), asMember(charmander, 1)]
+
+    expect(familyMember(members, charizardMegaX)).toBe(members[1])
+    expect(familyMember(members, pikachu)).toBe(members[0])
+    expect(familyMember(members, snorlax)).toBeUndefined()
   })
 })

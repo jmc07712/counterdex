@@ -209,6 +209,11 @@
   "team_pokedex_done": "Done",
   "team_add": "Add",
   "team_add_named": "Add {name}",
+  "team_on_team": "On the team",
+  "team_on_team_named": "{name} is on the team",
+  "team_replace_with": "Replace {member} with {name}",
+  "team_family_on_team": "{member}’s family is on the team",
+  "team_full": "Team is full",
   "team_build_your_own": "Build your own team",
   "team_build_your_own_description": "Pick up to six Pokémon and put them in battle order.",
   "team_counter": "Counter",
@@ -219,21 +224,6 @@
   "team_counter_needs_sync": "Counter teams need a Pokédex sync first",
   "team_counter_failed": "Couldn’t build a counter team",
   "team_added": "Added {name} to {team}",
-  "team_cant_add": [
-    {
-      "declarations": [
-        "input reason"
-      ],
-      "selectors": [
-        "reason"
-      ],
-      "match": {
-        "reason=team_full": "Team is full",
-        "reason=family_on_team": "Its family is on the team",
-        "reason=*": "{reason}"
-      }
-    }
-  ],
   "team_problem": [
     {
       "declarations": [
