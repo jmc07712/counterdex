@@ -13,7 +13,12 @@ from app.pokemon.enums import FormFilter, ListingStatus
 
 def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
     """One page of the matching Pokémon, by Pokédex number, after the cursor."""
-    statement = select(models.Pokemon.__table__).order_by(models.Pokemon.id)
+    statement = (
+        select(models.Pokemon.__table__, models.SpeciesVariety.species_id)
+        # Outer, as a Pokémon is listed before a sync has stored its species.
+        .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+        .order_by(models.Pokemon.id)
+    )
     if query.status is ListingStatus.LISTED:
         statement = statement.where(models.Pokemon.removed_at.is_(None))
     else:
@@ -50,7 +55,11 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     Pokémon has the id.
     """
     row = (
-        session.execute(select(models.Pokemon.__table__).where(models.Pokemon.id == pokemon_id))
+        session.execute(
+            select(models.Pokemon.__table__, models.SpeciesVariety.species_id)
+            .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+            .where(models.Pokemon.id == pokemon_id)
+        )
         .mappings()
         .one_or_none()
     )
@@ -131,15 +140,18 @@ def _listed_forms(
 
 
 def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
-    """A Pokémon as the API serves it, from the pokemon table's columns: its sprite from the CDN,
-    and whether a sync changed it lately (a change's snapshots have no such column).
+    """A Pokémon as the API serves it, from the pokemon table's columns and, where they include
+    it, its species' id: its sprite from the CDN, and whether a sync changed it lately (a change's
+    snapshots have no such column).
     """
     pokemon = schemas.Pokemon.from_columns(
         {**columns, "sprite_url": cdn_sprite_url(columns["sprite_url"])}
     )
     changed_at = columns.get("last_changed_at")
     recently = changed_at is not None and changed_at >= datetime.now(UTC) - RECENTLY_CHANGED
-    return pokemon.model_copy(update={"changed_recently": recently})
+    return pokemon.model_copy(
+        update={"changed_recently": recently, "species_id": columns.get("species_id")}
+    )
 
 
 def _species(species: models.Species) -> schemas.Species:

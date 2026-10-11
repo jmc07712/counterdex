@@ -877,6 +877,18 @@
             "title": "Changed Recently",
             "description": "Whether a sync changed it in the last week: updated it, removed it or listed it again.",
             "default": false
+          },
+          "species_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Species Id",
+            "description": "Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species."
           }
         },
         "type": "object",

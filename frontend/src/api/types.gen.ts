@@ -339,6 +339,12 @@ export type Pokemon = {
      * Whether a sync changed it in the last week: updated it, removed it or listed it again.
      */
     changed_recently?: boolean;
+    /**
+     * Species Id
+     *
+     * Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species.
+     */
+    species_id?: number | null;
 };
 
 /**

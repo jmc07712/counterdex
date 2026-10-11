@@ -318,6 +318,28 @@ def test_shows_a_stage_pokeapi_no_longer_lists_without_its_pokemon(db_session: S
     assert outline(evolution.evolves_to[0])[:2] == ("charmeleon", None)
 
 
+def test_lists_each_pokemons_species(
+    db_session: Session, charmander_family: None, gyarados: models.Pokemon
+) -> None:
+    page = list_pokemon(db_session, PokemonQuery())
+
+    # Gyarados has no stored species; Mega Charizard X is a Charizard.
+    assert {each.id: each.species_id for each in page.items} == {
+        4: 4,
+        5: 5,
+        6: 6,
+        130: None,
+        10034: 6,
+    }
+
+
+def test_details_give_the_pokemons_species(db_session: Session, charmander_family: None) -> None:
+    charizard = details(db_session, 10034)
+
+    assert charizard.pokemon.species_id == 6
+    assert {form.id: form.species_id for form in charizard.forms} == {6: 6, 10034: 6}
+
+
 @pytest.mark.usefixtures("gyarados")
 def test_gets_a_pokemon_whose_species_no_sync_has_stored_yet(db_session: Session) -> None:
     gyarados = details(db_session, 130)
