@@ -146,3 +146,23 @@ def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient) -> None:
     response = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5]})
 
     assert (response.status_code, response.json()) == (409, {"detail": "order_out_of_date"})
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_previews_without_signing_in(client: TestClient) -> None:
+    response = client.get("/api/teams/preview", params={"pokemon_id": [6, 4]})
+
+    assert response.status_code == 200
+    assert [member["pokemon"]["id"] for member in response.json()] == [6, 4]
+
+
+def test_previewing_no_pokemon_gives_no_members(client: TestClient) -> None:
+    response = client.get("/api/teams/preview")
+
+    assert (response.status_code, response.json()) == (200, [])
+
+
+def test_a_preview_holds_up_to_six(client: TestClient) -> None:
+    response = client.get("/api/teams/preview", params={"pokemon_id": [1, 2, 3, 4, 5, 6, 7]})
+
+    assert response.status_code == 422

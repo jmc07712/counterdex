@@ -326,3 +326,14 @@ def test_an_order_that_isnt_the_members_is_out_of_date(
         service.reorder(db_session, ash.user.id, team.id, order)
 
     assert conflict.value.reason is TeamConflictReason.ORDER_OUT_OF_DATE
+
+
+# --- Previewing ---
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_previews_pokemon_as_members_in_the_order_given(db_session: Session) -> None:
+    members = service.preview(db_session, [6, 9999, 4])
+
+    assert [(member.position, member.pokemon.id) for member in members] == [(0, 6), (1, 4)]
+    assert [member.related_pokemon_ids for member in members] == [[4], [6]]

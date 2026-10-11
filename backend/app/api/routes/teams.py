@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 
 from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
@@ -15,7 +15,16 @@ from app.teams.exceptions import (
     TeamNotFoundError,
     UnknownPokemonError,
 )
-from app.teams.schemas import NewMember, NewTeam, Team, TeamConflict, TeamOrder, TeamRename
+from app.teams.schemas import (
+    NewMember,
+    NewTeam,
+    Team,
+    TeamConflict,
+    TeamMember,
+    TeamOrder,
+    TeamPreviewQuery,
+    TeamRename,
+)
 
 router = APIRouter(dependencies=[Depends(never_cache)])
 
@@ -81,6 +90,17 @@ def create_team(
     if created:
         response.status_code = status.HTTP_201_CREATED
     return created_team
+
+
+# Before /teams/{team_id}, which would otherwise take "preview" for a team's id.
+@router.get("/teams/preview", summary="Preview a team")
+def preview_team(
+    session: SessionDep, query: Annotated[TeamPreviewQuery, Query()]
+) -> list[TeamMember]:
+    """Pokémon as a team's members would be, in the order given, without saving a team or
+    signing in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.
+    """
+    return service.preview(session, query.pokemon_ids)
 
 
 @router.get(

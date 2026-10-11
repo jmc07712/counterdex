@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -156,6 +156,14 @@ export const createTeam = <ThrowOnError extends boolean = false>(options: Option
         ...options.headers
     }
 });
+
+/**
+ * Preview a team
+ *
+ * Pokémon as a team's members would be, in the order given, without saving a team or
+ * signing in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.
+ */
+export const previewTeam = <ThrowOnError extends boolean = false>(options?: Options<PreviewTeamData, ThrowOnError>): RequestResult<PreviewTeamResponses, PreviewTeamErrors, ThrowOnError> => (options?.client ?? client).get<PreviewTeamResponses, PreviewTeamErrors, ThrowOnError>({ url: '/api/teams/preview', ...options });
 
 /**
  * Add a Pokémon to a team
