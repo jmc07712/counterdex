@@ -4,7 +4,7 @@ import { Rating } from '@/api'
 import { makeChallenger, makeMatchup } from '@/test/matchups'
 import { catalog } from '@/test/teams'
 
-import { bestAnswer, coverage, pickReason, threatReason } from './matchup-summary'
+import { bestAnswer, coverage, pickReason, threatReason, threatsSummary } from './matchup-summary'
 
 const { charizard, pikachu, gengar, lapras, snorlax, dragonite, vaporeon } = catalog
 const { GOOD, EVEN, BAD } = Rating
@@ -59,6 +59,35 @@ describe('threatReason', () => {
 
   it('is null without matchups', () => {
     expect(threatReason([], THEIRS)).toBeNull()
+  })
+})
+
+describe('threatsSummary', () => {
+  it('says how many threats there are, and what the biggest beats', () => {
+    const threats = [
+      makeChallenger(dragonite, THEIRS, [GOOD, EVEN, GOOD]),
+      makeChallenger(lapras, THEIRS, [GOOD, BAD, BAD]),
+    ]
+
+    expect(threatsSummary(threats, THEIRS)).toBe(
+      '2 threats, the biggest Dragonite. Beats Charizard and Gengar.',
+    )
+  })
+
+  it('says when there’s one threat', () => {
+    const threats = [makeChallenger(dragonite, THEIRS, [EVEN, EVEN, EVEN])]
+
+    expect(threatsSummary(threats, THEIRS)).toBe(
+      '1 threat, Dragonite. Holds its own against Charizard, Pikachu and Gengar.',
+    )
+  })
+
+  it('is null without threats', () => {
+    expect(threatsSummary([], THEIRS)).toBeNull()
+  })
+
+  it('is null if the biggest has no matchups', () => {
+    expect(threatsSummary([{ pokemon: dragonite, matchups: [] }], THEIRS)).toBeNull()
   })
 })
 

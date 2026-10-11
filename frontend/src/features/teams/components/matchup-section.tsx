@@ -44,10 +44,10 @@ export function MatchupSection({
   )
 }
 
-/** As tall as the picks and their matchups, while they load. */
+/** As tall as the picks and their matchups, while the first of them load. */
 export function MatchupSkeleton({ label }: { label: string }) {
   return (
-    <div role="status" aria-label={label} className="flex flex-col gap-3">
+    <div role="group" aria-label={label} className="flex flex-col gap-3">
       <Skeleton className="h-12 rounded-xl" />
       <div className="grid grid-cols-1 gap-2 @xl:grid-cols-2 @4xl:grid-cols-3">
         {[0, 1, 2].map((each) => (

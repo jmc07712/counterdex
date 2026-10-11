@@ -395,6 +395,24 @@
   "team_threats_title": "Threats to this team",
   "team_threats_description": "The Pokémon that match up best against it, scored on types, base stats and Speed.",
   "team_threats_list": "Threats, the biggest first",
+  "team_threats_summary": [
+    {
+      "declarations": [
+        "input count",
+        "input name",
+        "input reason",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} threat, {name}. {reason}.",
+        "countPlural=other": "{shown} threats, the biggest {name}. {reason}."
+      }
+    }
+  ],
   "team_threats_loading": "Finding threats to this team",
   "team_threats_needs_sync": "Threats need a Pokédex sync first",
   "team_threats_load_failed": "Couldn’t find threats to this team",

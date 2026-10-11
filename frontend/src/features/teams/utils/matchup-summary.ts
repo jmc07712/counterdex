@@ -27,6 +27,22 @@ export function threatReason(matchups: Matchup[], members: Pokemon[]) {
 }
 
 /**
+ * A team's threats in a sentence or two, for a screen reader: how many, and the biggest, with what
+ * it does to the team's `members`. "12 threats, the biggest Garchomp. Beats Pikachu and Gengar."
+ * Null without threats, or if the biggest has no matchups.
+ */
+export function threatsSummary(threats: Challenger[], members: Pokemon[]) {
+  const [biggest] = threats
+  const reason = biggest && threatReason(biggest.matchups, members)
+  if (!reason) return null
+  return m.team_threats_summary({
+    count: threats.length,
+    name: displayName(biggest.pokemon.name),
+    reason,
+  })
+}
+
+/**
  * Whether each of `opponents` has a pick rated good against it: "Every Pokémon on their team has
  * a good answer", or "Nothing here clearly beats Charizard", naming those that don't.
  */

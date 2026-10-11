@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query'
 
 import { type Challenger, findCounterTeam, type TeamMember } from '@/api'
 import { findCounterTeamQueryKey } from '@/api/@tanstack/react-query.gen'
@@ -23,6 +23,7 @@ export function counterTeamQueryOptions(members: TeamMember[], pool: MatchupPool
   })
 }
 
+/** The counter for these members and pool, keeping the last one while another loads. */
 export function useCounterTeam(members: TeamMember[], pool: MatchupPool) {
-  return useQuery(counterTeamQueryOptions(members, pool))
+  return useQuery({ ...counterTeamQueryOptions(members, pool), placeholderData: keepPreviousData })
 }

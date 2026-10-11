@@ -16,6 +16,7 @@ import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import {
   holdCounterTeams,
+  holdTeamThreats,
   type MatchupOf,
   serveCounterTeam,
   servePokemon,
@@ -38,6 +39,10 @@ import { TeamEditPage } from './team-edit'
 const { charizard, pikachu, gengar, lapras, snorlax, dragonite } = catalog
 const CATALOG = Object.values(catalog)
 const { GOOD, BAD } = Rating
+
+// The results status reads the coverage line out too; text queries skip it to find the one on
+// screen.
+const ON_SCREEN = { ignore: '[role=status]' }
 
 const VIEW = `/teams/${TEAM_ID}`
 const EDIT_PAGE = /^\/teams\/([0-9a-f-]{36})\/edit$/
@@ -162,7 +167,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     renderTeam()
 
     expect(
-      await within(await findSection()).findByText('Nothing here clearly beats Gengar'),
+      await within(await findSection()).findByText('Nothing here clearly beats Gengar', ON_SCREEN),
     ).toBeInTheDocument()
   })
 
@@ -174,6 +179,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(
       await within(await findSection()).findByText(
         'Every Pokémon on their team has a good answer',
+        ON_SCREEN,
       ),
     ).toBeInTheDocument()
   })
@@ -280,9 +286,9 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(legendaries).toHaveAttribute('aria-pressed', 'false')
 
     await user.click(legendaries)
-    await within(section).findByRole('table')
+    await waitFor(() => expect(counters).toHaveLength(2))
     await user.click(forms)
-    await within(section).findByRole('table')
+    await waitFor(() => expect(counters).toHaveLength(3))
 
     expect(legendaries).toHaveAttribute('aria-pressed', 'true')
     expect(forms).toHaveAttribute('aria-pressed', 'true')
@@ -316,6 +322,36 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(await screen.findByRole('textbox', { name: 'Team name' })).toHaveValue(
       'Counter to Team 1',
     )
+  })
+
+  it('holds off building while a toggle’s counter loads, so it builds the one shown', async () => {
+    const api = serveTheirs()
+    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    const { user, router } = renderTeam()
+    const section = await findSection()
+    await within(section).findByRole('table')
+    const build = within(section).getByRole('button', { name: 'Build this counter' })
+    expect(build).toHaveAttribute('aria-disabled', 'false')
+    const held = holdCounterTeams()
+
+    await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
+    await waitFor(() => expect(held.arrived()).toBe(1))
+
+    // Busy, but not disabled, so it keeps focus and takes the click itself.
+    expect(build).toHaveAttribute('aria-disabled', 'true')
+    expect(build).toHaveAttribute('aria-busy', 'true')
+    expect(build).toBeEnabled()
+    await user.click(build)
+    held.release()
+    await waitFor(() => expect(build).toHaveAttribute('aria-disabled', 'false'))
+    // Given time, the click while it loaded built nothing.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(api.requests.filter((request) => request.method === 'PUT')).toEqual([])
+    expect(router.state.location.pathname).toBe(VIEW)
+
+    await user.click(build)
+
+    await waitFor(() => expect(router.state.location.pathname).toMatch(EDIT_PAGE))
   })
 
   it('builds the same counter from the Counter button beside the team’s name', async () => {
@@ -355,13 +391,50 @@ describe('TeamPage, how to beat someone else’s team', () => {
 
     const section = await findSection()
     expect(
-      within(section).getByRole('status', { name: 'Finding a counter to this team' }),
+      within(section).getByRole('group', { name: 'Finding a counter to this team' }),
     ).toBeInTheDocument()
+    expect(within(section).getByRole('status')).toBeEmptyDOMElement()
 
     held.release()
 
     expect(await within(section).findByRole('table')).toBeInTheDocument()
-    expect(within(section).queryByRole('status')).not.toBeInTheDocument()
+    expect(
+      within(section).queryByRole('group', { name: 'Finding a counter to this team' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the counter shown while a toggle’s loads, then reads out what it covers', async () => {
+    serveTheirs()
+    let matchup = matchupOf
+    serveCounterTeam({ catalog: PICKS, matchup: (pokemon, id) => matchup(pokemon, id) })
+    const { user } = renderTeam()
+
+    const section = await findSection()
+    const status = within(section).getByRole('status')
+    await waitFor(() => expect(status).toHaveTextContent('Nothing here clearly beats Gengar'))
+    const table = within(section).getByRole('table')
+    // With legendaries, every one of theirs has a good answer.
+    matchup = alwaysGood
+    const held = holdCounterTeams()
+
+    await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
+
+    await waitFor(() => expect(held.arrived()).toBe(1))
+    expect(within(section).getByRole('table')).toBe(table)
+    expect(table.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
+    expect(status).toBeEmptyDOMElement()
+
+    held.release()
+
+    await waitFor(() =>
+      expect(status).toHaveTextContent('Every Pokémon on their team has a good answer'),
+    )
+    expect(within(section).getByRole('table').closest('[aria-busy]')).toHaveAttribute(
+      'aria-busy',
+      'false',
+    )
+    // The same status throughout, so what it says about the new counter is read out.
+    expect(within(section).getByRole('status')).toBe(status)
   })
 
   it('says a counter needs a Pokédex sync first', async () => {
@@ -395,11 +468,16 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(
       await within(section).findByText('Couldn’t find a counter to this team'),
     ).toBeInTheDocument()
+    const status = within(section).getByRole('status')
+    expect(status).toBeEmptyDOMElement()
 
     await user.click(within(section).getByRole('button', { name: 'Try again' }))
 
     expect(await within(section).findByRole('table')).toBeInTheDocument()
     expect(counters).toHaveLength(1)
+    // The same status as while it failed, so what the counter covers is read out.
+    expect(within(section).getByRole('status')).toBe(status)
+    expect(status).toHaveTextContent('Nothing here clearly beats Gengar')
   })
 
   it('isn’t shown for a team with no Pokémon', async () => {
@@ -493,9 +571,41 @@ describe('TeamPage, threats to your own team', () => {
     server.use(http.get('/api/team-threats', () => new Promise<never>(() => {})))
     renderTeam()
 
+    const section = await findThreats()
+
     expect(
-      within(await findThreats()).getByRole('status', { name: 'Finding threats to this team' }),
+      within(section).getByRole('group', { name: 'Finding threats to this team' }),
     ).toBeInTheDocument()
+    expect(within(section).getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('reads out how many threats there are, and the biggest, once they load', async () => {
+    serveTheirs({ viewer: ASH })
+    serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    const { user } = renderTeam()
+
+    const section = await findThreats()
+    const status = within(section).getByRole('status')
+    await waitFor(() =>
+      expect(status).toHaveTextContent(
+        '3 threats, the biggest Dragonite. Beats Charizard, Pikachu and Gengar.',
+      ),
+    )
+    const threats = within(section).getByRole('list', { name: 'Threats, the biggest first' })
+    const held = holdTeamThreats()
+
+    await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
+
+    await waitFor(() => expect(held.arrived()).toBe(1))
+    expect(within(section).getByRole('list', { name: 'Threats, the biggest first' })).toBe(threats)
+    expect(threats.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
+    expect(status).toBeEmptyDOMElement()
+
+    held.release()
+
+    await waitFor(() => expect(status).toHaveTextContent('3 threats, the biggest Dragonite.'))
+    expect(threats.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'false')
+    expect(within(section).getByRole('status')).toBe(status)
   })
 
   it('says threats need a Pokédex sync first', async () => {

@@ -492,6 +492,26 @@ export function serveTeamThreats({
 }
 
 /**
+ * Holds every request for a team's threats until `release` is called, then lets the stand-in from
+ * serveTeamThreats answer them. `arrived` counts the requests the app has sent so far. Call it
+ * after serveTeamThreats, so it comes first.
+ */
+export function holdTeamThreats() {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let arrived = 0
+  server.use(
+    http.get('/api/team-threats', async () => {
+      arrived += 1
+      await released
+    }),
+  )
+  return { release, arrived: () => arrived }
+}
+
+/**
  * Holds every request for a counter team until `release` is called, then lets the stand-in from
  * serveCounterTeam answer them. `arrived` counts the requests the app has sent so far. Call it
  * after serveCounterTeam, so it comes first.

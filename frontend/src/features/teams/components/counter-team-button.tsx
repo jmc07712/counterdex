@@ -32,14 +32,22 @@ export function CounterTeamButton({ team, pool = DEFAULT_POOL }: CounterTeamButt
   return <BuildCounterButton team={team} pool={pool} />
 }
 
+type BuildThisCounterProps = {
+  team: Team
+  pool: MatchupPool
+  // While the counter shown is the last pool's and this pool's loads.
+  loading: boolean
+}
+
 /**
  * "Build this counter", under the counter shown for someone else's team: builds it as a new team
- * and opens it to edit. Signed out, it's a link to sign in, which comes back to this page.
+ * and opens it to edit, once it's the counter for `pool`. Signed out, it's a link to sign in,
+ * which comes back to this page.
  */
-export function BuildThisCounter({ team, pool }: { team: Team; pool: MatchupPool }) {
+export function BuildThisCounter({ team, pool, loading }: BuildThisCounterProps) {
   const currentUser = useCurrentUser()
   if (currentUser.data === null) return <SignInToBuildThis />
-  return <BuildThisCounterButton team={team} pool={pool} />
+  return <BuildThisCounterButton team={team} pool={pool} loading={loading} />
 }
 
 function BuildCounterButton({ team, pool }: { team: Team; pool: MatchupPool }) {
@@ -69,18 +77,21 @@ function BuildCounterButton({ team, pool }: { team: Team; pool: MatchupPool }) {
   )
 }
 
-function BuildThisCounterButton({ team, pool }: { team: Team; pool: MatchupPool }) {
+function BuildThisCounterButton({ team, pool, loading }: BuildThisCounterProps) {
   const { build, isPending } = useCounterTeamBuilder(team, pool)
+  const busy = isPending || loading
   return (
     <Button
-      aria-busy={isPending}
-      // Not disabled, which would drop its focus to the page; build ignores clicks while it
-      // builds.
-      aria-disabled={isPending}
-      onClick={build}
+      aria-busy={busy}
+      // Not disabled, which would drop its focus to the page. Clicks are ignored while the counter
+      // loads, and build ignores them while it builds.
+      aria-disabled={busy}
+      onClick={() => {
+        if (!loading) build()
+      }}
       className="aria-disabled:opacity-50"
     >
-      <BuildIcon building={isPending} />
+      <BuildIcon building={busy} />
       {m.team_counter_build()}
     </Button>
   )
