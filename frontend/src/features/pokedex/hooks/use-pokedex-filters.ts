@@ -5,7 +5,7 @@ import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { parseOption } from '@/lib/search-params'
 
 /**
- * Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed lately, or those
+ * Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed recently, or those
  * PokéAPI removed.
  */
 export type PokedexView = ListingStatus | 'changed'

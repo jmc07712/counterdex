@@ -87,7 +87,7 @@ describe('PokemonDetailsDialog', () => {
     expect(within(evolution).getByRole('button', { current: true })).toHaveTextContent('Charizard')
   })
 
-  it('marks the stages a sync changed lately', async () => {
+  it('marks the stages a sync changed recently', async () => {
     const details = makeDetails()
     const charmeleon = details.evolution?.evolves_to[0]
     if (charmeleon?.pokemon) charmeleon.pokemon = { ...charmeleon.pokemon, changed_recently: true }

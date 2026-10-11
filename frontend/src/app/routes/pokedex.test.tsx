@@ -198,7 +198,7 @@ describe('PokedexPage', () => {
     expect(within(card).getByText('Removed')).toBeInTheDocument()
   })
 
-  it('can list the Pokémon syncs changed lately, marked as changed', async () => {
+  it('can list the Pokémon syncs changed recently, marked as changed', async () => {
     const bulbasaur = makePokemon({ id: 1, name: 'bulbasaur', changed_recently: true })
     const requests = servePokemon({ items: [bulbasaur], next_cursor: null })
     const { user, router } = renderWithProviders(<PokedexPage />)

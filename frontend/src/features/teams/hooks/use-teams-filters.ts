@@ -8,7 +8,7 @@ import { parseOption } from '@/lib/search-params'
 export type TeamsScope = 'mine' | 'everyone'
 export const TEAMS_SCOPES: TeamsScope[] = ['mine', 'everyone']
 
-/** Which of those teams it shows: all of them, or those with a Pokémon a sync changed lately. */
+/** Which of those teams it shows: all of them, or those with a Pokémon a sync changed recently. */
 export type TeamsView = 'all' | 'changed'
 export const TEAMS_VIEWS: TeamsView[] = ['all', 'changed']
 
