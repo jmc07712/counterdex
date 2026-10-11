@@ -1,7 +1,6 @@
 import type { PokemonType } from '@/api'
-import { cn } from '@/lib/utils'
 
-import { PokeBall } from './poke-ball'
+import { GhostBall } from './poke-ball'
 import { TYPE_STYLES } from './pokemon-types'
 
 type TypeBallProps = { types: PokemonType[]; className?: string }
@@ -10,9 +9,9 @@ type TypeBallProps = { types: PokemonType[]; className?: string }
 export function TypeBall({ types, className }: TypeBallProps) {
   const secondary = types[1]
   return (
-    <PokeBall
-      style={{ color: secondary ? TYPE_STYLES[secondary].background : 'white' }}
-      className={cn('opacity-40', className)}
+    <GhostBall
+      color={secondary ? TYPE_STYLES[secondary].background : 'white'}
+      className={className}
     />
   )
 }

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
-import { memberColors } from '../utils/member-colors'
+import { memberColors, MUTED } from '../utils/member-colors'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
 
@@ -220,7 +220,7 @@ function MemberPanel({ member, className, children }: MemberPanelProps) {
       className={cn(
         'group/hop relative isolate overflow-hidden',
         ENTER,
-        !colors && 'bg-muted text-muted-foreground',
+        !colors && MUTED,
         className,
       )}
     >

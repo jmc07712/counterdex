@@ -3,7 +3,7 @@ import { statTotal } from '@/components/pokemon/format'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
-import { memberColors } from '../utils/member-colors'
+import { memberColors, MUTED_SEGMENT } from '../utils/member-colors'
 import { MAX_TEAM_POWER, teamPower } from '../utils/team-power'
 
 type TeamPowerProps = { members: TeamMember[]; className?: string }
@@ -39,7 +39,7 @@ export function TeamPower({ members, className }: TeamPowerProps) {
                 width: `${(statTotal(member.pokemon.stats) / max) * 100}%`,
                 backgroundColor: colors?.background,
               }}
-              className={cn('shrink-0 last:rounded-r-full', !colors && 'bg-muted-foreground/50')}
+              className={cn('shrink-0 last:rounded-r-full', !colors && MUTED_SEGMENT)}
             />
           )
         })}

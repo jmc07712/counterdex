@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
-import { memberColors } from '../utils/member-colors'
+import { memberColors, MUTED } from '../utils/member-colors'
 import { teamTypes } from '../utils/team-types'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
@@ -119,7 +119,7 @@ function MemberTile({ member }: { member: TeamMember }) {
   return (
     <li
       style={{ backgroundColor: colors?.background }}
-      className={cn('relative aspect-square rounded-lg', !colors && 'bg-muted text-muted-foreground')}
+      className={cn('relative aspect-square rounded-lg', !colors && MUTED)}
     >
       <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
         <MemberBall member={member} className="absolute -inset-[10%]" />
