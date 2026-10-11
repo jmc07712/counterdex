@@ -164,8 +164,8 @@ function newestFirst(one: Team, other: Team) {
  * Stands in for the API's teams and remembers them: `teams` to begin with, then each change.
  * `catalog` is every Pokémon it knows, and `signedIn` whoever sends the changes. Like the API,
  * it lists everyone's teams that have a Pokémon, or one trainer's (`owner`) with empty ones too,
- * `pageSize` at a time; lets only a team's owner change it; and refuses a seventh member, a second
- * Pokémon from one evolution family and an out-of-date order.
+ * `pageSize` at a time, and refuses an empty `owner`; lets only a team's owner change it; and
+ * refuses a seventh member, a second Pokémon from one evolution family and an out-of-date order.
  * Returns the changes it was asked for, in order; the query string of each request for a list of
  * teams, in order; and its teams as they now are, most recently changed first.
  */
@@ -214,6 +214,7 @@ export function serveTeams({
       const limit = Number(query.get('limit') ?? pageSize)
       const cursor = query.get('cursor')
       const owner = query.get('owner')?.toLowerCase()
+      if (owner === '') return refusal(422)
       const listed = teams
         .filter((each) =>
           owner === undefined
