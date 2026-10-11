@@ -1,6 +1,6 @@
 import { Compass, SearchX, UsersRound } from 'lucide-react'
 
-import { DealtInItem } from '@/components/lists/dealt-in-item'
+import { DealtInItem, DealtInList } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
 import { ResultsStatus } from '@/components/lists/results-status'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -113,7 +113,7 @@ export function TeamsGrid({
       <ResultsStatus settled={settled}>
         {teams.hasNextPage ? m.teams_shown_more({ count: shown }) : m.teams_shown({ count: shown })}
       </ResultsStatus>
-      <ul
+      <DealtInList
         aria-label={owner === undefined ? m.teams_everyones() : m.teams_mine()}
         aria-busy={teams.isPlaceholderData}
         className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
@@ -133,7 +133,7 @@ export function TeamsGrid({
             </DealtInItem>
           )),
         )}
-      </ul>
+      </DealtInList>
       {teams.hasNextPage && (
         <LoadMore
           loading={teams.isFetchingNextPage}

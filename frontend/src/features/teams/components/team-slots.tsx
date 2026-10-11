@@ -1,5 +1,13 @@
 import { Plus, Replace } from 'lucide-react'
-import { type ComponentProps, type ReactNode, useId } from 'react'
+import {
+  type ComponentProps,
+  createContext,
+  type ReactNode,
+  type RefObject,
+  use,
+  useId,
+  useState,
+} from 'react'
 import { Link } from 'react-router'
 
 import { ChangeKind, type Stats, type TeamMember } from '@/api'
@@ -10,6 +18,7 @@ import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { Progress } from '@/components/ui/progress'
+import { useFirstRender } from '@/hooks/use-first-render'
 import { formatDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
@@ -27,12 +36,18 @@ const POP_OUT_AFTER_MS = 150
 const ENTER = 'animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both motion-reduce:animate-none'
 const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4'
 
+// Whether the slots are on their first render, when they enter one after another.
+const Entering = createContext<RefObject<boolean>>({ current: false })
+
 /** A team's six slots, stacked in battle order: its members' slots, then EmptySlots. */
 export function TeamSlots({ children }: { children: ReactNode }) {
+  const entering = useFirstRender()
   return (
-    <ol aria-label={m.team_slots()} className="flex flex-col gap-2">
-      {children}
-    </ol>
+    <Entering value={entering}>
+      <ol aria-label={m.team_slots()} className="flex flex-col gap-2">
+        {children}
+      </ol>
+    </Entering>
   )
 }
 
@@ -42,14 +57,28 @@ export function TeamSlots({ children }: { children: ReactNode }) {
  * however long a slot's line, which is cut short instead.
  */
 export function PartySlots({ children }: { children: ReactNode }) {
+  const entering = useFirstRender()
   return (
-    <ol
-      aria-label={m.team_slots()}
-      className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:grid-rows-5 md:gap-3 md:*:first:row-span-5"
-    >
-      {children}
-    </ol>
+    <Entering value={entering}>
+      <ol
+        aria-label={m.team_slots()}
+        className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:grid-rows-5 md:gap-3 md:*:first:row-span-5"
+      >
+        {children}
+      </ol>
+    </Entering>
   )
+}
+
+/**
+ * How long a slot waits to enter: its place in battle order when the slots first show, and not at
+ * all when it shows later. Kept from its first render, as the slots' next render would otherwise
+ * cut its wait short.
+ */
+function useEnterDelay(slot: number) {
+  const entering = use(Entering)
+  const [delay] = useState(() => (entering.current ? slot * ENTER_STAGGER_MS : 0))
+  return delay
 }
 
 type LeadSlotProps = {
@@ -178,40 +207,43 @@ type EmptySlotsProps = {
 
 /** The slots after the team's `filled` members, each dashed: "Empty slot", or a link to fill it. */
 export function EmptySlots({ filled, to }: EmptySlotsProps) {
-  return Array.from({ length: MAX_TEAM_SIZE - filled }, (_, index) => {
-    const slot = filled + index
-    return (
-      <li
-        key={slot}
-        style={{ animationDelay: `${slot * ENTER_STAGGER_MS}ms` }}
-        className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
-      >
-        {to ? (
-          <Link
-            to={to}
-            aria-label={m.team_add_to_slot({ slot: slot + 1 })}
-            className={cn(
-              ROW,
-              'h-full rounded-[inherit] transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
-            )}
-          >
-            <SlotNumber slot={slot} />
-            <EmptyBall />
-            <span className="flex items-center gap-1.5 font-medium">
-              <Plus className="size-4" aria-hidden="true" />
-              {m.team_add_pokemon()}
-            </span>
-          </Link>
-        ) : (
-          <div className={cn(ROW, 'h-full')}>
-            <SlotNumber slot={slot} />
-            <EmptyBall />
-            {m.team_empty_slot()}
-          </div>
-        )}
-      </li>
-    )
-  })
+  return Array.from({ length: MAX_TEAM_SIZE - filled }, (_, index) => (
+    <EmptySlot key={filled + index} slot={filled + index} to={to} />
+  ))
+}
+
+function EmptySlot({ slot, to }: { slot: number; to?: string }) {
+  const delay = useEnterDelay(slot)
+  return (
+    <li
+      style={{ animationDelay: `${delay}ms` }}
+      className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
+    >
+      {to ? (
+        <Link
+          to={to}
+          aria-label={m.team_add_to_slot({ slot: slot + 1 })}
+          className={cn(
+            ROW,
+            'h-full rounded-[inherit] transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
+          )}
+        >
+          <SlotNumber slot={slot} />
+          <EmptyBall />
+          <span className="flex items-center gap-1.5 font-medium">
+            <Plus className="size-4" aria-hidden="true" />
+            {m.team_add_pokemon()}
+          </span>
+        </Link>
+      ) : (
+        <div className={cn(ROW, 'h-full')}>
+          <SlotNumber slot={slot} />
+          <EmptyBall />
+          {m.team_empty_slot()}
+        </div>
+      )}
+    </li>
+  )
 }
 
 type MemberPanelProps = { member: TeamMember; className: string; children: ReactNode }
@@ -219,12 +251,13 @@ type MemberPanelProps = { member: TeamMember; className: string; children: React
 // A member's slot, painted in its main type, or neutral once it's no longer in the Pokédex.
 function MemberPanel({ member, className, children }: MemberPanelProps) {
   const colors = memberColors(member)
+  const delay = useEnterDelay(member.position)
   return (
     <li
       style={{
         backgroundColor: colors?.background,
         color: colors?.foreground,
-        animationDelay: `${member.position * ENTER_STAGGER_MS}ms`,
+        animationDelay: `${delay}ms`,
       }}
       className={cn(
         'group/hop relative isolate overflow-hidden',
@@ -254,13 +287,12 @@ type PartOfMemberProps = { member: TeamMember; className?: string }
 
 // The member's sprite in front of its ghosted Poké Ball, popping out of it as the slot enters.
 function PanelSprite({ member, className }: PartOfMemberProps) {
+  const delay = useEnterDelay(member.position)
   return (
     <div className={cn('relative isolate grid shrink-0 place-items-center', className)}>
       <MemberBall member={member} className="absolute -inset-[8%] -z-10" />
       <div
-        style={{
-          animationDelay: `${member.position * ENTER_STAGGER_MS + POP_OUT_AFTER_MS}ms`,
-        }}
+        style={{ animationDelay: `${delay + POP_OUT_AFTER_MS}ms` }}
         className="size-full animate-in duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] fill-mode-both zoom-in-0 motion-reduce:animate-none"
       >
         <MemberSprite member={member} className="scale-150" />

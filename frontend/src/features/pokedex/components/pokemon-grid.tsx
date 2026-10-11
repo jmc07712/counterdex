@@ -2,7 +2,7 @@ import { SearchX } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { ListingStatus, type Pokemon } from '@/api'
-import { DealtInItem } from '@/components/lists/dealt-in-item'
+import { DealtInItem, DealtInList } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
 import { ResultsStatus } from '@/components/lists/results-status'
 import { PokemonCard } from '@/components/pokemon/pokemon-card'
@@ -101,7 +101,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
           : m.pokedex_shown({ count: shown })}
       </ResultsStatus>
       <div className="@container">
-        <ul
+        <DealtInList
           aria-busy={query.isPlaceholderData}
           className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
         >
@@ -117,7 +117,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
               </DealtInItem>
             )),
           )}
-        </ul>
+        </DealtInList>
       </div>
 
       {query.hasNextPage && (

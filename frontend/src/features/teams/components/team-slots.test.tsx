@@ -1,8 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PokemonChange, TeamMember } from '@/api'
+import type { Pokemon, PokemonChange, TeamMember } from '@/api'
 import { servePokemonChanges } from '@/test/handlers'
 import { makePokemon } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
@@ -10,7 +11,7 @@ import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { asMember, catalog } from '@/test/teams'
 
-import { LeadSlot, PartySlots, ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
+import { EmptySlots, LeadSlot, PartySlots, ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
 
 const CHANGED_ON = '2026-10-09T09:00:00Z'
 const charizard = { ...catalog.charizard, changed_recently: true }
@@ -218,6 +219,67 @@ describe('TeamSlot', () => {
     expect(bar.querySelector('[data-slot=progress-indicator]')).toHaveStyle({
       transform: 'translateX(-0%)',
     })
+  })
+})
+
+// Slots for these Pokémon, with buttons to add Snorlax and to remove the lead.
+function ChangingTeam({ initial }: { initial: Pokemon[] }) {
+  const [pokemon, setPokemon] = useState(initial)
+  return (
+    <>
+      <button onClick={() => setPokemon([...pokemon, catalog.snorlax])}>Add Snorlax</button>
+      <button onClick={() => setPokemon(pokemon.slice(1))}>Remove the lead</button>
+      <TeamSlots>
+        {pokemon.map((each, position) => (
+          <TeamSlot key={each.id} member={asMember(each, position)} />
+        ))}
+        <EmptySlots filled={pokemon.length} />
+      </TeamSlots>
+    </>
+  )
+}
+
+// How long each slot waits to enter, then how long each sprite in it waits to pop out.
+function entranceDelays() {
+  const slots = screen.getByRole('list', { name: 'Team, in battle order' })
+  return [...slots.children].map((slot) =>
+    [slot, ...slot.querySelectorAll<HTMLElement>('[style]')]
+      .map((element) => (element as HTMLElement).style.animationDelay)
+      .filter(Boolean),
+  )
+}
+
+describe('TeamSlots', () => {
+  it('enters the slots it first shows one after another, in battle order', () => {
+    renderWithProviders(<ChangingTeam initial={[catalog.charmander, catalog.pikachu]} />)
+
+    expect(entranceDelays()).toEqual([
+      ['0ms', '150ms'],
+      ['70ms', '220ms'],
+      ['140ms'],
+      ['210ms'],
+      ['280ms'],
+      ['350ms'],
+    ])
+  })
+
+  it('shows a member or an empty slot it gets later at once', async () => {
+    const { user } = renderWithProviders(
+      <ChangingTeam initial={[catalog.charmander, catalog.pikachu]} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add Snorlax' }))
+    await user.click(screen.getByRole('button', { name: 'Remove the lead' }))
+
+    // Pikachu and Snorlax, then the empty third slot, which came back with the lead's removal.
+    expect(entranceDelays()).toEqual([
+      ['70ms', '220ms'],
+      ['0ms', '150ms'],
+      ['0ms'],
+      ['210ms'],
+      ['280ms'],
+      ['350ms'],
+    ])
   })
 })
 
