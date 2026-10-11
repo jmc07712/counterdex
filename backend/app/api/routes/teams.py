@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 
+from app.accounts.constants import USERNAME_PATTERN
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
 from app.api.tags import TEAM_MEMBERS, TEAMS
@@ -50,7 +51,10 @@ TeamId = Annotated[uuid.UUID, Path(description="The team's `id`: a UUID its crea
 MemberId = Annotated[
     int, Path(ge=1, le=MAX_POKEMON_ID, description="The member's Pokémon `id`, e.g. 6.")
 ]
-Username = Annotated[str, Path(description="The user's `username`. Case doesn't matter.")]
+Username = Annotated[
+    str,
+    Path(pattern=USERNAME_PATTERN, description="The user's `username`. Case doesn't matter."),
+]
 
 
 def conflict_detail(reason: TeamConflictReason) -> str:

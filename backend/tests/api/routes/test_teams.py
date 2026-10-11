@@ -295,6 +295,20 @@ def test_a_username_no_one_has_is_not_found(client: TestClient) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "username",
+    [
+        pytest.param("%00", id="nul-character"),
+        pytest.param("x" * 33, id="too-long"),
+    ],
+)
+def test_rejects_usernames_that_cant_exist(client: TestClient, username: str) -> None:
+    response = client.get(f"/api/users/{username}/teams")
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["path", "username"]
+
+
 @pytest.mark.usefixtures("charmander_family")
 def test_lists_everyones_teams_with_pokemon_newest_first(
     client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
