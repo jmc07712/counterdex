@@ -19,7 +19,7 @@ type TeamsFiltersProps = {
   onChange: (filters: Filters) => void
   // Whether to offer a choice of your own teams or everyone's, which only someone signed in has.
   showScope: boolean
-  searchRef?: Ref<HTMLInputElement>
+  searchRef: Ref<HTMLInputElement>
 }
 
 export function TeamsFilters({ filters, onChange, showScope, searchRef }: TeamsFiltersProps) {

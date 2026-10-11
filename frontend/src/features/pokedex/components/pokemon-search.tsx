@@ -13,7 +13,7 @@ type PokemonSearchProps = {
   value: string
   onChange: (search: string) => void
   onOpen: (pokemonId: number) => void
-  inputRef?: Ref<HTMLInputElement>
+  inputRef: Ref<HTMLInputElement>
 }
 
 /** The Pokédex search, suggesting Pokémon as you type; choosing one opens its details. */

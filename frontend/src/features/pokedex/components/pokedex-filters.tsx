@@ -16,7 +16,7 @@ type PokedexFiltersProps = {
   filters: Filters
   onChange: (filters: Filters) => void
   onOpenPokemon: (pokemonId: number) => void
-  searchRef?: Ref<HTMLInputElement>
+  searchRef: Ref<HTMLInputElement>
 }
 
 export function PokedexFilters({
