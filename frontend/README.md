@@ -109,6 +109,15 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   members a sync changed this week. The lead shows its newest change as the Pokédex's change
   history does, and the other slots sum theirs up on one line. A removed member is muted, with the
   date it was removed in place of its types, which is its newest change.
+- **Under someone else's team**, "How to beat this team" shows a counter from `GET
+  /api/counter-team`: our picks in battle order, each with a line on why it's there, whether every
+  one of theirs has a good answer, and a table of each pick against each of theirs, where choosing
+  a matchup explains it in one sentence (`utils/matchup-sentence.ts`). Where the table doesn't fit,
+  a list gives our best pick against each of theirs. Build this counter saves the counter shown.
+- **Under your own team**, "Threats to this team" lists up to 12 Pokémon from
+  `GET /api/team-threats`, each saying which members it beats, and each opening its details. Both
+  sections can also pick from alternate forms and legendaries, kept in the URL
+  (`?forms=true&legendaries=true`) so signing in to build a counter comes back to the same one.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
   (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
   pinned at the left, with its name to rename, the same line above the slots, and its slots, each
