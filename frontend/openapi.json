@@ -338,7 +338,7 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           }
         },
         "security": [
@@ -419,7 +419,7 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           }
         },
         "security": [
@@ -485,10 +485,10 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "409": {
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
             "content": {
               "application/json": {
                 "schema": {
@@ -544,7 +544,7 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id."
@@ -606,7 +606,7 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id."
@@ -651,7 +651,7 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id."
@@ -767,13 +767,13 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id."
           },
           "409": {
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
             "content": {
               "application/json": {
                 "schema": {
@@ -854,13 +854,13 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id. Or: That Pokémon isn't on the team."
           },
           "409": {
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
             "content": {
               "application/json": {
                 "schema": {
@@ -929,7 +929,7 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id. Or: That Pokémon isn't on the team."
@@ -950,7 +950,7 @@
     "/api/teams/{team_id}/order": {
       "put": {
         "summary": "Reorder a team",
-        "description": "Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if\nthe team has changed since you read it, that's a 409 with `order_out_of_date`.",
+        "description": "Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if\nthe team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.",
         "operationId": "reorder_team",
         "security": [
           {
@@ -993,13 +993,13 @@
             }
           },
           "401": {
-            "description": "Sign in first."
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
           "404": {
             "description": "You have no team with this id."
           },
           "409": {
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1988,12 +1988,19 @@
       "TeamConflict": {
         "properties": {
           "detail": {
-            "$ref": "#/components/schemas/TeamConflictReason"
+            "type": "string",
+            "title": "Detail",
+            "description": "What's wrong, in a sentence."
+          },
+          "reason": {
+            "$ref": "#/components/schemas/TeamConflictReason",
+            "description": "What's wrong, as a code to act on."
           }
         },
         "type": "object",
         "required": [
-          "detail"
+          "detail",
+          "reason"
         ],
         "title": "TeamConflict",
         "description": "Why the change can't be made to the team as it is now."

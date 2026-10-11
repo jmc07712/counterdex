@@ -176,7 +176,12 @@ def test_nobody_is_signed_in_without_a_cookie(client: TestClient) -> None:
     response = client.get("/api/session")
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Sign in first."}
+    assert response.json() == {
+        "detail": (
+            "Sign in first: POST /api/session with your username and password sets the "
+            "session cookie."
+        )
+    }
 
 
 def test_an_expired_session_signs_nobody_in(

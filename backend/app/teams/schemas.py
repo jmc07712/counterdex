@@ -21,7 +21,7 @@ PokemonId = Annotated[int, Field(ge=1, le=MAX_POKEMON_ID)]
 
 def _each_once[T: Sequence[int]](pokemon_ids: T) -> T:
     if len(set(pokemon_ids)) != len(pokemon_ids):
-        raise ValueError("Each Pokémon can be given once.")
+        raise ValueError("Each Pokémon can be on a team only once.")
     return pokemon_ids
 
 
@@ -112,4 +112,9 @@ class Team(BaseModel):
 class TeamConflict(BaseModel):
     """Why the change can't be made to the team as it is now."""
 
-    detail: TeamConflictReason
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    detail: str
+    """What's wrong, in a sentence."""
+    reason: TeamConflictReason
+    """What's wrong, as a code to act on."""

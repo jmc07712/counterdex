@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-CROSS_ORIGIN_REFUSED = "Cross-origin requests can't change anything."
+CROSS_ORIGIN_REFUSED = "Requests from other sites can't make changes here."
 
 
 class CrossOriginProtection:

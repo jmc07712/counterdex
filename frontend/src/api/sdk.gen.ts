@@ -267,7 +267,7 @@ export const replaceTeamMember = <ThrowOnError extends boolean = false>(options:
  * Reorder a team
  *
  * Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
- * the team has changed since you read it, that's a 409 with `order_out_of_date`.
+ * the team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.
  */
 export const reorderTeam = <ThrowOnError extends boolean = false>(options: Options<ReorderTeamData, ThrowOnError>): RequestResult<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError> => (options.client ?? client).put<ReorderTeamResponses, ReorderTeamErrors, ThrowOnError>({
     security: [{

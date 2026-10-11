@@ -12,7 +12,9 @@ from app.core.db import get_session
 # A route that declares `session: SessionDep` gets one database session for the request.
 SessionDep = Annotated[Session, Depends(get_session)]
 
-NOT_SIGNED_IN = "Sign in first."
+NOT_SIGNED_IN = (
+    "Sign in first: POST /api/session with your username and password sets the session cookie."
+)
 
 
 def require_user(

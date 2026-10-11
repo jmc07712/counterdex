@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, st
 
 from app.api.caching import never_cache
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
+from app.api.errors import ConflictError
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.teams import service
+from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
     TeamConflictError,
@@ -30,12 +32,34 @@ router = APIRouter(dependencies=[Depends(never_cache)])
 
 TEAM_NOT_FOUND = "You have no team with this id."
 MEMBER_NOT_FOUND = "That Pokémon isn't on the team."
-UNKNOWN_POKEMON = "No Pokémon has this id."
+UNKNOWN_POKEMON = "No Pokémon has this id, or a sync hasn't stored its species yet."
+TEAM_CONFLICT = (
+    "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it "
+    "as a code."
+)
 
 TeamId = Annotated[uuid.UUID, Path(description="The team's `id`: a UUID its creator chose.")]
 MemberId = Annotated[
     int, Path(ge=1, le=MAX_POKEMON_ID, description="The member's Pokémon `id`, e.g. 6.")
 ]
+
+
+def conflict_detail(reason: TeamConflictReason) -> str:
+    """A conflict's reason as a sentence, for people reading the API's responses."""
+    match reason:
+        case TeamConflictReason.TEAM_FULL:
+            return "The team already has six Pokémon."
+        case TeamConflictReason.SPECIES_ON_TEAM:
+            return "The team already has this Pokémon's species, in this or another form."
+        case TeamConflictReason.ORDER_OUT_OF_DATE:
+            return (
+                "The order must list every Pokémon on the team, each once. Get the team again: "
+                "it may have changed."
+            )
+        case TeamConflictReason.POKEMON_REMOVED:
+            return "PokéAPI no longer lists this Pokémon, so it can't join a team."
+        case TeamConflictReason.TEAM_ID_TAKEN:
+            return "Another team already has this id. Choose a new UUID."
 
 
 @contextmanager
@@ -50,7 +74,7 @@ def team_errors() -> Iterator[None]:
     except UnknownPokemonError:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, UNKNOWN_POKEMON) from None
     except TeamConflictError as conflict:
-        raise HTTPException(status.HTTP_409_CONFLICT, conflict.reason) from None
+        raise ConflictError(conflict_detail(conflict.reason), conflict.reason) from None
 
 
 @router.get(
@@ -71,7 +95,7 @@ def list_teams(session: SessionDep, user: CurrentUser) -> list[Team]:
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": TEAM_CONFLICT,
         },
     },
 )
@@ -159,7 +183,7 @@ def delete_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> None
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": TEAM_CONFLICT,
         },
     },
 )
@@ -183,7 +207,7 @@ def add_team_member(
         status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": TEAM_CONFLICT,
         },
     },
 )
@@ -230,13 +254,13 @@ def remove_team_member(
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
-            "description": "The change can't be made to the team as it is now; `detail` says why.",
+            "description": TEAM_CONFLICT,
         },
     },
 )
 def reorder_team(session: SessionDep, user: CurrentUser, team_id: TeamId, order: TeamOrder) -> Team:
     """Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
-    the team has changed since you read it, that's a 409 with `order_out_of_date`.
+    the team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.
     """
     with team_errors():
         team = service.reorder(session, user.id, team_id, order.pokemon_ids)

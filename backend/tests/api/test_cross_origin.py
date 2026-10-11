@@ -38,7 +38,7 @@ def test_refuses_writes_a_browser_sends_from_another_origin(
     response = ash_client.delete("/api/session", headers=headers)
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Cross-origin requests can't change anything."}
+    assert response.json() == {"detail": "Requests from other sites can't make changes here."}
     # Still signed in: the request never reached the route.
     assert ash_client.get("/api/session").status_code == 200
 

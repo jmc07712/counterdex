@@ -477,7 +477,7 @@ export const replaceTeamMemberMutation = (options?: Partial<Options<ReplaceTeamM
  * Reorder a team
  *
  * Puts the team's members in a new order. Give every member's Pokémon `id`, each once: if
- * the team has changed since you read it, that's a 409 with `order_out_of_date`.
+ * the team has changed since you read it, that's a 409 whose `reason` is `order_out_of_date`.
  */
 export const reorderTeamMutation = (options?: Partial<Options<ReorderTeamData>>): UseMutationOptions<ReorderTeamResponse, ReorderTeamError, Options<ReorderTeamData>> => {
     const mutationOptions: UseMutationOptions<ReorderTeamResponse, ReorderTeamError, Options<ReorderTeamData>> = {

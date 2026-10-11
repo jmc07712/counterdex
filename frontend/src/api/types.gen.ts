@@ -697,7 +697,16 @@ export type Team = {
  * Why the change can't be made to the team as it is now.
  */
 export type TeamConflict = {
-    detail: TeamConflictReason;
+    /**
+     * Detail
+     *
+     * What's wrong, in a sentence.
+     */
+    detail: string;
+    /**
+     * What's wrong, as a code to act on.
+     */
+    reason: TeamConflictReason;
 };
 
 /**
@@ -1106,7 +1115,7 @@ export type GetCurrentUserData = {
 
 export type GetCurrentUserErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
 };
@@ -1158,7 +1167,7 @@ export type ListTeamsData = {
 
 export type ListTeamsErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
 };
@@ -1190,7 +1199,7 @@ export type DeleteTeamData = {
 
 export type DeleteTeamErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1230,7 +1239,7 @@ export type GetTeamData = {
 
 export type GetTeamErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1270,7 +1279,7 @@ export type RenameTeamData = {
 
 export type RenameTeamErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1310,11 +1319,11 @@ export type CreateTeamData = {
 
 export type CreateTeamErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
-     * The change can't be made to the team as it is now; `detail` says why.
+     * The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.
      */
     409: TeamConflict;
     /**
@@ -1388,7 +1397,7 @@ export type AddTeamMemberData = {
 
 export type AddTeamMemberErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1396,7 +1405,7 @@ export type AddTeamMemberErrors = {
      */
     404: unknown;
     /**
-     * The change can't be made to the team as it is now; `detail` says why.
+     * The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.
      */
     409: TeamConflict;
     /**
@@ -1438,7 +1447,7 @@ export type RemoveTeamMemberData = {
 
 export type RemoveTeamMemberErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1484,7 +1493,7 @@ export type ReplaceTeamMemberData = {
 
 export type ReplaceTeamMemberErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1492,7 +1501,7 @@ export type ReplaceTeamMemberErrors = {
      */
     404: unknown;
     /**
-     * The change can't be made to the team as it is now; `detail` says why.
+     * The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.
      */
     409: TeamConflict;
     /**
@@ -1528,7 +1537,7 @@ export type ReorderTeamData = {
 
 export type ReorderTeamErrors = {
     /**
-     * Sign in first.
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
      */
     401: unknown;
     /**
@@ -1536,7 +1545,7 @@ export type ReorderTeamErrors = {
      */
     404: unknown;
     /**
-     * The change can't be made to the team as it is now; `detail` says why.
+     * The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.
      */
     409: TeamConflict;
     /**

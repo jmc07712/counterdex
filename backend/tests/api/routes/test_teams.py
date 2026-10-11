@@ -5,9 +5,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.accounts.types import SignedIn
+from app.api.routes.teams import conflict_detail
+from app.teams.enums import TeamConflictReason
 from tests.support.teams import add_species_pokemon, make_team
 
 TEAM = "/api/teams/00000000-0000-4000-8000-000000000001"
+SPECIES_ON_TEAM = {
+    "detail": "The team already has this Pokémon's species, in this or another form.",
+    "reason": "species_on_team",
+}
 
 
 def member_ids(team: dict[str, Any]) -> list[int]:
@@ -53,14 +59,20 @@ def test_another_users_team_is_not_found(
     assert ash_client.patch(url, json={"name": "Mine"}).status_code == 404
     assert ash_client.delete(url).status_code == 404
     taken = ash_client.put(url, json={"name": "Mine"})
-    assert (taken.status_code, taken.json()) == (409, {"detail": "team_id_taken"})
+    assert (taken.status_code, taken.json()) == (
+        409,
+        {
+            "detail": "Another team already has this id. Choose a new UUID.",
+            "reason": "team_id_taken",
+        },
+    )
 
 
 @pytest.mark.usefixtures("charmander_family")
 def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
     response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6, 10034]})
 
-    assert (response.status_code, response.json()) == (409, {"detail": "species_on_team"})
+    assert (response.status_code, response.json()) == (409, SPECIES_ON_TEAM)
     assert ash_client.get("/api/teams").json() == []
 
 
@@ -92,7 +104,23 @@ def test_rejects_invalid_teams(
 def test_an_unknown_pokemon_is_invalid(ash_client: TestClient) -> None:
     response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [9999]})
 
-    assert (response.status_code, response.json()) == (422, {"detail": "No Pokémon has this id."})
+    assert (response.status_code, response.json()) == (
+        422,
+        {"detail": "No Pokémon has this id, or a sync hasn't stored its species yet."},
+    )
+
+
+def test_a_pokemon_given_twice_says_each_can_be_on_a_team_only_once(
+    ash_client: TestClient, db_session: Session
+) -> None:
+    add_species_pokemon(db_session, 201)
+
+    response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [201, 201]})
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == (
+        "Value error, Each Pokémon can be on a team only once."
+    )
 
 
 def test_renames_and_deletes(ash_client: TestClient) -> None:
@@ -128,7 +156,15 @@ def test_a_conflict_says_why(ash_client: TestClient) -> None:
 
     response = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 10034})
 
-    assert (response.status_code, response.json()) == (409, {"detail": "species_on_team"})
+    assert (response.status_code, response.json()) == (409, SPECIES_ON_TEAM)
+
+
+@pytest.mark.parametrize("reason", list(TeamConflictReason))
+def test_each_conflict_reason_has_its_own_sentence(reason: TeamConflictReason) -> None:
+    detail = conflict_detail(reason)
+
+    assert detail.endswith(".")
+    assert reason.value not in detail
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -145,7 +181,16 @@ def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient) -> None:
 
     response = ash_client.put(f"{TEAM}/order", json={"pokemon_ids": [5]})
 
-    assert (response.status_code, response.json()) == (409, {"detail": "order_out_of_date"})
+    assert (response.status_code, response.json()) == (
+        409,
+        {
+            "detail": (
+                "The order must list every Pokémon on the team, each once. Get the team again: "
+                "it may have changed."
+            ),
+            "reason": "order_out_of_date",
+        },
+    )
 
 
 @pytest.mark.usefixtures("charmander_family")
