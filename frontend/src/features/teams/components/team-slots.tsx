@@ -2,8 +2,9 @@ import { Plus, Replace } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
 
-import type { Stats, TeamMember } from '@/api'
+import { ChangeKind, type Stats, type TeamMember } from '@/api'
 import { BaseStats } from '@/components/pokemon/base-stats'
+import { ChangeDot } from '@/components/pokemon/change-entry'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
@@ -17,6 +18,7 @@ import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { memberColors, MUTED } from '../utils/member-colors'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
+import { NewestChange, NewestChangeLine } from './newest-change'
 
 // Slots enter one after another, in battle order, this far apart.
 const ENTER_STAGGER_MS = 70
@@ -36,13 +38,14 @@ export function TeamSlots({ children }: { children: ReactNode }) {
 
 /**
  * A team's six slots as a party: a LeadSlot, then the other members' slots and EmptySlots. From
- * md up, the first slot runs down the left beside the other five.
+ * md up, the first slot runs down the left beside the other five. The columns keep their widths
+ * however long a slot's line, which is cut short instead.
  */
 export function PartySlots({ children }: { children: ReactNode }) {
   return (
     <ol
       aria-label={m.team_slots()}
-      className="grid gap-2 md:grid-cols-[5fr_7fr] md:grid-rows-5 md:gap-3 md:*:first:row-span-5"
+      className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:grid-rows-5 md:gap-3 md:*:first:row-span-5"
     >
       {children}
     </ol>
@@ -57,7 +60,10 @@ type LeadSlotProps = {
   children?: ReactNode
 }
 
-/** The lead's slot, large: labelled as the lead, with a big sprite, its name, types and stats. */
+/**
+ * The lead's slot, large: labelled as the lead, with a big sprite, its name, types and stats, and
+ * its newest change if a sync changed it recently.
+ */
 export function LeadSlot({ member, onOpen, children }: LeadSlotProps) {
   const headingId = useId()
   return (
@@ -92,6 +98,7 @@ export function LeadSlot({ member, onOpen, children }: LeadSlotProps) {
           <dd className="font-bold tabular-nums">{statTotal(member.pokemon.stats)}</dd>
         </dl>
       </div>
+      <NewestChange member={member} />
       <OpenButton labelledBy={headingId} onOpen={onOpen} />
     </MemberPanel>
   )
@@ -106,8 +113,9 @@ type TeamSlotProps = {
 }
 
 /**
- * A member's slot as a row: its number, sprite, Pokédex number, name, types and base stat total;
- * from lg up, where the row is wide enough, its base stats too.
+ * A member's slot as a row: its number, sprite, Pokédex number, name, types and base stat total,
+ * and its newest change on a line if a sync changed it recently; from lg up, where the row is wide
+ * enough, its base stats too.
  */
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
   const headingId = useId()
@@ -120,6 +128,7 @@ export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
         <MemberName id={headingId} member={member} className="truncate text-lg font-extrabold" />
         <MemberTypes member={member} />
         <TotalBar stats={member.pokemon.stats} />
+        <NewestChangeLine member={member} className="mt-0.5" />
       </div>
       <PanelStats
         stats={member.pokemon.stats}
@@ -277,10 +286,19 @@ function MemberNumber({ member }: PartOfMemberProps) {
   )
 }
 
-// Its types, ringed so a badge in the panel's own color still shows; or when it was removed.
+// Its types, ringed so a badge in the panel's own color still shows; or when it was removed, which
+// is its newest change, marked as the Pokédex's change history marks a removal.
 function MemberTypes({ member }: PartOfMemberProps) {
   if (member.removed_at) {
-    return <p className="text-xs">{m.team_removed_on({ date: formatDate(member.removed_at) })}</p>
+    return (
+      <p className="text-xs">
+        <ChangeDot
+          kind={ChangeKind.REMOVED}
+          className="mr-1.5 inline-block size-2.5 align-[-0.0625rem]"
+        />
+        {m.team_removed_on({ date: formatDate(member.removed_at) })}
+      </p>
+    )
   }
   return (
     <TypeBadges

@@ -1,4 +1,6 @@
-import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
+import { Fragment } from 'react'
+
+import { ChangeKind, type Pokemon, type PokemonChange } from '@/api'
 import { formatDate, formatList } from '@/lib/dates'
 import type { Message } from '@/lib/messages'
 import { cn } from '@/lib/utils'
@@ -43,10 +45,16 @@ const FIELDS: Field[] = [
 
 type ChangeDotProps = { kind: ChangeKind; className?: string }
 
-/** A dot in the color of a change's kind, for decoration: the change's words say its kind. */
+/**
+ * A dot in the color of a change's kind, ringed in the text color so it shows on any background.
+ * It's decoration: the change's words say its kind.
+ */
 export function ChangeDot({ kind, className }: ChangeDotProps) {
   return (
-    <span aria-hidden="true" className={cn('size-3 shrink-0 rounded-full', DOTS[kind], className)} />
+    <span
+      aria-hidden="true"
+      className={cn('size-3 shrink-0 rounded-full ring-1 ring-current', DOTS[kind], className)}
+    />
   )
 }
 
@@ -69,18 +77,67 @@ export function ChangeEntry({ change, className }: ChangeEntryProps) {
   )
 }
 
+type ChangeSummaryProps = { change: PokemonChange; className?: string }
+
+/**
+ * A change on one line, cut short if it doesn't fit: each field an update changed, or a removal's
+ * or restoration's kind and date.
+ */
+export function ChangeSummary({ change, className }: ChangeSummaryProps) {
+  const differences =
+    change.kind === ChangeKind.UPDATED && change.before && change.after
+      ? differencesBetween(change.before, change.after)
+      : []
+  return (
+    <p className={cn('truncate', className)}>
+      {differences.length > 0 ? (
+        differences.map(({ field, difference }, index) => (
+          <Fragment key={field}>
+            {index > 0 && <Separator />}
+            {field} <span className="font-semibold tabular-nums">{difference}</span>
+          </Fragment>
+        ))
+      ) : (
+        <>
+          <span className="font-semibold">{m.changes_kind({ kind: change.kind })}</span>
+          <Separator />
+          <time dateTime={change.detected_at}>{formatDate(change.detected_at)}</time>
+        </>
+      )}
+    </p>
+  )
+}
+
 function Differences({ before, after }: { before: Pokemon; after: Pokemon }) {
-  const changed = FIELDS.filter((field) => field.value(before) !== field.value(after))
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
-      {changed.map(({ label, value, change }) => (
-        <div key={label()} className="contents">
-          <dt className="text-muted-foreground">{label()}</dt>
-          <dd className="tabular-nums">
-            {change?.() ?? m.changes_before_after({ before: value(before), after: value(after) })}
-          </dd>
+      {differencesBetween(before, after).map(({ field, difference }) => (
+        <div key={field} className="contents">
+          <dt className="text-muted-foreground">{field}</dt>
+          <dd className="tabular-nums">{difference}</dd>
         </div>
       ))}
     </dl>
+  )
+}
+
+// Between the parts of a one-line change.
+function Separator() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mx-1.5 inline-block size-1 rounded-full bg-current align-middle"
+    />
+  )
+}
+
+// Each field that differs from `before` to `after`, in FIELDS' order, and how its change reads.
+function differencesBetween(before: Pokemon, after: Pokemon) {
+  return FIELDS.filter((field) => field.value(before) !== field.value(after)).map(
+    ({ label, value, change }) => ({
+      field: label(),
+      difference:
+        change?.() ?? m.changes_before_after({ before: value(before), after: value(after) }),
+    }),
   )
 }

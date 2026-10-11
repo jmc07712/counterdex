@@ -58,9 +58,23 @@ export function servePokemonDetails(
   )
 }
 
-/** Answers each Pokémon's change history with `changes`; by default, that it has none. */
-export function servePokemonChanges(changes: PokemonChange[] = []) {
-  server.use(http.get('/api/pokemon/:pokemonId/changes', () => HttpResponse.json(changes)))
+/**
+ * Answers each Pokémon's change history with `changes`, or with the changes for its id; by
+ * default, that it has none. Returns the id of each Pokémon asked about, in the order asked.
+ */
+export function servePokemonChanges(
+  changes: PokemonChange[] | ((id: number) => PokemonChange[]) = [],
+) {
+  const changesFor = typeof changes === 'function' ? changes : () => changes
+  const asked: number[] = []
+  server.use(
+    http.get('/api/pokemon/:pokemonId/changes', ({ params }) => {
+      const id = Number(params.pokemonId)
+      asked.push(id)
+      return HttpResponse.json(changesFor(id))
+    }),
+  )
+  return asked
 }
 
 /** What a test's stand-in for the API's sessions was asked. */

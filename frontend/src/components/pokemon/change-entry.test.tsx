@@ -5,7 +5,7 @@ import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
 import { CHARIZARD } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 
-import { ChangeDot, ChangeEntry } from './change-entry'
+import { ChangeDot, ChangeEntry, ChangeSummary } from './change-entry'
 
 const DETECTED_AT = '2026-10-09T09:00:00Z'
 
@@ -56,6 +56,34 @@ describe('ChangeEntry', () => {
     expect(container).toHaveTextContent('Back in PokéAPI')
     expect(screen.getByText('Oct 9, 2026')).toBeInTheDocument()
     expect(termsAndDefinitions(container)).toEqual([['Speed', '81 → 100']])
+  })
+})
+
+describe('ChangeSummary', () => {
+  it('sums up an update on one line: each field it changed, in order', () => {
+    const { container } = render(<ChangeSummary change={change('updated', CHARIZARD, REWORKED)} />)
+
+    expect(container).toHaveTextContent(
+      [
+        'Name Charizard → Charizard Mega X',
+        'Types Fire, Flying → Fire, Dragon',
+        'Attack 125 → 130',
+        'Speed 81 → 100',
+        'Form Standard → Mega',
+        'Sprite New image',
+      ].join(''),
+    )
+    expect(container).not.toHaveTextContent('Updated')
+  })
+
+  it.each<[ChangeKind, Pokemon | null, string]>([
+    ['removed', null, 'Removed from PokéAPI'],
+    ['restored', REWORKED, 'Back in PokéAPI'],
+  ])('sums up a change %s as its kind and date', (kind, after, words) => {
+    const { container } = render(<ChangeSummary change={change(kind, CHARIZARD, after)} />)
+
+    expect(container).toHaveTextContent(`${words}Oct 9, 2026`)
+    expect(container).not.toHaveTextContent('→')
   })
 })
 

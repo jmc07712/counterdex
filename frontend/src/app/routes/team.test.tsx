@@ -31,6 +31,8 @@ import { TeamEditPage } from './team-edit'
 const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee } = catalog
 const CATALOG = Object.values(catalog)
 
+const CHANGED_ON = '2026-10-09T09:00:00Z'
+
 const VIEW = `/teams/${TEAM_ID}`
 const EDIT = `/teams/${TEAM_ID}/edit`
 
@@ -214,6 +216,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('says above the slots it edits which members a sync changed this week', async () => {
     serveAsh([makeTeam({ pokemon: [{ ...charizard, changed_recently: true }, pikachu] })])
     browse([])
+    servePokemonChanges()
 
     renderTeam(EDIT)
 
@@ -613,6 +616,7 @@ describe('TeamPage, as a party', () => {
 
   it('says above its members which of them a sync changed this week', async () => {
     serveSession()
+    servePokemonChanges()
     serveTeams({
       teams: [
         makeTeam({
@@ -631,6 +635,40 @@ describe('TeamPage, as a party', () => {
     const line = await screen.findByText('Pikachu and Gengar changed this week')
     const slots = screen.getByRole('list', { name: 'Team, in battle order' })
     expect(line.compareDocumentPosition(slots)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('asks for the changes of only the members a sync changed, and still in the Pokédex', async () => {
+    serveSession()
+    serveTeams({
+      teams: [
+        makeTeam({
+          members: [
+            asMember(charmander, 0),
+            asMember({ ...pikachu, changed_recently: true }, 1),
+            { ...asMember({ ...gengar, changed_recently: true }, 2), removed_at: CHANGED_ON },
+            asMember({ ...snorlax, changed_recently: true }, 3),
+          ],
+        }),
+      ],
+      catalog: CATALOG,
+    })
+    // Each was renamed.
+    const asked = servePokemonChanges((id) =>
+      CATALOG.filter((each) => each.id === id).map((after) => ({
+        kind: 'updated',
+        detected_at: CHANGED_ON,
+        before: { ...after, name: 'old-name' },
+        after,
+      })),
+    )
+
+    renderTeam()
+
+    await screen.findByText('Pikachu, Gengar and 1 more changed this week')
+    const rows = slotRows()
+    await waitFor(() => expect(rows[1]).toHaveTextContent('Name Old Name → Pikachu'))
+    expect(rows[3]).toHaveTextContent('Name Old Name → Snorlax')
+    expect(asked.toSorted((one, other) => one - other)).toEqual([25, 143])
   })
 
   it('says nothing changed this week when no sync changed a member', async () => {

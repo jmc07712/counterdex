@@ -41,8 +41,9 @@ export function TeamBuilder({ editor, back, actions }: TeamBuilderProps) {
   const browser = <PokemonBrowser members={team.members} onAdd={add} />
 
   return (
-    // Below lg, room after the last slot for the floating Add Pokémon button.
-    <div className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:pb-0">
+    // Below lg, one column as wide as the page, however long a slot's line, with room after the
+    // last slot for the floating Add Pokémon button.
+    <div className="grid grid-cols-1 gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:pb-0">
       <div>
         {back}
         <div className="mb-6 flex items-center gap-2">

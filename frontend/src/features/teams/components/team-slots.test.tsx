@@ -1,13 +1,181 @@
-import { screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { screen, waitFor, within } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import { describe, expect, it, vi } from 'vitest'
 
+import type { PokemonChange, TeamMember } from '@/api'
+import { servePokemonChanges } from '@/test/handlers'
 import { makePokemon } from '@/test/pokemon'
+import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
+import { server } from '@/test/server'
 import { asMember, catalog } from '@/test/teams'
 
-import { ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
+import { LeadSlot, PartySlots, ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
+
+const CHANGED_ON = '2026-10-09T09:00:00Z'
+const charizard = { ...catalog.charizard, changed_recently: true }
+
+// A sync's update to Charizard, which made it stronger and faster.
+const UPDATED: PokemonChange = {
+  kind: 'updated',
+  detected_at: CHANGED_ON,
+  before: { ...charizard, stats: { ...charizard.stats, attack: 120, speed: 76 } },
+  after: charizard,
+}
+const REMOVED: PokemonChange = {
+  kind: 'removed',
+  detected_at: '2026-10-02T09:00:00Z',
+  before: charizard,
+  after: null,
+}
+// PokéAPI listing it again, a week after it stopped.
+const RESTORED: PokemonChange = {
+  kind: 'restored',
+  detected_at: CHANGED_ON,
+  before: charizard,
+  after: charizard,
+}
+const REMOVED_CHARIZARD: TeamMember = { ...asMember(charizard, 0), removed_at: CHANGED_ON }
+
+// The only slot rendered.
+function slot() {
+  const [first] = within(screen.getByRole('list', { name: 'Team, in battle order' })).getAllByRole(
+    'listitem',
+  )
+  return first
+}
+
+function renderLead(member: TeamMember) {
+  renderWithProviders(
+    <PartySlots>
+      <LeadSlot member={member} onOpen={vi.fn()} />
+    </PartySlots>,
+  )
+  return slot()
+}
+
+function renderRow(member: TeamMember) {
+  renderWithProviders(
+    <TeamSlots>
+      <TeamSlot member={member} onOpen={vi.fn()} />
+    </TeamSlots>,
+  )
+  return slot()
+}
+
+describe('LeadSlot', () => {
+  it('shows a changed lead’s newest change in full', async () => {
+    servePokemonChanges([UPDATED, REMOVED])
+
+    const lead = renderLead(asMember(charizard, 0))
+
+    expect(await within(lead).findByText('Updated')).toBeInTheDocument()
+    expect(within(lead).getByText('Oct 9, 2026')).toBeInTheDocument()
+    expect(termsAndDefinitions(lead)).toEqual(
+      expect.arrayContaining([
+        ['Attack', '120 → 125'],
+        ['Speed', '76 → 81'],
+      ]),
+    )
+    expect(lead).not.toHaveTextContent('Removed from PokéAPI')
+  })
+
+  it('shows a lead PokéAPI lists again as back, and when', async () => {
+    servePokemonChanges([RESTORED, REMOVED])
+
+    const lead = renderLead(asMember(charizard, 0))
+
+    expect(await within(lead).findByText('Back in PokéAPI')).toBeInTheDocument()
+    expect(within(lead).getByText('Oct 9, 2026')).toBeInTheDocument()
+  })
+
+  it('shows a removed lead’s removal once, as the change, without asking for it', async () => {
+    const asked = servePokemonChanges([REMOVED])
+
+    const lead = renderLead(REMOVED_CHARIZARD)
+
+    expect(within(lead).getAllByText(/Removed from PokéAPI/)).toHaveLength(1)
+    expect(lead).toHaveTextContent('Removed from PokéAPI on Oct 9, 2026')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(asked).toEqual([])
+  })
+
+  it('shows nothing of a lead no sync changed recently, without asking for its changes', async () => {
+    const asked = servePokemonChanges([UPDATED])
+
+    const lead = renderLead(asMember(catalog.charizard, 0))
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(asked).toEqual([])
+    expect(lead).not.toHaveTextContent('Updated')
+  })
+})
 
 describe('TeamSlot', () => {
+  it('sums up a changed member’s newest change on one line: what it changed', async () => {
+    servePokemonChanges([UPDATED, REMOVED])
+
+    const row = renderRow(asMember(charizard, 1))
+
+    await waitFor(() => expect(row).toHaveTextContent('Attack 120 → 125Speed 76 → 81'))
+    expect(row).not.toHaveTextContent('Updated')
+  })
+
+  it('sums up a member PokéAPI lists again as back, and when', async () => {
+    servePokemonChanges([RESTORED, REMOVED])
+
+    const row = renderRow(asMember(charizard, 1))
+
+    const summary = await within(row).findByText('Back in PokéAPI')
+    expect(summary.parentElement).toHaveTextContent('Back in PokéAPIOct 9, 2026')
+  })
+
+  it('shows a removed member’s removal once, as the change, without asking for it', async () => {
+    const asked = servePokemonChanges([REMOVED])
+
+    const row = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
+
+    expect(within(row).getAllByText(/Removed from PokéAPI/)).toHaveLength(1)
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(asked).toEqual([])
+  })
+
+  it('shows a small skeleton while the change loads', async () => {
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get('/api/pokemon/:pokemonId/changes', async () => {
+        await released
+        return HttpResponse.json([UPDATED])
+      }),
+    )
+
+    const row = renderRow(asMember(charizard, 1))
+
+    await waitFor(() => expect(row.querySelector('[data-slot=skeleton]')).toBeInTheDocument())
+    release()
+    await waitFor(() => expect(row).toHaveTextContent('Attack 120 → 125'))
+    expect(row.querySelector('[data-slot=skeleton]')).not.toBeInTheDocument()
+  })
+
+  it('shows nothing more when the change can’t load', async () => {
+    let failed = false
+    server.use(
+      http.get('/api/pokemon/:pokemonId/changes', () => {
+        failed = true
+        return HttpResponse.json({ detail: 'Refused.' }, { status: 500 })
+      }),
+    )
+
+    const row = renderRow(asMember(charizard, 1))
+
+    await waitFor(() => expect(failed).toBe(true))
+    await waitFor(() => expect(row.querySelector('[data-slot=skeleton]')).not.toBeInTheDocument())
+    expect(row).not.toHaveTextContent('→')
+  })
+
   it('fills its total’s bar for a total past the highest it measures against', () => {
     // 780, past 720.
     const stats = { hp: 106, attack: 190, defense: 100, sp_attack: 154, sp_defense: 100, speed: 130 }
