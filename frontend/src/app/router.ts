@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router'
+import type { RouteObject } from 'react-router'
 
 import { AppLayout } from '@/app/app-layout'
 import { ExplorePage } from '@/app/routes/explore'
@@ -11,7 +11,8 @@ import { TeamEditPage } from '@/app/routes/team-edit'
 import { TeamsPage } from '@/app/routes/teams'
 import { paths } from '@/config/paths'
 
-export const router = createBrowserRouter([
+/** The app's pages, each inside the app layout. */
+export const routes: RouteObject[] = [
   {
     Component: AppLayout,
     children: [
@@ -25,4 +26,4 @@ export const router = createBrowserRouter([
       { path: '*', Component: NotFoundPage },
     ],
   },
-])
+]

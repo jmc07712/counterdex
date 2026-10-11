@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, renderHook } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactElement, ReactNode } from 'react'
-import { createMemoryRouter } from 'react-router'
+import { createMemoryRouter, type RouteObject } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
 import { queryDefaults } from '@/lib/query-client'
@@ -21,9 +21,14 @@ function testQueryClient() {
  * user-event recommends.
  */
 export function renderWithProviders(ui: ReactElement, { path = '/' } = {}) {
+  return renderRoutes([{ path: '*', element: ui }], { path })
+}
+
+/** Renders `routes`, such as the app's own, at `path`, as renderWithProviders renders a page. */
+export function renderRoutes(routes: RouteObject[], { path = '/' } = {}) {
   const user = userEvent.setup()
   const queryClient = testQueryClient()
-  const router = createMemoryRouter([{ path: '*', element: ui }], { initialEntries: [path] })
+  const router = createMemoryRouter(routes, { initialEntries: [path] })
   const result = render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
