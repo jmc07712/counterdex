@@ -109,10 +109,14 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   history does, and the other slots sum theirs up on one line. A removed member is muted, with the
   date it was removed in place of its types, which is its newest change.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
-  (`/teams/:teamId/edit`) is the builder, with the same line above the slots and each changed
-  member's change on one line: rename the team, remove members, and add Pokémon from a browser
-  that marks the ones that can't join. Every change saves at once, so the toggle back to View is
-  the way out.
+  (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
+  pinned at the left, with its name to rename, the same line above the slots, and its slots, each
+  changed member's change on one line and a button to remove each member; the Pokédex fills the
+  rest, with the Pokédex page's filters, kept in the URL, and cards. Each card's button adds its
+  Pokémon, puts it in the place of the member from its evolution family, or says why it can't
+  join: it's on the team, or the team is full. A Replace link opens Edit with `?replace=<id>`, and
+  each card's button then replaces that member. Tapping a card or a slot opens its details. Every
+  change saves at once, so the toggle back to View is the way out.
 
 ## Phones
 
@@ -120,9 +124,11 @@ Every page has to work at phone width.
 - Below `md`, navigation is a tab bar at the bottom, which hides while scrolling down and comes back
   on any scroll up. A Pokémon's details open as a bottom sheet.
 - Toasts take their distance from the bottom from `--toaster-bottom`: above the tab bar below `md`,
-  and sonner's default 24px from `md` up.
+  and sonner's default 24px from `md` up. On a page with a floating button (marked
+  `data-floating-button`), they sit above that too.
 - Below `lg`, the header's sync status is just its light and a short age, or "Failed", though
-  the full words are still read out, and the builder's Pokémon browser opens in a bottom sheet.
+  the full words are still read out. Edit shows the team first, and its floating Add Pokémon
+  button opens the Pokédex in a sheet as tall as the screen.
 
 ## Tests
 
