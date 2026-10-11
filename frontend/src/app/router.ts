@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, redirect } from 'react-router'
 
 import { NotFoundPage } from '@/app/routes/not-found'
 import { PokedexPage } from '@/app/routes/pokedex'
@@ -13,9 +13,11 @@ export const router = createBrowserRouter([
   {
     Component: AppShell,
     children: [
-      { index: true, Component: PokedexPage },
-      { path: paths.teams.path, Component: TeamsPage },
+      { index: true, Component: TeamsPage },
       { path: paths.team.path, Component: TeamPage },
+      { path: paths.pokedex.path, Component: PokedexPage },
+      // Teams was at /teams before it became the home page.
+      { path: '/teams', loader: () => redirect(paths.home.getHref()) },
       { path: paths.signIn.path, Component: SignInPage },
       { path: paths.signUp.path, Component: SignUpPage },
       { path: '*', Component: NotFoundPage },

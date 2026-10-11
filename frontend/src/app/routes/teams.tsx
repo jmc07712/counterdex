@@ -33,7 +33,7 @@ export function TeamsPage() {
           icon={<UsersRound />}
           title={m.teams_sign_in_title()}
           description={m.teams_sign_in_description()}
-          next={paths.teams.getHref()}
+          next={paths.home.getHref()}
         />
       )}
     </>

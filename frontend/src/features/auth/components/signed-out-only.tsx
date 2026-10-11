@@ -11,6 +11,6 @@ export function SignedOutOnly({ children }: { children: ReactNode }) {
   const { data: user, isPending } = useCurrentUser()
 
   if (isPending) return null
-  if (user) return <Navigate to={next ?? paths.teams.getHref()} replace />
+  if (user) return <Navigate to={next ?? paths.home.getHref()} replace />
   return children
 }

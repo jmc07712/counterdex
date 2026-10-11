@@ -15,7 +15,9 @@ describe('AppShell navigation', () => {
   })
 
   it.each([
+    ['/', 'Teams'],
     ['/teams/42', 'Teams'],
+    ['/pokedex', 'Pokédex'],
     ['/sign-in', 'Sign in'],
   ])('at %s, marks only %s as the current page', async (path, section) => {
     renderWithProviders(<AppShell />, { path })
@@ -23,6 +25,14 @@ describe('AppShell navigation', () => {
     await screen.findAllByRole('link', { name: 'Sign in' })
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((link) => link.textContent)).toEqual([section, section])
+  })
+
+  it('lists Teams first, then the Pokédex', async () => {
+    renderWithProviders(<AppShell />)
+
+    const [header] = screen.getAllByRole('navigation', { name: 'Primary' })
+    const links = within(header).getAllByRole('link').map((link) => link.textContent)
+    expect(links.slice(0, 2)).toEqual(['Teams', 'Pokédex'])
   })
 
   it('links to the API docs, which open in a new tab outside the app', () => {
@@ -50,7 +60,7 @@ describe('AppShell account', () => {
 
   it.each([
     ['/teams/42', '/sign-in?next=%2Fteams%2F42'],
-    ['/?q=char', '/sign-in?next=%2F%3Fq%3Dchar'],
+    ['/pokedex?q=char', '/sign-in?next=%2Fpokedex%3Fq%3Dchar'],
     ['/sign-up?next=/teams/42', '/sign-in?next=%2Fteams%2F42'],
     ['/sign-in', '/sign-in'],
   ])('at %s, signing in leads back to the same place: %s', async (path, href) => {

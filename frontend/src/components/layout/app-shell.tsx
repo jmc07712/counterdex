@@ -8,7 +8,7 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router'
+import { Link, matchPath, Outlet, useLocation } from 'react-router'
 
 import { paths } from '@/config/paths'
 import { useCurrentUser } from '@/lib/auth'
@@ -24,14 +24,26 @@ type NavItem = {
   to: string
   label: Message
   icon: LucideIcon
+  // The pages, as route patterns, that the item is the current section for.
+  sections: string[]
 }
 
 const primaryNav: NavItem[] = [
-  { to: paths.pokedex.getHref(), label: m.nav_pokedex, icon: LayoutGrid },
-  { to: paths.teams.getHref(), label: m.nav_teams, icon: UsersRound },
+  {
+    to: paths.home.getHref(),
+    label: m.nav_teams,
+    icon: UsersRound,
+    sections: [paths.home.path, paths.team.path],
+  },
+  {
+    to: paths.pokedex.getHref(),
+    label: m.nav_pokedex,
+    icon: LayoutGrid,
+    sections: [paths.pokedex.path],
+  },
 ]
 
-const SIGN_IN = { label: m.nav_sign_in, icon: CircleUserRound }
+const SIGN_IN = { label: m.nav_sign_in, icon: CircleUserRound, sections: [paths.signIn.path] }
 
 // Signing in leads back to the page it started from. On the sign-in and sign-up pages, it keeps
 // their ?next=.
@@ -40,6 +52,11 @@ function useSignInNav(): NavItem {
   const onAuthPage = pathname === paths.signIn.path || pathname === paths.signUp.path
   const next = onAuthPage ? new URLSearchParams(search).get('next') : pathname + search
   return { ...SIGN_IN, to: paths.signIn.getHref(next ?? undefined) }
+}
+
+function useIsCurrent(item: NavItem) {
+  const { pathname } = useLocation()
+  return item.sections.some((section) => matchPath(section, pathname) !== null)
 }
 
 // The tab bar always shows within this many pixels of the top of the page, so the bounce at the
@@ -80,9 +97,9 @@ export function AppShell() {
 
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-8 px-4 sm:px-6">
-          <NavLink to={paths.pokedex.getHref()} aria-label={m.nav_home()} className="rounded-md">
+          <Link to={paths.home.getHref()} aria-label={m.nav_home()} className="rounded-md">
             <BrandMark />
-          </NavLink>
+          </Link>
 
           <nav aria-label={m.nav_primary()} className="hidden h-full items-stretch gap-6 md:flex">
             {primaryNav.map((item) => (
@@ -187,19 +204,25 @@ function NewTabNote() {
 }
 
 function HeaderLink({ item }: { item: NavItem }) {
+  const current = useIsCurrent(item)
   return (
-    <NavLink to={item.to} className={({ isActive }) => headerLinkClass(isActive)}>
+    <Link
+      to={item.to}
+      aria-current={current ? 'page' : undefined}
+      className={headerLinkClass(current)}
+    >
       {item.label()}
-    </NavLink>
+    </Link>
   )
 }
 
 function TabLink({ item }: { item: NavItem }) {
+  const current = useIsCurrent(item)
   const Icon = item.icon
   return (
-    <NavLink to={item.to} className={({ isActive }) => tabLinkClass(isActive)}>
+    <Link to={item.to} aria-current={current ? 'page' : undefined} className={tabLinkClass(current)}>
       <Icon className="size-5" aria-hidden="true" />
       {item.label()}
-    </NavLink>
+    </Link>
   )
 }

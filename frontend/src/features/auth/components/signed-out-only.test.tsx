@@ -44,7 +44,7 @@ describe('SignedOutOnly', () => {
 
   it.each([
     ['/sign-in?next=/teams/42', '/teams/42'],
-    ['/sign-in', '/teams'],
+    ['/sign-in', '/'],
   ])('sends someone signed in on from %s to %s', async (path, next) => {
     serveSession({ signedIn: ASH })
 

@@ -10,22 +10,22 @@ describe('TeamsPage', () => {
   it('asks someone signed out to sign in or sign up, then come back', async () => {
     serveSession()
 
-    renderWithProviders(<TeamsPage />, { path: '/teams' })
+    renderWithProviders(<TeamsPage />, { path: '/' })
 
     expect(await screen.findByText('Sign in to build teams')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
-      '/sign-in?next=%2Fteams',
+      '/sign-in?next=%2F',
     )
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
       'href',
-      '/sign-up?next=%2Fteams',
+      '/sign-up?next=%2F',
     )
   })
 
   it('says when it couldn’t check who’s signed in, rather than asking to sign in', async () => {
     const requests = serveSession({ refuse: { currentUser: 500 } })
-    const { user } = renderWithProviders(<TeamsPage />, { path: '/teams' })
+    const { user } = renderWithProviders(<TeamsPage />, { path: '/' })
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Couldn’t check whether you’re signed in',

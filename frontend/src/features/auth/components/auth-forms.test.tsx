@@ -119,7 +119,7 @@ describe('SignInForm and SignUpForm', () => {
       await fillIn(user, 'Sign in')
 
       await screen.findByText('Somewhere else')
-      expect(router.state.location.pathname).toBe('/teams')
+      expect(router.state.location.pathname).toBe('/')
     })
 
     it('checks only the lengths no account can go over', async () => {
@@ -156,7 +156,7 @@ describe('SignInForm and SignUpForm', () => {
       await fillIn(user, 'Create account')
 
       expect(await screen.findByText('Somewhere else')).toBeInTheDocument()
-      expect(router.state.location.pathname).toBe('/teams')
+      expect(router.state.location.pathname).toBe('/')
       expect(requests.signUps).toEqual([ASH_CREDENTIALS])
     })
 
