@@ -28,8 +28,8 @@ TEAM_ID = "00000000-0000-4000-8000-000000000001"
 TEAM = f"/api/teams/{TEAM_ID}"
 FAMILY_ON_TEAM = {
     "detail": (
-        "The team already has a Pokémon from this evolution family. Replace that one, or choose "
-        "a Pokémon from another family."
+        "A team can have one Pokémon from each evolution family. Choose one from another family, "
+        "or replace the one from this family that's on the team."
     ),
     "reason": "family_on_team",
 }
