@@ -261,8 +261,8 @@ describe('TeamsPage, signed in', () => {
     expect(await screen.findByText('No teams yet', ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByText('Pick up to six Pokémon and put them in battle order.')).toBeVisible()
     expect(screen.getByRole('status')).toHaveTextContent('No teams yet')
-    // Only the empty state's New team, not the header's as well.
-    expect(screen.getAllByRole('button', { name: 'New team' })).toHaveLength(1)
+    // Only the empty state's New team, not the header's as well, once it's known you have none.
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'New team' })).toHaveLength(1))
     await user.click(screen.getByRole('button', { name: 'Browse everyone’s teams' }))
 
     expect(await screen.findByRole('article', { name: 'Rain' })).toBeInTheDocument()
@@ -328,6 +328,37 @@ describe('TeamsPage, signed in', () => {
       )
     },
   )
+
+  it('offers New team before it knows how many teams you have, and if it can’t', async () => {
+    serveTeams({ teams: [FIRE] })
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    // Added last, so it answers first: counting your teams waits, then fails.
+    server.use(
+      http.get('/api/users/:username/teams', async () => {
+        await released
+        return HttpResponse.json({ detail: 'Refused.' }, { status: 500 })
+      }),
+    )
+
+    await renderTeams('/?scope=mine')
+
+    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
+    release()
+    await screen.findByRole('article', { name: 'Fire' })
+    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
+  })
+
+  it('offers New team when a filter finds none of your teams, though you have none', async () => {
+    serveTeams()
+
+    await renderTeams('/?scope=mine&q=zzz')
+
+    expect(await screen.findByText('No teams match these filters', ON_SCREEN)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
+  })
 
   it('offers New team while showing everyone’s teams too', async () => {
     serveTeams({ teams: [RAIN] })

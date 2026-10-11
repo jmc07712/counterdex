@@ -10,7 +10,11 @@ import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
 import { NewTeamButton } from '@/features/teams/components/new-team-button'
 import { TeamsFilters } from '@/features/teams/components/teams-filters'
 import { TeamsGrid } from '@/features/teams/components/teams-grid'
-import { NO_FILTERS, useTeamsFilters } from '@/features/teams/hooks/use-teams-filters'
+import {
+  isFiltered,
+  NO_FILTERS,
+  useTeamsFilters,
+} from '@/features/teams/hooks/use-teams-filters'
 import { useUserTeams } from '@/features/teams/hooks/use-user-teams'
 import { useFocusAfterClearing } from '@/hooks/use-focus-after-clearing'
 import { useCurrentUser } from '@/lib/auth'
@@ -40,15 +44,18 @@ export function TeamsPage() {
 
   const owner = filters.scope === 'mine' ? user?.username : undefined
 
-  // With no teams yet, the empty state of your own teams has the button instead.
-  const offerNewTeam = teamCount !== undefined && (teamCount > 0 || filters.scope === 'everyone')
+  // Your own teams, unfiltered, when you have none: their empty state has the button instead.
+  const emptyStateOffersNewTeam =
+    filters.scope === 'mine' && teamCount === 0 && !isFiltered(filters)
+  const offerNewTeam = Boolean(user) && !emptyStateOffersNewTeam
 
   return (
     <>
       <PageHeader
         title={m.teams_title()}
         description={m.teams_description()}
-        action={offerNewTeam && <NewTeamButton teamCount={teamCount} />}
+        // Until it's known how many teams you have, the next is named as if you had none.
+        action={offerNewTeam && <NewTeamButton teamCount={teamCount ?? 0} />}
       />
       {currentUser.isError && (
         <Alert variant="destructive">

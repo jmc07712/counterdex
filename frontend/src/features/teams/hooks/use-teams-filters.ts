@@ -22,6 +22,11 @@ export type TeamsFilters = {
 /** What Clear filters goes back to. Whose teams are shown stays as it is. */
 export const NO_FILTERS: Omit<TeamsFilters, 'scope'> = { search: '', types: [], view: 'all' }
 
+/** Whether the filters narrow down whose teams are shown, which Clear filters undoes. */
+export function isFiltered({ search, types, view }: TeamsFilters) {
+  return search !== '' || types.length > 0 || view !== 'all'
+}
+
 /**
  * The Teams page's filters, kept in the URL (?scope=mine&q=rain&type=water&view=changed) so a
  * filtered view can be shared, bookmarked, or reloaded. It shows everyone's teams unless someone

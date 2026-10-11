@@ -20,7 +20,7 @@ import { useCurrentUser } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
-import type { TeamsFilters, TeamsView } from '../hooks/use-teams-filters'
+import { isFiltered, type TeamsFilters, type TeamsView } from '../hooks/use-teams-filters'
 import { useTeamsList } from '../hooks/use-teams-list'
 import { CounterTeamButton } from './counter-team-button'
 import { NewTeamButton } from './new-team-button'
@@ -81,8 +81,7 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
   const settled = !teams.isPlaceholderData
 
   if (shown === 0) {
-    const filtered = search !== '' || filters.types.length > 0 || filters.view !== 'all'
-    if (filtered) {
+    if (isFiltered({ ...filters, search })) {
       return (
         <>
           <ResultsStatus settled={settled}>
