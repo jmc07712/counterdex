@@ -4,10 +4,10 @@ import { useState } from 'react'
 
 import { dexNumber, displayName } from '@/components/pokemon/format'
 import { Input } from '@/components/ui/input'
+import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
-import { useDebouncedSearch } from '../hooks/use-debounced-search'
 import { usePokemonSuggestions } from '../hooks/use-pokemon-suggestions'
 
 type PokemonSearchProps = {

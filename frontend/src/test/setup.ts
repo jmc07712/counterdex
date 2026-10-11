@@ -5,6 +5,7 @@ import {
   resetIntersectionMocking,
   setupIntersectionMocking,
 } from 'react-intersection-observer/test-utils'
+import { toast } from 'sonner'
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
 
 import { client } from '@/api/client.gen'
@@ -44,6 +45,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  // Toasts outlive the Toaster that showed them, and the next test's Toaster would show them too.
+  toast.dismiss()
   server.resetHandlers()
   resetIntersectionMocking()
   localStorage.clear()

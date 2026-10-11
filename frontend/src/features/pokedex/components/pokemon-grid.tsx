@@ -14,9 +14,9 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { m } from '@/paraglide/messages.js'
 
-import { useDebouncedSearch } from '../hooks/use-debounced-search'
 import type { PokedexFilters } from '../hooks/use-pokedex-filters'
 import { usePokemonList } from '../hooks/use-pokemon-list'
 
