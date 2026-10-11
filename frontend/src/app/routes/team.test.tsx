@@ -664,6 +664,17 @@ describe('TeamPage, choosing a Pokémon to replace a member', () => {
     ).toBeInTheDocument()
   })
 
+  it('opens the Pokédex on phones once a slot’s Replace link is followed', async () => {
+    serveAsh([TEAM])
+    browse([snorlax])
+    const { user } = renderTeam(EDIT)
+
+    await user.click(await screen.findByRole('link', { name: 'Replace Charmander' }))
+
+    const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
+    expect(within(sheet).getByText('Choose a Pokémon to replace Charmander')).toBeInTheDocument()
+  })
+
   it('asks for a Pokémon to replace the member, and replaces it with the one chosen', async () => {
     onWideScreen()
     const api = serveAsh([TEAM])
