@@ -341,6 +341,12 @@
       }
     }
   ],
+  "pokedex_forms_info_label": "About forms",
+  "pokedex_forms_info": "Standard is each species’ usual form. Alternate is the rest, such as Mega Evolutions, Gigantamax and regional forms.",
+  "pokedex_view_info_label": "About status",
+  "pokedex_view_info": "Current is what PokéAPI lists now. Changed is what a sync changed in the last week. Removed is what PokéAPI no longer lists.",
+  "pokedex_types_info_label": "About types",
+  "pokedex_types_info": "Up to {max} types at a time. Picking another replaces the first you picked.",
   "pokedex_nothing_found_title": [
     {
       "declarations": [

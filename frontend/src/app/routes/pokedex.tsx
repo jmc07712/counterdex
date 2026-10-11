@@ -18,7 +18,7 @@ export function PokedexPage() {
         description={m.pokedex_description()}
         action={<SyncIndicator />}
       />
-      <PokedexFilters filters={filters} onChange={setFilters} />
+      <PokedexFilters filters={filters} onChange={setFilters} onOpenPokemon={selected.open} />
       <PokemonGrid
         filters={filters}
         onClearFilters={() => setFilters(NO_FILTERS)}

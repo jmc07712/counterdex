@@ -15,6 +15,18 @@ import { server } from '@/test/server'
 
 import { PokedexPage } from './pokedex'
 
+// The grid's requests, leaving out the search suggestions' (which ask for a few).
+function gridRequests(requests: string[]) {
+  return requests.filter((query) => !query.includes('limit='))
+}
+
+// Charmander, Charmeleon and Charizard for suggestions; Bulbasaur for the grid.
+function charmanderLine(query: URLSearchParams) {
+  return query.has('limit')
+    ? makePage(['charmander', 'charmeleon', 'charizard'], { after: 3 })
+    : makePage(['bulbasaur'])
+}
+
 // Bulbasaur, with a cursor on to a second page with Ivysaur.
 function twoPages(query: URLSearchParams) {
   return query.has('cursor')
@@ -41,20 +53,86 @@ describe('PokedexPage', () => {
     const requests = servePokemon()
     const { user, router } = renderWithProviders(<PokedexPage />)
 
-    await user.type(screen.getByRole('searchbox', { name: 'Search Pokémon' }), 'char')
+    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), 'char')
 
     // One request for the whole search, none for each letter on the way.
-    await waitFor(() => expect(requests).toEqual(['', 'q=char']))
+    await waitFor(() => expect(gridRequests(requests)).toEqual(['', 'q=char']))
     expect(router.state.location.search).toBe('?q=char')
+  })
+
+  it('suggests a few Pokémon as you type', async () => {
+    const requests = servePokemon(charmanderLine)
+    const { user } = renderWithProviders(<PokedexPage />)
+
+    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), 'char')
+
+    const suggestions = await screen.findAllByRole('option')
+    expect(suggestions.map((option) => option.textContent)).toEqual([
+      'CharmanderNo. 0004',
+      'CharmeleonNo. 0005',
+      'CharizardNo. 0006',
+    ])
+    expect(requests).toContain('q=char&limit=8')
+  })
+
+  it('opens the suggestion you choose', async () => {
+    servePokemon(charmanderLine)
+    servePokemonDetails()
+    servePokemonChanges()
+    const { user, router } = renderWithProviders(<PokedexPage />)
+
+    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), 'char')
+    await user.click(await screen.findByRole('option', { name: /Charizard/ }))
+
+    expect(new URLSearchParams(router.state.location.search).get('pokemon')).toBe('6')
+  })
+
+  it('opens the highlighted suggestion with Enter', async () => {
+    servePokemon(charmanderLine)
+    servePokemonDetails()
+    servePokemonChanges()
+    const { user, router } = renderWithProviders(<PokedexPage />)
+
+    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), 'char')
+    await screen.findAllByRole('option')
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(new URLSearchParams(router.state.location.search).get('pokemon')).toBe('4')
+  })
+
+  it('closes the suggestions with Escape, keeping the search', async () => {
+    servePokemon(charmanderLine)
+    const { user } = renderWithProviders(<PokedexPage />)
+    const search = screen.getByRole('combobox', { name: 'Search Pokémon' })
+
+    await user.type(search, 'char')
+    await screen.findAllByRole('option')
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryAllByRole('option')).toEqual([])
+    expect(search).toHaveValue('char')
   })
 
   it('ignores spaces around the search', async () => {
     const requests = servePokemon()
     const { user } = renderWithProviders(<PokedexPage />)
 
-    await user.type(screen.getByRole('searchbox', { name: 'Search Pokémon' }), '  char ')
+    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), '  char ')
 
-    await waitFor(() => expect(requests.at(-1)).toBe('q=char'))
+    await waitFor(() => expect(gridRequests(requests).at(-1)).toBe('q=char'))
+  })
+
+  it.each([
+    ['About forms', 'Standard is each species’ usual form.'],
+    ['About status', 'Current is what PokéAPI lists now.'],
+    ['About types', 'Up to 2 types at a time.'],
+  ])('explains a filter from its info button: %s', async (button, explanation) => {
+    servePokemon()
+    const { user } = renderWithProviders(<PokedexPage />)
+
+    await user.click(screen.getByRole('button', { name: button }))
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent(explanation)
   })
 
   it('filters by up to two types, dropping the oldest for a third', async () => {
@@ -102,7 +180,7 @@ describe('PokedexPage', () => {
     renderWithProviders(<PokedexPage />, { path: `/?${filters}` })
 
     await waitFor(() => expect(requests).toEqual([filters]))
-    expect(screen.getByRole('searchbox', { name: 'Search Pokémon' })).toHaveValue('char')
+    expect(screen.getByRole('combobox', { name: 'Search Pokémon' })).toHaveValue('char')
     expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Removed' })).toBeChecked()

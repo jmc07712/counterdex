@@ -1,9 +1,17 @@
-import { Search } from 'lucide-react'
+import { Info } from 'lucide-react'
+import { type ReactNode, useId } from 'react'
 
 import { FormFilter } from '@/api'
-import { POKEMON_TYPES, TYPE_STYLES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
-import { Input } from '@/components/ui/input'
+import {
+  MAX_TYPES,
+  POKEMON_TYPES,
+  TYPE_STYLES,
+  toPokemonTypes,
+} from '@/components/pokemon/pokemon-types'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import {
@@ -11,13 +19,19 @@ import {
   parseOption,
   POKEDEX_VIEWS,
 } from '../hooks/use-pokedex-filters'
+import { PokemonSearch } from './pokemon-search'
 
 type PokedexFiltersProps = {
   filters: Filters
   onChange: (filters: Filters) => void
+  onOpenPokemon: (pokemonId: number) => void
 }
 
-export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
+export function PokedexFilters({ filters, onChange, onOpenPokemon }: PokedexFiltersProps) {
+  const formsId = useId()
+  const viewId = useId()
+  const typesId = useId()
+
   return (
     <section
       aria-label={m.pokedex_filters()}
@@ -25,89 +39,143 @@ export function PokedexFilters({ filters, onChange }: PokedexFiltersProps) {
       className="-mx-4 mb-6 flex flex-col gap-3 border-b bg-background px-4 py-3 sm:sticky sm:top-14 sm:z-30 sm:-mx-6 sm:px-6"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <div className="relative flex-1">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            aria-label={m.pokedex_search()}
-            placeholder={m.pokedex_search()}
-            value={filters.search}
-            onChange={(event) => onChange({ ...filters, search: event.target.value })}
-            className="pl-8"
-          />
-        </div>
+        <PokemonSearch
+          value={filters.search}
+          onChange={(search) => onChange({ ...filters, search })}
+          onOpen={onOpenPokemon}
+        />
         {/* Choosing the current option again would clear it; one option always stays chosen. */}
-        <div className="flex flex-wrap gap-2">
-          <ToggleGroup
-            type="single"
-            aria-label={m.pokedex_forms_label()}
-            variant="outline"
-            size="sm"
-            spacing={0}
-            value={filters.forms}
-            onValueChange={(value) => {
-              const forms = parseOption(Object.values(FormFilter), value)
-              if (forms) onChange({ ...filters, forms })
-            }}
+        <div className="flex flex-wrap gap-x-4 gap-y-3">
+          <FilterGroup
+            id={formsId}
+            label={m.pokedex_forms_label()}
+            infoLabel={m.pokedex_forms_info_label()}
+            info={m.pokedex_forms_info()}
           >
-            {Object.values(FormFilter).map((forms) => (
-              <ToggleGroupItem key={forms} value={forms} className="px-3">
-                {m.pokedex_forms_option({ forms })}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <ToggleGroup
-            type="single"
-            aria-label={m.pokedex_view_label()}
-            variant="outline"
-            size="sm"
-            spacing={0}
-            value={filters.view}
-            onValueChange={(value) => {
-              const view = parseOption(POKEDEX_VIEWS, value)
-              if (view) onChange({ ...filters, view })
-            }}
+            <ToggleGroup
+              type="single"
+              aria-labelledby={formsId}
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={filters.forms}
+              onValueChange={(value) => {
+                const forms = parseOption(Object.values(FormFilter), value)
+                if (forms) onChange({ ...filters, forms })
+              }}
+            >
+              {Object.values(FormFilter).map((forms) => (
+                <ToggleGroupItem key={forms} value={forms} className="px-3">
+                  {m.pokedex_forms_option({ forms })}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </FilterGroup>
+          <FilterGroup
+            id={viewId}
+            label={m.pokedex_view_label()}
+            infoLabel={m.pokedex_view_info_label()}
+            info={m.pokedex_view_info()}
           >
-            {POKEDEX_VIEWS.map((view) => (
-              <ToggleGroupItem key={view} value={view} className="px-3">
-                {m.pokedex_view_option({ view })}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+            <ToggleGroup
+              type="single"
+              aria-labelledby={viewId}
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={filters.view}
+              onValueChange={(value) => {
+                const view = parseOption(POKEDEX_VIEWS, value)
+                if (view) onChange({ ...filters, view })
+              }}
+            >
+              {POKEDEX_VIEWS.map((view) => (
+                <ToggleGroupItem key={view} value={view} className="px-3">
+                  {m.pokedex_view_option({ view })}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </FilterGroup>
         </div>
       </div>
 
-      <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:overflow-visible sm:px-0">
-        <ToggleGroup
-          type="multiple"
-          aria-label={m.pokemon_types()}
-          variant="outline"
-          size="sm"
-          spacing={1.5}
-          value={filters.types}
-          // Radix lists selections in the order they were made, so the filters keep the newest.
-          onValueChange={(values) => onChange({ ...filters, types: toPokemonTypes(values) })}
-          className="w-max sm:w-auto sm:flex-wrap"
-        >
-          {POKEMON_TYPES.map((type) => (
-            <ToggleGroupItem
-              key={type}
-              value={type}
-              style={{
-                '--type': TYPE_STYLES[type].background,
-                '--type-foreground': TYPE_STYLES[type].foreground,
-              }}
-              className="rounded-full transition-colors data-[state=on]:border-transparent data-[state=on]:bg-(--type) data-[state=on]:text-(--type-foreground)"
-            >
-              <span aria-hidden="true" className="size-2 rounded-full bg-(--type)" />
-              {m.pokemon_type({ type })}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+      <FilterGroup
+        id={typesId}
+        label={m.pokemon_types()}
+        infoLabel={m.pokedex_types_info_label()}
+        info={m.pokedex_types_info({ max: MAX_TYPES })}
+        className="items-start"
+      >
+        {/* One swipeable row on phones, beside the label; wraps on wider screens. */}
+        <div className="-mr-4 min-w-0 flex-1 overflow-x-auto pr-4 [scrollbar-width:none] sm:mr-0 sm:overflow-visible sm:pr-0">
+          <ToggleGroup
+            type="multiple"
+            aria-labelledby={typesId}
+            variant="outline"
+            size="sm"
+            spacing={1.5}
+            value={filters.types}
+            // Radix lists selections in the order they were made, so the filters keep the newest.
+            onValueChange={(values) => onChange({ ...filters, types: toPokemonTypes(values) })}
+            className="w-max sm:w-auto sm:flex-wrap"
+          >
+            {POKEMON_TYPES.map((type) => (
+              <ToggleGroupItem
+                key={type}
+                value={type}
+                style={{
+                  '--type': TYPE_STYLES[type].background,
+                  '--type-foreground': TYPE_STYLES[type].foreground,
+                }}
+                className="rounded-full transition-colors data-[state=on]:border-transparent data-[state=on]:bg-(--type) data-[state=on]:text-(--type-foreground)"
+              >
+                <span aria-hidden="true" className="size-2 rounded-full bg-(--type)" />
+                {m.pokemon_type({ type })}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      </FilterGroup>
     </section>
+  )
+}
+
+type FilterGroupProps = {
+  // Names the group's controls, through their aria-labelledby.
+  id: string
+  label: string
+  infoLabel: string
+  info: string
+  className?: string
+  children: ReactNode
+}
+
+// The info button opens a popover rather than a tooltip, so it works on phones too.
+function FilterGroup({ id, label, infoLabel, info, className, children }: FilterGroupProps) {
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      {/* As tall as a row of toggles, so the label lines up with the first. */}
+      <div className="flex h-7 shrink-0 items-center gap-0.5">
+        <span id={id} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={infoLabel}
+              className="text-muted-foreground"
+            >
+              <Info />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72 text-sm">
+            {info}
+          </PopoverContent>
+        </Popover>
+      </div>
+      {children}
+    </div>
   )
 }

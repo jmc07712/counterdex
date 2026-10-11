@@ -1,6 +1,5 @@
 import { SearchX } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
-import { useDebounceValue } from 'usehooks-ts'
 
 import { ListingStatus } from '@/api'
 import { PokemonCard } from '@/components/pokemon/pokemon-card'
@@ -17,10 +16,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { m } from '@/paraglide/messages.js'
 
+import { useDebouncedSearch } from '../hooks/use-debounced-search'
 import type { PokedexFilters } from '../hooks/use-pokedex-filters'
 import { usePokemonList } from '../hooks/use-pokemon-list'
 
-const SEARCH_DELAY_MS = 250
 const PRELOAD_MARGIN = '800px'
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
 
@@ -31,7 +30,7 @@ type PokemonGridProps = {
 }
 
 export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProps) {
-  const [search] = useDebounceValue(filters.search, SEARCH_DELAY_MS)
+  const search = useDebouncedSearch(filters.search)
   const query = usePokemonList({ ...filters, search })
   const { ref: endOfList } = useInView({
     rootMargin: PRELOAD_MARGIN,
