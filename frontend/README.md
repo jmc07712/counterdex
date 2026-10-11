@@ -29,12 +29,12 @@ npm run dev        # http://localhost:5173
 src/
   app/          the route table, the layout around every page, and the pages in routes/, which
                 compose features
-  features/     auth, pokedex, pokemon-details, sync-status and teams, each with the
+  features/     admin, auth, pokedex, pokemon-details, sync-status and teams, each with the
                 components/, hooks/ and utils/ it needs
   components/   shared UI: ui/ (shadcn), layout/ (the app shell), pokemon/ (cards, badges),
                 filters/ (the search, type and view filters the Pokédex and the Teams page
-                share) and lists/ (Load more, the grids' card entrance, and their results
-                region and status)
+                share), lists/ (Load more, the grids' card entrance, and their results
+                region and status) and sync/ (the sync status light)
   hooks/        shared hooks, such as a debounced search
   lib/          app-wide helpers: who's signed in, the query client, the theme, dates
   config/       page paths
@@ -118,6 +118,12 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   join: it's on the team, or the team is full. A Replace link opens Edit with `?replace=<id>`, and
   each card's button then replaces that member. Tapping a card or a slot opens its details. Every
   change saves at once, so the toggle back to View is the way out.
+
+## The admin page
+
+**Admin** (`/admin`), linked from an admin's account menu, is for admins only: anyone else is told
+so, and its data is never asked for. Its Sync runs widget lists every sync, a page at a time with
+the page in the URL (`?page=2`): a table from `lg`, a list of cards below it.
 
 ## Phones
 
