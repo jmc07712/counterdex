@@ -9,7 +9,7 @@ import { ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
 
 describe('TeamSlot', () => {
   it('fills its total’s bar for a total past the highest it measures against', () => {
-    // 780, as Mega Mewtwo X's.
+    // 780, past 720.
     const stats = { hp: 106, attack: 190, defense: 100, sp_attack: 154, sp_defense: 100, speed: 130 }
     const member = asMember(makePokemon({ stats }), 0)
 

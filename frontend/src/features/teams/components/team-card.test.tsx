@@ -54,7 +54,7 @@ describe('TeamCard', () => {
   })
 
   it('fills its power’s bar for a team past the most it measures against', () => {
-    // 780 each, as Mega Mewtwo X's.
+    // 780 each, past 720.
     const stats = { hp: 106, attack: 190, defense: 100, sp_attack: 154, sp_defense: 100, speed: 130 }
     const members = [1, 2, 3, 4, 5, 6].map((id, position) =>
       asMember(makePokemon({ id, stats }), position),
