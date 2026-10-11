@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { useMediaQuery } from 'usehooks-ts'
 
 import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
 import { BaseStats } from '@/components/pokemon/base-stats'
@@ -15,8 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { formatDate } from '@/lib/dates'
-import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { m } from '@/paraglide/messages.js'
 
@@ -25,14 +26,8 @@ import { CloseButton } from './close-button'
 import { EvolutionTree } from './evolution-tree'
 import { PokemonHero } from './pokemon-hero'
 
-// Below md, a sheet along the bottom of the screen that slides up, as in phone apps; from md up,
-// a dialog in the middle.
-const SHEET_ON_PHONES = cn(
-  'max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:translate-x-0 max-md:translate-y-0',
-  'max-md:rounded-b-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))]',
-  'max-md:data-open:slide-in-from-bottom max-md:data-closed:slide-out-to-bottom',
-  'max-md:data-open:zoom-in-100 max-md:data-closed:zoom-out-100',
-)
+// Tailwind's md breakpoint: a dialog from here up, a sheet from the bottom on phones.
+const DIALOG_FROM = '(min-width: 48rem)'
 
 type PokemonDetailsDialogProps = {
   // The Pokémon to show; null keeps the dialog closed.
@@ -42,24 +37,40 @@ type PokemonDetailsDialogProps = {
 }
 
 export function PokemonDetailsDialog({ pokemonId, onSelect, onClose }: PokemonDetailsDialogProps) {
+  const asDialog = useMediaQuery(DIALOG_FROM)
   // Keeps showing the last Pokémon while the dialog animates closed.
   const [shownId, setShownId] = useState(pokemonId)
   if (pokemonId !== null && pokemonId !== shownId) setShownId(pokemonId)
 
-  return (
-    <Dialog open={pokemonId !== null} onOpenChange={(open) => !open && onClose()}>
+  const open = pokemonId !== null
+  const onOpenChange = (isOpen: boolean) => !isOpen && onClose()
+  // The hero runs to the edges, so the padding is inside; the close button sits over the hero.
+  const content = (
+    <>
+      <CloseButton />
+      {shownId !== null && <PokemonDetails pokemonId={shownId} onSelect={onSelect} />}
+    </>
+  )
+
+  return asDialog ? (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        // The hero runs to the edges, so the padding goes inside; the close button sits over it.
         showCloseButton={false}
-        className={cn(
-          'max-h-[90dvh] max-w-none gap-0 overflow-y-auto p-0 sm:max-w-none md:max-w-2xl',
-          SHEET_ON_PHONES,
-        )}
+        className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-2xl"
       >
-        <CloseButton />
-        {shownId !== null && <PokemonDetails pokemonId={shownId} onSelect={onSelect} />}
+        {content}
       </DialogContent>
     </Dialog>
+  ) : (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="max-h-[90dvh] gap-0 overflow-y-auto rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
+      >
+        {content}
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -113,7 +124,7 @@ function PokemonDetails({
     >
       <PokemonHero pokemon={pokemon} species={species} />
 
-      <div className="flex flex-col gap-6 p-5 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
+      <div className="flex flex-col gap-6 p-5 sm:p-6">
         {removed_at && (
           <Alert>
             <AlertTitle>{m.pokemon_removed_from_pokeapi()}</AlertTitle>

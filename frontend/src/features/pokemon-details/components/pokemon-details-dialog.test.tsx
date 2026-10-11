@@ -30,6 +30,30 @@ async function openDetails({ changes = [] as PokemonChange[] } = {}) {
 }
 
 describe('PokemonDetailsDialog', () => {
+  it('slides up from the bottom on phones', async () => {
+    servePokemonDetails()
+
+    const { dialog } = await openDetails()
+
+    expect(dialog).toHaveAttribute('data-slot', 'sheet-content')
+  })
+
+  it('opens in the middle of wider screens, and closes', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(min-width: 48rem)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    servePokemonDetails()
+
+    const { dialog, user, onClose } = await openDetails()
+    expect(dialog).toHaveAttribute('data-slot', 'dialog-content')
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }))
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('shows the Pokémon with its species and base stats', async () => {
     servePokemonDetails()
 
