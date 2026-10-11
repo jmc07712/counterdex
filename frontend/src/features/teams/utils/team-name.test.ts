@@ -26,6 +26,24 @@ describe('counterTeamName', () => {
     expect(counterTeamName(`${'a'.repeat(27)} bbbbbbbbbb`)).toBe(`Counter to ${'a'.repeat(27)}…`)
   })
 
+  it.each([
+    // Five characters to the API: three people joined by two zero-width joiners.
+    ['a family', '👨‍👩‍👧', 25],
+    // Two characters to the API: two regional indicators.
+    ['a flag', '🇯🇵', 27],
+  ])('cuts before %s that wouldn’t fit whole', (_, emoji, before) => {
+    const name = counterTeamName(`${'a'.repeat(before)}${emoji}bbbbbbbbbb`)
+
+    expect(name).toBe(`Counter to ${'a'.repeat(before)}…`)
+  })
+
+  it('keeps an emoji of several characters that fits whole', () => {
+    const name = counterTeamName(`${'a'.repeat(23)}👨‍👩‍👧bbbbbbbbbb`)
+
+    expect(name).toBe(`Counter to ${'a'.repeat(23)}👨‍👩‍👧…`)
+    expect(Array.from(name)).toHaveLength(MAX_TEAM_NAME_LENGTH)
+  })
+
   it('counts and cuts characters as the API does, never half of one', () => {
     // Each fire is one character to the API, but two UTF-16 code units.
     const name = counterTeamName('🔥'.repeat(40))
