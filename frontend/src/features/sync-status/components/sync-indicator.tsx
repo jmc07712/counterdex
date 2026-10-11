@@ -3,6 +3,7 @@ import { Info } from 'lucide-react'
 
 import { SyncStatus } from '@/api'
 import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
+import { LiveStatusLight, StatusLight } from '@/components/sync/status-light'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -13,7 +14,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { formatAge, formatDateTime, formatShortAge } from '@/lib/dates'
-import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 export function SyncIndicator() {
@@ -29,7 +29,7 @@ export function SyncIndicator() {
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="shrink-0 rounded-full">
-          <StatusLight failed={failed} />
+          {failed ? <StatusLight failed /> : <LiveStatusLight />}
           {/* Below lg the header only has room for the light and a word or a short age. The full
               words are still read out. */}
           <span className="max-lg:sr-only">
@@ -73,16 +73,5 @@ function Count({ label, value }: { label: string; value: number }) {
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="text-right tabular-nums">{value}</dd>
     </div>
-  )
-}
-
-function StatusLight({ failed }: { failed: boolean }) {
-  return (
-    <span aria-hidden="true" className="relative flex size-2">
-      {!failed && (
-        <span className="absolute inset-0 rounded-full bg-led-green opacity-60 motion-safe:animate-ping" />
-      )}
-      <span className={cn('relative size-2 rounded-full', failed ? 'bg-led-yellow' : 'bg-led-green')} />
-    </span>
   )
 }
