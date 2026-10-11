@@ -25,7 +25,7 @@ const FIRE = makeTeam({
 })
 
 describe('ExplorePage', () => {
-  it('lists everyone’s teams, newest first, each by its owner and linking to it', async () => {
+  it('lists the teams in the API’s order, each by its owner and linking to it', async () => {
     serveTeams({ teams: [FIRE, RAIN, makeTeam({ name: 'Nothing yet' })] })
 
     renderWithProviders(<ExplorePage />)
