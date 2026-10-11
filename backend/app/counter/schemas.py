@@ -6,7 +6,14 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.counter.enums import RelativeSpeed, Verdict
+from app.counter.constants import (
+    BAD_SCORE,
+    GOOD_SCORE,
+    NO_EFFECT_POINTS,
+    POWER_WEIGHT,
+    SPEED_POINTS,
+)
+from app.counter.enums import Rating, RelativeSpeed
 from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import Pokemon, PokemonIds
 
@@ -38,51 +45,57 @@ class TeamMatchupQuery(BaseModel):
 
 
 class Attack(BaseModel):
-    """A Pokémon's strongest attack on its opponent: a move of one of its own types, of the same
-    power for every Pokémon, physical or special, whichever does more damage.
+    """A Pokémon's most effective type against its opponent: of its own types, the one whose
+    multiplier against the opponent's types is highest, its primary type on a tie.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     type: PokemonType
-    """One of the attacker's own types."""
+    """One of the attacking Pokémon's own types."""
     multiplier: float
-    """How effective the type is against the defender's types: 0, 0.25, 0.5, 1, 2 or 4."""
-    hits: int | None
-    """How many of these attacks knock the defender out; `null` if they do no damage."""
+    """How much damage the type does to the opponent's types, multiplied together: 0, 0.25,
+    0.5, 1, 2 or 4.
+    """
+
+
+SCORE = (
+    "How well it matches up against the opponent: offense + defense + power + speed. Offense is "
+    "the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and "
+    f"1/4x -2, and no effect {NO_EFFECT_POINTS}. Defense is the points for the opponent's attack, "
+    f"turned around. Power is {POWER_WEIGHT} for each 100 of base stat total it has over the "
+    f"opponent, or less for each 100 under. Speed is {SPEED_POINTS} if it's faster, as much "
+    "less if it's slower, and 0 on a tie. The opponent's side of the matchup scores the opposite."
+)
+RATING = (
+    f"`good` for a score of {GOOD_SCORE} or more, `bad` for {BAD_SCORE} or less, and otherwise "
+    "`even`."
+)
 
 
 class Matchup(BaseModel):
-    """How a Pokémon fares one-on-one against one of the team's Pokémon. Both are taken at
-    level 50, and each uses its strongest attack every turn until one is knocked out.
+    """How a Pokémon matches up against one of the team's Pokémon, from its types and base stats
+    alone.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     opponent_id: int
     """The `id` of the team's Pokémon."""
-    verdict: Verdict
-    """`counter`: it can switch in, take a free hit, and still win. `check`: it wins only from
-    a neutral start, where the faster Pokémon strikes first. `loses`: it doesn't win, even from
-    a neutral start.
-    """
-    hp_left: float
-    """The winner's share of its HP left at the end, from 0 to 1: this Pokémon's after
-    switching in, for a `counter`; its own from a neutral start, for a `check`; the opponent's
-    from a neutral start, when it `loses`.
-    """
-    speed: RelativeSpeed
-    """How its Speed compares to the opponent's. The faster one strikes first; a tie counts
-    against it, as the games settle a tie at random.
-    """
     attack: Attack
-    """Its strongest attack on the opponent."""
+    """Its most effective type against the opponent."""
     opponent_attack: Attack
-    """The opponent's strongest attack on it."""
+    """The opponent's most effective type against it."""
+    speed: RelativeSpeed
+    """How its base Speed compares to the opponent's."""
+    stat_total_difference: int
+    """Its base stat total less the opponent's."""
+    score: Annotated[float, Field(description=SCORE)]
+    rating: Annotated[Rating, Field(description=RATING)]
 
 
 class Challenger(BaseModel):
-    """A Pokémon and how it fares one-on-one against each of a team's Pokémon."""
+    """A Pokémon and how it matches up against each of a team's Pokémon."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 

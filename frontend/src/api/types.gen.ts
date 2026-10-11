@@ -7,32 +7,27 @@ export type ClientOptions = {
 /**
  * Attack
  *
- * A Pokémon's strongest attack on its opponent: a move of one of its own types, of the same
- * power for every Pokémon, physical or special, whichever does more damage.
+ * A Pokémon's most effective type against its opponent: of its own types, the one whose
+ * multiplier against the opponent's types is highest, its primary type on a tie.
  */
 export type Attack = {
     /**
-     * One of the attacker's own types.
+     * One of the attacking Pokémon's own types.
      */
     type: PokemonType;
     /**
      * Multiplier
      *
-     * How effective the type is against the defender's types: 0, 0.25, 0.5, 1, 2 or 4.
+     * How much damage the type does to the opponent's types, multiplied together: 0, 0.25,
+     * 0.5, 1, 2 or 4.
      */
     multiplier: number;
-    /**
-     * Hits
-     *
-     * How many of these attacks knock the defender out; `null` if they do no damage.
-     */
-    hits: number | null;
 };
 
 /**
  * Challenger
  *
- * A Pokémon and how it fares one-on-one against each of a team's Pokémon.
+ * A Pokémon and how it matches up against each of a team's Pokémon.
  */
 export type Challenger = {
     pokemon: Pokemon;
@@ -320,8 +315,8 @@ export type ListingStatus = typeof ListingStatus[keyof typeof ListingStatus];
 /**
  * Matchup
  *
- * How a Pokémon fares one-on-one against one of the team's Pokémon. Both are taken at
- * level 50, and each uses its strongest attack every turn until one is knocked out.
+ * How a Pokémon matches up against one of the team's Pokémon, from its types and base stats
+ * alone.
  */
 export type Matchup = {
     /**
@@ -331,32 +326,33 @@ export type Matchup = {
      */
     opponent_id: number;
     /**
-     * `counter`: it can switch in, take a free hit, and still win. `check`: it wins only from
-     * a neutral start, where the faster Pokémon strikes first. `loses`: it doesn't win, even from
-     * a neutral start.
-     */
-    verdict: Verdict;
-    /**
-     * Hp Left
-     *
-     * The winner's share of its HP left at the end, from 0 to 1: this Pokémon's after
-     * switching in, for a `counter`; its own from a neutral start, for a `check`; the opponent's
-     * from a neutral start, when it `loses`.
-     */
-    hp_left: number;
-    /**
-     * How its Speed compares to the opponent's. The faster one strikes first; a tie counts
-     * against it, as the games settle a tie at random.
-     */
-    speed: RelativeSpeed;
-    /**
-     * Its strongest attack on the opponent.
+     * Its most effective type against the opponent.
      */
     attack: Attack;
     /**
-     * The opponent's strongest attack on it.
+     * The opponent's most effective type against it.
      */
     opponent_attack: Attack;
+    /**
+     * How its base Speed compares to the opponent's.
+     */
+    speed: RelativeSpeed;
+    /**
+     * Stat Total Difference
+     *
+     * Its base stat total less the opponent's.
+     */
+    stat_total_difference: number;
+    /**
+     * Score
+     *
+     * How well it matches up against the opponent: offense + defense + power + speed. Offense is the points for its attack's multiplier, log2 of it, so 4x is +2, 2x +1, 1x 0, 1/2x -1 and 1/4x -2, and no effect -3. Defense is the points for the opponent's attack, turned around. Power is 0.25 for each 100 of base stat total it has over the opponent, or less for each 100 under. Speed is 0.25 if it's faster, as much less if it's slower, and 0 on a tie. The opponent's side of the matchup scores the opposite.
+     */
+    score: number;
+    /**
+     * `good` for a score of 0.75 or more, `bad` for -0.75 or less, and otherwise `even`.
+     */
+    rating: Rating;
 };
 
 /**
@@ -597,6 +593,24 @@ export const PokemonType = {
 export type PokemonType = typeof PokemonType[keyof typeof PokemonType];
 
 /**
+ * Rating
+ *
+ * How a matchup looks for a Pokémon, from its score.
+ */
+export const Rating = {
+    GOOD: 'good',
+    EVEN: 'even',
+    BAD: 'bad'
+} as const;
+
+/**
+ * Rating
+ *
+ * How a matchup looks for a Pokémon, from its score.
+ */
+export type Rating = typeof Rating[keyof typeof Rating];
+
+/**
  * RelativePhysicalStats
  *
  * How a Pokémon's Attack compares to its Defense.
@@ -617,8 +631,7 @@ export type RelativePhysicalStats = typeof RelativePhysicalStats[keyof typeof Re
 /**
  * RelativeSpeed
  *
- * How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games
- * settle a tie at random.
+ * How a Pokémon's base Speed compares to its opponent's.
  */
 export const RelativeSpeed = {
     FASTER: 'faster',
@@ -629,8 +642,7 @@ export const RelativeSpeed = {
 /**
  * RelativeSpeed
  *
- * How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games
- * settle a tie at random.
+ * How a Pokémon's base Speed compares to its opponent's.
  */
 export type RelativeSpeed = typeof RelativeSpeed[keyof typeof RelativeSpeed];
 
@@ -988,24 +1000,6 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
-
-/**
- * Verdict
- *
- * How a Pokémon fares one-on-one against an opponent, in the competitive sense.
- */
-export const Verdict = {
-    COUNTER: 'counter',
-    CHECK: 'check',
-    LOSES: 'loses'
-} as const;
-
-/**
- * Verdict
- *
- * How a Pokémon fares one-on-one against an opponent, in the competitive sense.
- */
-export type Verdict = typeof Verdict[keyof typeof Verdict];
 
 /**
  * Credentials

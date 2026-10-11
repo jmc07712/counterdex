@@ -1,39 +1,37 @@
-"""The numbers behind counter teams and threats: the battle model's and the search's."""
+"""The numbers behind counter teams and threats: how a matchup is scored and rated, and how a
+team is chosen.
+"""
 
-# --- Teams ---
+# --- Threats ---
 
 # How many threats to a team are listed, at most.
 MAX_THREATS = 12
 
-# --- Battle model ---
-# Every Pokémon is taken at level 50, with the best individual values (31), no effort values and
-# a neutral nature. The games' stat formula then gives base + STAT_BONUS for each stat but HP,
-# and base + HP_BONUS for HP.
+# --- Scoring a matchup ---
+# A matchup is scored from one Pokémon's side as offense + defense + power + speed. Offense is
+# the points for its best attacking type's multiplier against the opponent; defense is the
+# points for the opponent's best type against it, turned around. Types move the score by whole
+# points and stats by fractions of one, so types decide and stats break close calls.
 
-LEVEL = 50
-STAT_BONUS = 20
-HP_BONUS = 75
+# An attacking type's points are log2 of its multiplier: 4x is +2, 2x +1, 1x 0, 1/2x -1 and
+# 1/4x -2. A type that has no effect gets these points.
+NO_EFFECT_POINTS = -3
+# Points for each 100 of base stat total the Pokémon has over its opponent, or less for each
+# 100 it has under.
+POWER_WEIGHT = 0.25
+# Points for a higher base Speed than the opponent's. A lower one takes as many off.
+SPEED_POINTS = 0.25
 
-# Each Pokémon attacks with a move of this power, of one of its own types: the power of
-# Flamethrower and Thunderbolt.
-MOVE_POWER = 90
-# A move of one of the attacker's own types does this many times the damage.
-SAME_TYPE_BONUS = 1.5
+# --- Rating a matchup ---
+# A score of at least GOOD_SCORE is good, at most BAD_SCORE bad, and anything between even. A
+# type's one-point edge stays good unless the stats take more than a quarter of it back.
 
-# --- Search ---
-# How well a Pokémon answers an opponent: its verdict's score plus a margin from 0 to 1, so a
-# better verdict always scores higher.
+GOOD_SCORE = 0.75
+BAD_SCORE = -0.75
 
-COUNTER_SCORE = 2.0
-CHECK_SCORE = 1.0
-LOSS_SCORE = 0.0
-# A team's second-best answer to an opponent adds this share of its score, as a backup.
-BACKUP_WEIGHT = 0.25
-# Taken off a team's score for each opponent that beats at least THREAT_THRESHOLD of its
-# Pokémon: as much as the gap between two verdicts.
-THREAT_PENALTY = 1.0
-THREAT_THRESHOLD = 3
-# The search stops swapping members after this many rounds, even if a swap would still help.
-MAX_SWAP_ROUNDS = 20
-# A swap must raise the team's score by more than this; smaller differences are rounding.
-MIN_IMPROVEMENT = 1e-9
+# --- Choosing a team ---
+# A team loses SHARED_WEAKNESS_PENALTY for each of their attacking types that at least
+# SHARED_WEAKNESS_LIMIT of its Pokémon are weak to: one of theirs could beat them all.
+
+SHARED_WEAKNESS_LIMIT = 3
+SHARED_WEAKNESS_PENALTY = 1.0

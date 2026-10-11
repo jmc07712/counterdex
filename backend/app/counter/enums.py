@@ -1,21 +1,16 @@
 from enum import StrEnum
 
 
-class Verdict(StrEnum):
-    """How a Pokémon fares one-on-one against an opponent, in the competitive sense."""
+class Rating(StrEnum):
+    """How a matchup looks for a Pokémon, from its score."""
 
-    # It can switch in, take a free hit, and still win.
-    COUNTER = "counter"
-    # It wins only from a neutral start, where the faster Pokémon strikes first.
-    CHECK = "check"
-    # It doesn't win, even from a neutral start.
-    LOSES = "loses"
+    GOOD = "good"
+    EVEN = "even"
+    BAD = "bad"
 
 
 class RelativeSpeed(StrEnum):
-    """How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games
-    settle a tie at random.
-    """
+    """How a Pokémon's base Speed compares to its opponent's."""
 
     FASTER = "faster"
     TIED = "tied"

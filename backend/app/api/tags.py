@@ -46,8 +46,8 @@ TAGS: list[dict[str, Any]] = [
     {
         "name": COUNTER_TEAM,
         "description": (
-            "Teams that beat a team, and the Pokémon that threaten one, worked out from each "
-            "Pokémon's types and base stats. No sign-in needed."
+            "Teams that match up well against a team, and the Pokémon that threaten one, from "
+            "each Pokémon's types and base stats. No sign-in needed."
         ),
     },
     {"name": HEALTH, "description": "Whether the API is up."},

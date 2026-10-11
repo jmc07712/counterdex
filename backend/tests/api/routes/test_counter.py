@@ -26,17 +26,19 @@ def test_finds_a_counter_team_with_each_matchup(client: TestClient) -> None:
     assert response.status_code == 200
     (pick,) = response.json()
     assert (pick["pokemon"]["id"], pick["pokemon"]["name"]) == (AERODACTYL, "aerodactyl")
-    assert pick["pokemon"]["family_id"] == 1000 + AERODACTYL
-    # Aerodactyl is faster and knocks Charizard out with one Rock hit, after taking a free Fire
-    # hit of 41 of its 155 HP.
+    assert pick["pokemon"]["family_id"] == 71
+    # Rock is 4x against Charizard (+2), and Charizard's Fire 1/2x against Aerodactyl (+1).
+    # Aerodactyl's base stat total is 515 to Charizard's 534 (0.25 * -19 / 100), and it's faster
+    # (+0.25).
     assert pick["matchups"] == [
         {
             "opponent_id": CHARIZARD,
-            "verdict": "counter",
-            "hp_left": pytest.approx(114 / 155),
+            "attack": {"type": "rock", "multiplier": 4},
+            "opponent_attack": {"type": "fire", "multiplier": 0.5},
             "speed": "faster",
-            "attack": {"type": "rock", "multiplier": 4, "hits": 1},
-            "opponent_attack": {"type": "fire", "multiplier": 0.5, "hits": 4},
+            "stat_total_difference": -19,
+            "score": pytest.approx(2 + 1 - 0.0475 + 0.25),
+            "rating": "good",
         }
     ]
 
@@ -55,9 +57,10 @@ def test_finds_a_counter_team_as_big_as_theirs(client: TestClient) -> None:
 def test_lists_the_threats_to_a_team(client: TestClient) -> None:
     threats = client.get("/api/team-threats", params={"pokemon_id": [CHARIZARD, 3, 9]}).json()
 
-    assert 0 < len(threats) <= 12
-    assert threats[0]["pokemon"]["name"] == "gyarados"
-    assert [each["verdict"] for each in threats[0]["matchups"]] == ["counter"] * 3
+    assert len(threats) == 12
+    assert threats[0]["pokemon"]["name"] == "aerodactyl"
+    assert [each["opponent_id"] for each in threats[0]["matchups"]] == [CHARIZARD, 3, 9]
+    assert [each["rating"] for each in threats[0]["matchups"]] == ["good", "good", "bad"]
 
 
 @pytest.mark.parametrize("path", PATHS)

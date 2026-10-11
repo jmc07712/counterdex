@@ -7,13 +7,13 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.counter.battle import level_50_fighter
-from app.counter.types import Candidate, Fighter, TypeChart
+from app.counter.scoring import profile_from_columns
+from app.counter.types import Candidate, Profile, TypeChart
 from app.pokemon import models, schemas
 from app.pokemon.queries import pokemon_from_columns
 
-# What the battle model needs of a Pokémon.
-FIGHTER_COLUMNS = (
+# What scoring needs of a Pokémon: its types and base stats.
+PROFILE_COLUMNS = (
     models.Pokemon.id,
     models.Pokemon.types,
     models.Pokemon.hp,
@@ -37,12 +37,14 @@ def type_chart(session: Session) -> TypeChart:
     return {(attacking, defending): multiplier for attacking, defending, multiplier in rows}
 
 
-def fighters(session: Session, pokemon_ids: Sequence[int]) -> dict[int, Fighter]:
-    """These Pokémon at level 50, listed or not, by id. Ids with no Pokémon are left out."""
+def profiles(session: Session, pokemon_ids: Sequence[int]) -> dict[int, Profile]:
+    """These Pokémon as scoring sees them, listed or not, by id. Ids with no Pokémon are left
+    out.
+    """
     rows = session.execute(
-        select(*FIGHTER_COLUMNS).where(models.Pokemon.id.in_(pokemon_ids))
+        select(*PROFILE_COLUMNS).where(models.Pokemon.id.in_(pokemon_ids))
     ).mappings()
-    return {row["id"]: level_50_fighter(row) for row in rows}
+    return {row["id"]: profile_from_columns(row) for row in rows}
 
 
 def candidates(session: Session, *, forms: bool, legendaries: bool) -> list[Candidate]:
@@ -51,7 +53,7 @@ def candidates(session: Session, *, forms: bool, legendaries: bool) -> list[Cand
     unless `legendaries`.
     """
     statement = (
-        select(*FIGHTER_COLUMNS, models.Species.evolution_chain_id)
+        select(*PROFILE_COLUMNS, models.Species.evolution_chain_id)
         .join(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
         .join(models.Species, models.Species.id == models.SpeciesVariety.species_id)
         .where(models.Pokemon.removed_at.is_(None))
@@ -64,7 +66,7 @@ def candidates(session: Session, *, forms: bool, legendaries: bool) -> list[Cand
             models.Species.is_legendary.is_(False), models.Species.is_mythical.is_(False)
         )
     return [
-        Candidate(level_50_fighter(row), family_id=row["evolution_chain_id"])
+        Candidate(profile_from_columns(row), family_id=row["evolution_chain_id"])
         for row in session.execute(statement).mappings()
     ]
 

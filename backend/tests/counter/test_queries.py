@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.counter.queries import candidates, fighters, type_chart
+from app.counter.queries import candidates, profiles, type_chart
+from app.counter.types import Profile
 from app.pokemon import models
 from app.pokemon.enums import PokemonType
 from tests.support.counter import TYPE_CHART, add_real_pokemon, add_type_chart, remove_pokemon
@@ -12,7 +13,7 @@ MACHAMP, MEGA_MACHAMP, MEWTWO, MEW = 68, 10200, 150, 151
 
 def candidate_ids(session: Session, *, forms: bool = False, legendaries: bool = False) -> list[int]:
     return [
-        candidate.fighter.id
+        candidate.profile.id
         for candidate in candidates(session, forms=forms, legendaries=legendaries)
     ]
 
@@ -68,26 +69,28 @@ def test_leaves_out_pokemon_whose_species_is_not_stored(db_session: Session) -> 
 
 
 @pytest.mark.usefixtures("pool")
-def test_gives_each_candidate_its_family_and_its_stats_at_level_50(db_session: Session) -> None:
+def test_gives_each_candidate_its_family_and_what_scoring_looks_at(db_session: Session) -> None:
     machamp, mega = (
         each
         for each in candidates(db_session, forms=True, legendaries=False)
-        if each.fighter.id in {MACHAMP, MEGA_MACHAMP}
+        if each.profile.id in {MACHAMP, MEGA_MACHAMP}
     )
 
-    assert {mega.family_id, machamp.family_id} == {1000 + MACHAMP}
-    # Machamp's base Attack is 130.
-    assert (machamp.fighter.types, machamp.fighter.attack) == ((PokemonType.FIGHTING,), 150)
+    # Machamp's evolution family is PokéAPI's chain 28, and Mega Machamp is in its species.
+    assert {mega.family_id, machamp.family_id} == {28}
+    assert machamp.profile == Profile(
+        id=MACHAMP, types=(PokemonType.FIGHTING,), stat_total=505, speed=55
+    )
 
 
 @pytest.mark.usefixtures("pool")
 def test_reads_a_teams_pokemon_listed_or_not(db_session: Session) -> None:
     remove_pokemon(db_session, MACHAMP)
 
-    found = fighters(db_session, [MEW, MACHAMP, 99999])
+    found = profiles(db_session, [MEW, MACHAMP, 99999])
 
     assert sorted(found) == [MACHAMP, MEW]
-    assert found[MACHAMP].hp == 90 + 75
+    assert found[MEW].stat_total == 600
 
 
 def test_reads_the_stored_type_chart(db_session: Session) -> None:

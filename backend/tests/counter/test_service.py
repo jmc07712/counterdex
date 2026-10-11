@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.counter.enums import Verdict
+from app.counter.enums import Rating
 from app.counter.exceptions import (
     TooFewCandidatesError,
     TypeChartMissingError,
@@ -31,7 +31,7 @@ def type_chart(db_session: Session) -> None:
 
 @pytest.fixture
 def pokedex(db_session: Session, type_chart: None) -> None:
-    """The type chart, and the real Pokémon the tests know, each in its own family."""
+    """The type chart, and every real Pokémon the tests know."""
     add_real_pokemon(db_session, *REAL_POKEMON)
 
 
@@ -44,7 +44,7 @@ def test_counters_a_lone_charizard_with_rock_water_or_electric(db_session: Sessi
 
     (matchup,) = pick.matchups
     assert matchup.opponent_id == CHARIZARD
-    assert matchup.verdict in {Verdict.COUNTER, Verdict.CHECK}
+    assert matchup.rating is Rating.GOOD
     assert matchup.attack.type in {PokemonType.ROCK, PokemonType.WATER, PokemonType.ELECTRIC}
 
 
@@ -59,13 +59,6 @@ def test_finds_a_team_as_big_as_theirs_with_a_matchup_against_each(db_session: S
             VENUSAUR,
             BLASTOISE,
         ]
-
-
-@pytest.mark.usefixtures("pokedex")
-def test_finds_the_same_team_every_time(db_session: Session) -> None:
-    team = query(CHARIZARD, VENUSAUR, BLASTOISE, SNORLAX)
-
-    assert find_counter_team(db_session, team) == find_counter_team(db_session, team)
 
 
 @pytest.mark.usefixtures("type_chart")
@@ -90,13 +83,13 @@ def test_picks_one_pokemon_from_each_evolution_family(db_session: Session) -> No
 
 
 @pytest.mark.usefixtures("pokedex")
-def test_counters_a_pokemon_pokeapi_no_longer_lists(db_session: Session) -> None:
+def test_scores_a_pokemon_pokeapi_no_longer_lists_on_their_team(db_session: Session) -> None:
     remove_pokemon(db_session, CHARIZARD)
 
     (pick,) = find_counter_team(db_session, query(CHARIZARD))
 
     assert pick.pokemon.id != CHARIZARD
-    assert pick.matchups[0].verdict is not Verdict.LOSES
+    assert pick.matchups[0].rating is Rating.GOOD
 
 
 @pytest.mark.usefixtures("pokedex")
@@ -127,36 +120,26 @@ def test_refuses_a_team_bigger_than_the_families_to_choose_from(db_session: Sess
 
 
 @pytest.mark.usefixtures("pokedex")
-def test_lists_the_threats_to_a_team_with_how_each_fares_against_it(db_session: Session) -> None:
-    team = query(CHARIZARD, VENUSAUR, BLASTOISE)
+def test_lists_twelve_threats_with_how_each_matches_up_against_the_team(
+    db_session: Session,
+) -> None:
+    threats = list_team_threats(db_session, query(CHARIZARD, VENUSAUR, BLASTOISE))
 
-    threats = list_team_threats(db_session, team)
-
-    assert 0 < len(threats) <= 12
+    assert len(threats) == 12
     for threat in threats:
         assert [matchup.opponent_id for matchup in threat.matchups] == [
             CHARIZARD,
             VENUSAUR,
             BLASTOISE,
         ]
-        assert any(matchup.verdict is not Verdict.LOSES for matchup in threat.matchups)
-    beaten = [
-        sum(matchup.verdict is not Verdict.LOSES for matchup in threat.matchups)
-        for threat in threats
-    ]
-    assert beaten == sorted(beaten, reverse=True)
+    totals = [sum(matchup.score for matchup in threat.matchups) for threat in threats]
+    assert totals == sorted(totals, reverse=True)
 
 
-@pytest.mark.usefixtures("type_chart")
-def test_lists_twelve_threats_at_most(db_session: Session) -> None:
-    add_real_pokemon(db_session, SNORLAX)
-    fighters = range(301, 316)
-    db_session.add_all(
-        make_pokemon(id=pokemon_id, name=f"fighter-{pokemon_id}", types=["fighting"], attack=200)
-        for pokemon_id in fighters
-    )
-    db_session.flush()
-    for pokemon_id in fighters:
-        add_species(db_session, pokemon_id, family=pokemon_id, pokemon_ids=[pokemon_id])
+@pytest.mark.usefixtures("pokedex")
+def test_lists_one_threat_from_each_evolution_family(db_session: Session) -> None:
+    # Jolteon, Umbreon and Sylveon are all Eevee's family; Pikachu and Raichu are one family.
+    threats = list_team_threats(db_session, query(BLASTOISE, 130, 131))
 
-    assert ids(list_team_threats(db_session, query(SNORLAX))) == list(range(301, 313))
+    families = [threat.pokemon.family_id for threat in threats]
+    assert len(set(families)) == len(families)

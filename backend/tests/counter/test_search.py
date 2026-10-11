@@ -1,171 +1,157 @@
-import pytest
+from collections.abc import Collection
 
-from app.counter.constants import BACKUP_WEIGHT, THREAT_PENALTY
-from app.counter.enums import RelativeSpeed, Verdict
-from app.counter.search import (
-    answer_score,
-    battle_order,
-    counter_team,
-    lead_score,
-    team_score,
-    threats,
-)
-from app.counter.types import Candidate, Contender, Exchange, Hit
+from app.counter.constants import SHARED_WEAKNESS_PENALTY
+from app.counter.enums import RelativeSpeed
+from app.counter.scoring import rating
+from app.counter.search import battle_order, counter_team, team_score, threats
+from app.counter.types import Attack, Candidate, Contender, Matchup
 from app.pokemon.enums import PokemonType
-from tests.support.counter import fighter
+from tests.support.counter import profile
 
-COUNTER, CHECK, LOSES = Verdict.COUNTER, Verdict.CHECK, Verdict.LOSES
+FIRE, WATER = PokemonType.FIRE, PokemonType.WATER
 
 
-def result(verdict: Verdict, hp_left: float, neutral_hp_left: float | None = None) -> Exchange:
-    """An exchange with this verdict and margin. Unless given, its neutral-start margin is its
-    margin for a counter or check. The search doesn't look at the hits.
-    """
-    hit = Hit(type=PokemonType.NORMAL, multiplier=1, damage=1, hits=1)
-    if neutral_hp_left is None and verdict is not LOSES:
-        neutral_hp_left = hp_left
-    return Exchange(
-        verdict=verdict,
-        hp_left=hp_left,
-        neutral_hp_left=neutral_hp_left,
-        speed=RelativeSpeed.FASTER,
-        hit=hit,
-        opponent_hit=hit,
+def scored(score: float) -> Matchup:
+    """A matchup with this score. The search looks at nothing else."""
+    attack = Attack(PokemonType.NORMAL, 1)
+    return Matchup(
+        attack=attack,
+        opponent_attack=attack,
+        speed=RelativeSpeed.TIED,
+        stat_total_difference=0,
+        score=score,
+        rating=rating(score),
     )
 
 
-def contender(pokemon_id: int, *exchanges: Exchange, family: int | None = None) -> Contender:
-    """A candidate with these exchanges, one per opponent, in its own family unless given one."""
-    candidate = Candidate(fighter(id=pokemon_id), family_id=family or pokemon_id)
-    return Contender(candidate, exchanges)
+def contender(
+    pokemon_id: int,
+    *scores: float,
+    family: int | None = None,
+    stat_total: int = 500,
+    weak_to: Collection[PokemonType] = (),
+) -> Contender:
+    """A candidate with these scores, one per opponent, in its own family unless given one."""
+    candidate = Candidate(
+        profile(id=pokemon_id, stat_total=stat_total), family_id=family or pokemon_id
+    )
+    return Contender(candidate, tuple(scored(score) for score in scores), frozenset(weak_to))
 
 
 def ids(team: list[Contender]) -> list[int]:
-    return [member.candidate.fighter.id for member in team]
+    return [member.candidate.profile.id for member in team]
 
 
-# --- Scores ---
+# --- Team scores ---
 
 
-def test_scores_a_counter_above_a_check_above_a_loss_whatever_the_margins() -> None:
-    assert (
-        answer_score(result(COUNTER, 0.01))
-        > answer_score(result(CHECK, 1))
-        > answer_score(result(LOSES, 0.01))
+def test_scores_a_team_by_its_best_score_against_each_opponent() -> None:
+    team = [contender(1, 1, 0), contender(2, -1, 2)]
+
+    assert team_score(team) == 1 + 2
+
+
+def test_takes_off_a_penalty_for_each_type_three_of_the_team_are_weak_to() -> None:
+    two = [contender(pokemon_id, 1, weak_to={FIRE, WATER}) for pokemon_id in (1, 2)]
+    third = contender(3, 1, weak_to={FIRE})
+
+    assert team_score(two) == 1
+    assert team_score([*two, third]) == 1 - SHARED_WEAKNESS_PENALTY
+    assert team_score([*two, contender(3, 1, weak_to={FIRE, WATER})]) == (
+        1 - 2 * SHARED_WEAKNESS_PENALTY
     )
-
-
-def test_scores_a_bigger_margin_higher() -> None:
-    assert answer_score(result(CHECK, 0.8)) > answer_score(result(CHECK, 0.2))
-    # When it loses, the margin is the opponent's HP left.
-    assert answer_score(result(LOSES, 0.2)) > answer_score(result(LOSES, 0.8))
-
-
-def test_scores_a_lead_from_a_neutral_start_where_a_check_is_as_good_as_a_counter() -> None:
-    assert lead_score(result(CHECK, 0.8)) > lead_score(result(COUNTER, 0.2, neutral_hp_left=0.6))
-    assert lead_score(result(LOSES, 0.2)) == answer_score(result(LOSES, 0.2))
-
-
-def test_scores_a_team_by_its_best_answer_to_each_opponent() -> None:
-    team = [contender(1, result(CHECK, 0.5), result(LOSES, 1))]
-
-    assert team_score(team) == answer_score(result(CHECK, 0.5)) + answer_score(result(LOSES, 1))
-
-
-def test_adds_a_share_of_a_backup_answer() -> None:
-    first = contender(1, result(COUNTER, 0.5))
-    backup = contender(2, result(CHECK, 0.5))
-
-    assert team_score([first, backup]) == pytest.approx(
-        team_score([first]) + BACKUP_WEIGHT * answer_score(result(CHECK, 0.5))
-    )
-
-
-def test_takes_off_a_penalty_for_an_opponent_that_beats_three_of_the_team() -> None:
-    answer = contender(1, result(COUNTER, 1))
-    beaten = [contender(pokemon_id, result(LOSES, 1)) for pokemon_id in (2, 3, 4)]
-
-    assert team_score([answer, *beaten[:2]]) == team_score([answer])
-    assert team_score([answer, *beaten]) == team_score([answer]) - THREAT_PENALTY
 
 
 # --- Counter teams ---
 
 
 def test_picks_as_many_as_it_is_asked_for() -> None:
-    pool = [contender(pokemon_id, result(CHECK, pokemon_id / 10)) for pokemon_id in range(1, 9)]
+    pool = [contender(pokemon_id, pokemon_id / 10) for pokemon_id in range(1, 9)]
 
     assert len(counter_team(pool, size=3)) == 3
 
 
-def test_picks_a_counter_over_a_check() -> None:
-    pool = [contender(1, result(CHECK, 1)), contender(2, result(COUNTER, 0.1))]
+def test_adds_the_pokemon_that_raises_the_teams_score_most() -> None:
+    # The all-rounder first, then the one that adds most to it.
+    pool = [
+        contender(1, 3, 0),
+        contender(2, 2.5, 2.5),
+        contender(3, 0, 2.9),
+    ]
 
-    assert ids(counter_team(pool, size=1)) == [2]
-
-
-def test_breaks_ties_by_the_lowest_id() -> None:
-    pool = [contender(2, result(CHECK, 0.5)), contender(1, result(CHECK, 0.5))]
-
-    assert ids(counter_team(pool, size=1)) == [1]
+    assert sorted(ids(counter_team(pool, size=2))) == [1, 2]
 
 
 def test_picks_one_pokemon_from_each_evolution_family() -> None:
     pool = [
-        contender(1, result(COUNTER, 1), result(COUNTER, 1), family=7),
-        contender(2, result(COUNTER, 0.9), result(COUNTER, 0.9), family=7),
-        contender(3, result(CHECK, 0.5), result(CHECK, 0.5)),
+        contender(1, 3, 3, family=7),
+        contender(2, 2.9, 2.9, family=7),
+        contender(3, 1, 1),
     ]
 
     assert sorted(ids(counter_team(pool, size=2))) == [1, 3]
 
 
-def test_swaps_out_a_pick_that_a_better_pair_leaves_behind() -> None:
-    # Greedily, the all-rounder comes first; the two specialists answer both opponents better.
+def test_avoids_three_pokemon_weak_to_one_of_their_types() -> None:
+    # The first two are already as good as it gets; a third Fire-weak one would cost more than
+    # its strength is worth.
     pool = [
-        contender(1, result(CHECK, 0.9), result(CHECK, 0.9)),
-        contender(2, result(COUNTER, 1), result(LOSES, 1)),
-        contender(3, result(LOSES, 1), result(COUNTER, 1)),
+        contender(1, 2, weak_to={FIRE}, stat_total=600),
+        contender(2, 2, weak_to={FIRE}, stat_total=550),
+        contender(3, 2, weak_to={FIRE}, stat_total=540),
+        contender(4, 1.9),
     ]
 
-    assert sorted(ids(counter_team(pool, size=2))) == [2, 3]
+    assert sorted(ids(counter_team(pool, size=3))) == [1, 2, 4]
 
 
-def test_picks_the_same_team_every_time() -> None:
-    pool = [
-        contender(pokemon_id, result(CHECK, (pokemon_id * 7 % 10) / 10), result(COUNTER, 0.5))
-        for pokemon_id in range(1, 30)
-    ]
+def test_breaks_ties_by_total_score_across_their_pokemon() -> None:
+    # Once the first is on the team, neither of the others raises its score.
+    pool = [contender(1, 5, 5), contender(2, 1, 0), contender(3, 0, 2)]
 
-    assert ids(counter_team(pool, size=4)) == ids(counter_team(list(reversed(pool)), size=4))
+    assert ids(counter_team(pool, size=2)) == [1, 3]
+
+
+def test_then_by_base_stat_total() -> None:
+    pool = [contender(1, 5), contender(2, 1, stat_total=500), contender(3, 1, stat_total=520)]
+
+    assert ids(counter_team(pool, size=2)) == [1, 3]
+
+
+def test_then_by_the_lowest_id() -> None:
+    pool = [contender(1, 5), contender(3, 1), contender(2, 1)]
+
+    assert ids(counter_team(pool, size=2)) == [1, 2]
 
 
 # --- Battle order ---
 
 
-def test_leads_with_the_best_answer_to_their_lead_from_a_neutral_start() -> None:
-    counter = contender(1, result(COUNTER, 0.2, neutral_hp_left=0.6), result(LOSES, 1))
-    check = contender(2, result(CHECK, 0.8), result(LOSES, 1))
+def test_leads_with_the_best_score_against_their_lead() -> None:
+    team = [contender(1, 1, 3), contender(2, 2, 0)]
 
-    assert ids(battle_order([counter, check])) == [2, 1]
+    assert ids(battle_order(team)) == [2, 1]
+
+
+def test_breaks_a_tie_for_the_lead_by_total_score() -> None:
+    team = [contender(1, 2, 0), contender(2, 2, 1)]
+
+    assert ids(battle_order(team)) == [2, 1]
 
 
 def test_follows_the_lead_in_the_order_of_the_opponents_each_answers_best() -> None:
-    lead = contender(9, result(COUNTER, 1), result(LOSES, 1), result(LOSES, 1))
-    answers_third = contender(1, result(LOSES, 1), result(CHECK, 0.2), result(COUNTER, 0.5))
-    answers_second = contender(2, result(LOSES, 1), result(COUNTER, 0.5), result(CHECK, 0.2))
-    also_second = contender(3, result(LOSES, 1), result(COUNTER, 0.9), result(LOSES, 1))
+    lead = contender(9, 5, 0, 0)
+    answers_third = contender(1, 0, 1, 2)
+    answers_second = contender(2, 0, 2, 1)
+    also_second_but_weaker = contender(3, 0, 1.5, 0)
 
-    team = [answers_third, also_second, lead, answers_second]
+    team = [answers_third, also_second_but_weaker, lead, answers_second]
 
     assert ids(battle_order(team)) == [9, 2, 3, 1]
 
 
 def test_returns_a_counter_team_in_battle_order() -> None:
-    pool = [
-        contender(1, result(LOSES, 1), result(COUNTER, 1)),
-        contender(2, result(COUNTER, 1), result(LOSES, 1)),
-    ]
+    pool = [contender(1, 0, 3), contender(2, 3, 0)]
 
     assert ids(counter_team(pool, size=2)) == [2, 1]
 
@@ -173,20 +159,25 @@ def test_returns_a_counter_team_in_battle_order() -> None:
 # --- Threats ---
 
 
-def test_ranks_threats_by_how_many_they_beat_then_by_margin_then_by_id() -> None:
-    pool = [
-        contender(1, result(CHECK, 0.5), result(LOSES, 1)),
-        contender(2, result(CHECK, 0.2), result(CHECK, 0.2)),
-        contender(3, result(COUNTER, 0.9), result(LOSES, 1)),
-        contender(4, result(LOSES, 1), result(CHECK, 0.5)),
-    ]
+def test_ranks_threats_by_their_total_score() -> None:
+    pool = [contender(1, 1, 1), contender(2, 3, -1), contender(3, 2, 2), contender(4, -1, -1)]
 
-    assert ids(threats(pool, limit=10)) == [2, 3, 1, 4]
+    assert ids(threats(pool, limit=10)) == [3, 1, 2, 4]
 
 
-def test_lists_threats_up_to_the_limit_and_only_those_that_beat_someone() -> None:
-    pool = [contender(pokemon_id, result(CHECK, 0.5)) for pokemon_id in range(1, 6)]
-    pool.append(contender(6, result(LOSES, 0.1)))
+def test_lists_only_the_best_threat_of_each_family() -> None:
+    pool = [contender(1, 1, family=7), contender(2, 3, family=7), contender(3, 2)]
+
+    assert ids(threats(pool, limit=10)) == [2, 3]
+
+
+def test_breaks_ties_between_threats_by_base_stat_total_then_id() -> None:
+    pool = [contender(3, 1), contender(2, 1), contender(1, 1, stat_total=400)]
+
+    assert ids(threats(pool, limit=10)) == [2, 3, 1]
+
+
+def test_lists_threats_up_to_the_limit() -> None:
+    pool = [contender(pokemon_id, -pokemon_id) for pokemon_id in range(1, 6)]
 
     assert ids(threats(pool, limit=3)) == [1, 2, 3]
-    assert ids(threats(pool, limit=10)) == [1, 2, 3, 4, 5]

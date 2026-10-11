@@ -562,17 +562,19 @@ export const findCounterTeamQueryKey = (options: Options<FindCounterTeamData>) =
 /**
  * Find a counter team
  *
- * A team as big as the given one that beats it, for a saved team or a guest's draft.
+ * A team as big as the given one that matches up well against it, for a saved team or a
+ * guest's draft.
  *
- * Each of our Pokémon is matched one-on-one against each of theirs: both at level 50, each
- * attacking every turn with its strongest move of its own types, until one is knocked out. A
- * matchup's `verdict` is `counter` if ours can switch in, take a free hit and still win,
- * `check` if it wins only from a neutral start, and otherwise `loses`.
+ * Each of our Pokémon is scored against each of theirs from types and base stats alone: how
+ * effective its best type is against theirs, how effective their best type is against it,
+ * which has the higher base stat total, and which is faster. Types decide, and stats break
+ * close calls. Each matchup is rated `good`, `even` or `bad`.
  *
- * The team gives each of theirs the best answer it can, ideally a counter, and a backup, and
- * avoids letting one of theirs beat three or more of ours. It has one Pokémon from each
- * evolution family, so it can be saved as a team. It comes in battle order: our lead answers
- * their lead, and the rest follow the order of the Pokémon they answer best.
+ * The team is chosen one Pokémon at a time, each the one that most raises our best scores
+ * against theirs, with a penalty for three or more of ours being weak to one of their types.
+ * It has one Pokémon from each evolution family, so it can be saved as a team. It comes in
+ * battle order: our lead scores best against their lead, and the rest follow the order of the
+ * Pokémon they score best against.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their
  * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no
@@ -596,9 +598,9 @@ export const listTeamThreatsQueryKey = (options: Options<ListTeamThreatsData>) =
 /**
  * List the threats to a team
  *
- * Up to 12 Pokémon that beat the most of a team one-on-one, as a counter or a check (see
- * Find a counter team), each with how it fares against each of the team's Pokémon. Those that
- * beat the most come first, then those with the most HP left after winning.
+ * Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,
+ * each with its matchup against each of the team's Pokémon. The highest total score comes
+ * first, and each evolution family appears once, by its best.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
  * with no Pokémon is a 422.

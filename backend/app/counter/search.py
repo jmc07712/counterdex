@@ -1,215 +1,121 @@
-"""Choosing a counter team, ordering it for battle, and ranking the threats to a team, from the
-exchanges the battle model works out.
+"""Choosing a counter team, ordering it for battle, and ranking the threats to a team, from
+scored matchups.
 """
 
+import math
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Self
 
-from app.counter.constants import (
-    BACKUP_WEIGHT,
-    CHECK_SCORE,
-    COUNTER_SCORE,
-    LOSS_SCORE,
-    MAX_SWAP_ROUNDS,
-    MIN_IMPROVEMENT,
-    THREAT_PENALTY,
-    THREAT_THRESHOLD,
-)
-from app.counter.enums import Verdict
-from app.counter.types import Contender, Exchange
-
-
-def answer_score(exchange: Exchange) -> float:
-    """How well a Pokémon answers an opponent: its verdict's score plus its margin. A counter
-    or check scores more the more of its HP it has left; a loss scores more the less of the
-    opponent's HP is left.
-    """
-    match exchange.verdict:
-        case Verdict.COUNTER:
-            return COUNTER_SCORE + exchange.hp_left
-        case Verdict.CHECK:
-            return CHECK_SCORE + exchange.hp_left
-        case Verdict.LOSES:
-            return LOSS_SCORE + 1 - exchange.hp_left
-
-
-def lead_score(exchange: Exchange) -> float:
-    """How well a Pokémon answers an opponent when both are sent out together: from a neutral
-    start, so a check is as good as a counter, by how much HP it has left.
-    """
-    if exchange.neutral_hp_left is None:
-        return answer_score(exchange)
-    return CHECK_SCORE + exchange.neutral_hp_left
+from app.counter.constants import SHARED_WEAKNESS_LIMIT, SHARED_WEAKNESS_PENALTY
+from app.counter.types import Contender
+from app.pokemon.enums import PokemonType
 
 
 def team_score(team: Sequence[Contender]) -> float:
-    """How well a team answers the opponents, which the search makes as high as it can.
-
-    For each opponent: the team's best answer score, plus BACKUP_WEIGHT of its second best, less
-    THREAT_PENALTY if the opponent beats THREAT_THRESHOLD or more of the team.
+    """How well a team of at least one Pokémon answers theirs: its best score against each of
+    their Pokémon, added up, less SHARED_WEAKNESS_PENALTY for each of their attacking types that
+    SHARED_WEAKNESS_LIMIT or more of the team are weak to.
     """
-    opponents = len(team[0].exchanges) if team else 0
-    return _Columns.of(team, opponents).score()
+    standing = _Standing.empty(len(team[0].matchups))
+    for member in team:
+        standing = standing.adding(member)
+    return standing.score()
 
 
 @dataclass(frozen=True)
-class _Row:
-    """A contender's answer score against each opponent, and whether it loses to each."""
-
-    scores: tuple[float, ...]
-    loses: tuple[int, ...]
-
-    @classmethod
-    def of(cls, contender: Contender) -> Self:
-        return cls(
-            tuple(answer_score(each) for each in contender.exchanges),
-            tuple(int(each.verdict is Verdict.LOSES) for each in contender.exchanges),
-        )
-
-
-@dataclass(frozen=True)
-class _Columns:
-    """A team's standing against each opponent: its best and second-best answer scores, and how
-    many of its Pokémon lose.
+class _Standing:
+    """What a team's score is worked out from: its best score against each of their Pokémon,
+    and how many of its Pokémon are weak to each of their attacking types.
     """
 
     best: tuple[float, ...]
-    second: tuple[float, ...]
-    losses: tuple[int, ...]
+    weak: Counter[PokemonType]
 
     @classmethod
-    def of(cls, team: Sequence[Contender], opponents: int) -> Self:
-        best, second, losses = [0.0] * opponents, [0.0] * opponents, [0] * opponents
-        for row in (_Row.of(member) for member in team):
-            for index, (score, loses) in enumerate(zip(row.scores, row.loses, strict=True)):
-                best[index], second[index] = _top_two(best[index], second[index], score)
-                losses[index] += loses
-        return cls(tuple(best), tuple(second), tuple(losses))
+    def empty(cls, opponents: int) -> Self:
+        return cls((-math.inf,) * opponents, Counter())
+
+    def adding(self, contender: Contender) -> Self:
+        best = tuple(
+            max(score, matchup.score)
+            for score, matchup in zip(self.best, contender.matchups, strict=True)
+        )
+        return type(self)(best, self.weak + Counter(contender.weak_to))
 
     def score(self) -> float:
-        return sum(
-            _opponent_score(top, runner_up, lost)
-            for top, runner_up, lost in zip(self.best, self.second, self.losses, strict=True)
-        )
-
-    def score_adding(self, row: _Row) -> float:
-        """The team's score with the row's Pokémon added."""
-        columns = zip(self.best, self.second, self.losses, row.scores, row.loses, strict=True)
-        return sum(
-            _opponent_score(*_top_two(top, runner_up, score), lost + loses)
-            for top, runner_up, lost, score, loses in columns
-        )
-
-
-def _top_two(best: float, second: float, score: float) -> tuple[float, float]:
-    """The best and second-best scores once `score` joins them."""
-    if score > best:
-        return score, best
-    return best, max(second, score)
-
-
-def _opponent_score(best: float, second: float, losses: int) -> float:
-    """A team's score against one opponent (see team_score)."""
-    penalty = THREAT_PENALTY if losses >= THREAT_THRESHOLD else 0.0
-    return best + BACKUP_WEIGHT * second - penalty
+        shared = sum(1 for count in self.weak.values() if count >= SHARED_WEAKNESS_LIMIT)
+        return sum(self.best) - SHARED_WEAKNESS_PENALTY * shared
 
 
 def counter_team(contenders: Sequence[Contender], size: int) -> list[Contender]:
-    """The team of `size` contenders with the highest team_score, one from each evolution
-    family, in battle order. There must be at least `size` families among the contenders.
+    """`size` of the contenders, one from each evolution family, in battle order. There must be
+    at least `size` families among them.
 
-    The team is built greedily, adding the contender that raises its score most, then improved
-    by swaps: each round makes the one swap of a member for a contender that raises the score
-    most, until none does or MAX_SWAP_ROUNDS have run. Ties go to the lowest id.
+    They're chosen one at a time: each is the contender that raises team_score most. Ties go to
+    the higher total score against their Pokémon, then the higher base stat total, then the
+    lower id.
     """
-    pool = sorted(contenders, key=_id)
-    rows = [_Row.of(each) for each in pool]
-    opponents = len(rows[0].scores)
-    team: list[int] = []
+    team: list[Contender] = []
+    standing = _Standing.empty(len(contenders[0].matchups))
     for _ in range(size):
-        columns = _Columns.of([pool[index] for index in team], opponents)
-        team.append(_best_addition(pool, rows, team, columns)[0])
-
-    score = team_score([pool[index] for index in team])
-    for _ in range(MAX_SWAP_ROUNDS):
-        swap = _best_swap(pool, rows, team)
-        if swap is None or swap[2] <= score + MIN_IMPROVEMENT:
-            break
-        position, index, score = swap
-        team[position] = index
-    return battle_order([pool[index] for index in team])
+        choice = _best_addition(contenders, team, standing)
+        team.append(choice)
+        standing = standing.adding(choice)
+    return battle_order(team)
 
 
 def _best_addition(
-    pool: Sequence[Contender], rows: Sequence[_Row], team: Sequence[int], columns: _Columns
-) -> tuple[int, float]:
-    """The contender (by its index in the pool) whose addition raises the team's score most,
-    from a family not on the team, with the score it gives; the first of equals.
+    contenders: Sequence[Contender], team: Sequence[Contender], standing: _Standing
+) -> Contender:
+    """The contender, from a family not on the team, that raises its score most, with ties
+    going as counter_team says.
     """
-    families = {pool[index].candidate.family_id for index in team}
-    best_index, best_score = -1, float("-inf")
-    for index, (contender, row) in enumerate(zip(pool, rows, strict=True)):
-        if contender.candidate.family_id in families:
-            continue
-        score = columns.score_adding(row)
-        if score > best_score:
-            best_index, best_score = index, score
-    return best_index, best_score
+    families = {member.candidate.family_id for member in team}
+    return max(
+        (each for each in contenders if each.candidate.family_id not in families),
+        key=lambda each: (standing.adding(each).score(), *_strength(each)),
+    )
 
 
-def _best_swap(
-    pool: Sequence[Contender], rows: Sequence[_Row], team: Sequence[int]
-) -> tuple[int, int, float] | None:
-    """The swap that gives the team the highest score, as (the member's position, the
-    contender's index in the pool, the score); the first of equals. None if there's no
-    contender to swap in.
+def _strength(contender: Contender) -> tuple[float, int, int]:
+    """How a contender ranks among equals, highest first: by its total score against their
+    Pokémon, then its base stat total, then the lower id.
     """
-    best: tuple[int, int, float] | None = None
-    for position in range(len(team)):
-        others = [index for at, index in enumerate(team) if at != position]
-        columns = _Columns.of([pool[other] for other in others], len(rows[0].scores))
-        index, score = _best_addition(pool, rows, others, columns)
-        # The best addition can be the member it would replace: no swap there helps.
-        if index != -1 and index not in team and (best is None or score > best[2]):
-            best = (position, index, score)
-    return best
+    profile = contender.candidate.profile
+    total = sum(matchup.score for matchup in contender.matchups)
+    return total, profile.stat_total, -profile.id
 
 
 def battle_order(team: Sequence[Contender]) -> list[Contender]:
-    """The team in the order to send it out.
-
-    The lead is the Pokémon that best answers their lead (their first Pokémon) by lead_score:
-    leads come out together, so a check is enough. The rest follow in the order of the opponents
-    they each answer best (the first, on a tie). Ties go to the lowest id.
+    """The team in the order to send it out: first the Pokémon with the best score against
+    their lead (their first Pokémon), then the rest in the order of the opponents they each
+    score best against (the first, on a tie). Ties go as counter_team says.
     """
-    lead = max(team, key=lambda member: (lead_score(member.exchanges[0]), -_id(member)))
-    rest = sorted(
-        (member for member in team if member is not lead),
-        key=lambda member: (_best_answered(member), _id(member)),
+    lead = max(team, key=lambda member: (member.matchups[0].score, *_strength(member)))
+    strongest_first = sorted(
+        (member for member in team if member is not lead), key=_strength, reverse=True
     )
-    return [lead, *rest]
+    return [lead, *sorted(strongest_first, key=_best_answered)]
 
 
 def _best_answered(member: Contender) -> int:
-    """The position, in their team, of the opponent the Pokémon answers best."""
-    scores = [answer_score(each) for each in member.exchanges]
+    """The position, in their team, of the opponent the Pokémon scores best against."""
+    scores = [matchup.score for matchup in member.matchups]
     return scores.index(max(scores))
 
 
 def threats(contenders: Sequence[Contender], limit: int) -> list[Contender]:
-    """Up to `limit` of the contenders that beat the most of the team, as a counter or check:
-    most first, then by the sum of the margins they beat them by, then by the lowest id.
-    Contenders that beat none of the team are left out.
+    """Up to `limit` of the contenders with the highest total score against the team, only the
+    best of each evolution family. Ties go as counter_team says.
     """
-    ranked = []
-    for contender in contenders:
-        wins = [each.hp_left for each in contender.exchanges if each.verdict is not Verdict.LOSES]
-        if wins:
-            ranked.append(((-len(wins), -sum(wins), _id(contender)), contender))
-    ranked.sort(key=lambda entry: entry[0])
-    return [contender for _, contender in ranked[:limit]]
-
-
-def _id(contender: Contender) -> int:
-    return contender.candidate.fighter.id
+    chosen: list[Contender] = []
+    families: set[int] = set()
+    for contender in sorted(contenders, key=_strength, reverse=True):
+        if len(chosen) == limit:
+            break
+        if contender.candidate.family_id not in families:
+            families.add(contender.candidate.family_id)
+            chosen.append(contender)
+    return chosen
