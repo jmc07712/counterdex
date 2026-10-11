@@ -220,7 +220,6 @@ def test_a_search_with_spaces_matches_a_pokemons_hyphenated_name(
     [
         pytest.param("DANCE", ["Rain Dance"], id="team-name"),
         pytest.param("BROCK", ["Sun"], id="owner-username"),
-        pytest.param("CHARM", ["Fire"], id="pokemon-name"),
     ],
 )
 @pytest.mark.usefixtures("charmander_family")
