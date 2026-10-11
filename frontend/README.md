@@ -136,6 +136,10 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   whether each of theirs has a good answer, why each of ours is there, and our best answer to
   each of theirs, explained in a sentence when pressed. Tapping a card or a slot opens its
   details. Every change saves at once, so the toggle back to View is the way out.
+- **The Pokédex page** (`/pokedex`) has Add to team on each card and in a Pokémon's details: a
+  menu of your teams with how many Pokémon each has, where one that can't take the Pokémon says
+  why, and New team, which makes a team with it and opens it in Edit. Signed out, the menu links
+  to signing in and back. A Pokémon PokéAPI no longer lists has none.
 
 ## The admin page
 
