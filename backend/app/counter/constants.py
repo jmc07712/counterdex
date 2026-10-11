@@ -22,6 +22,10 @@ POWER_WEIGHT = 0.25
 # Points for a higher base Speed than the opponent's. A lower one takes as many off.
 SPEED_POINTS = 0.25
 
+# Scores, and the sums of them the search compares, are rounded to this many decimals: float
+# arithmetic can leave scores that are equal on paper a hair apart.
+SCORE_DECIMALS = 9
+
 # --- Rating a matchup ---
 # A score of at least GOOD_SCORE is good, at most BAD_SCORE bad, and anything between even. A
 # type's one-point edge stays good unless the stats take more than a quarter of it back.

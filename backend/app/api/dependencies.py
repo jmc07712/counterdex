@@ -14,6 +14,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 NOT_SIGNED_IN = (
     "Sign in first: POST /api/session with your username and password sets the session cookie."
 )
+NOT_ADMIN = "Only admins can see this."
 
 
 def require_user(
@@ -36,3 +37,14 @@ def require_user(
 
 # A route that declares `user: CurrentUser` is for signed-in users only.
 CurrentUser = Annotated[User, Depends(require_user)]
+
+
+def require_admin(user: CurrentUser) -> User:
+    """FastAPI dependency: the signed-in user if they're an admin, or a 401 or a 403."""
+    if not user.is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_ADMIN)
+    return user
+
+
+# A route that declares `admin: AdminUser` is for admins only.
+AdminUser = Annotated[User, Depends(require_admin)]

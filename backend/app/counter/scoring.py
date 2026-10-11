@@ -11,6 +11,7 @@ from app.counter.constants import (
     GOOD_SCORE,
     NO_EFFECT_POINTS,
     POWER_WEIGHT,
+    SCORE_DECIMALS,
     SPEED_POINTS,
 )
 from app.counter.enums import Rating, RelativeSpeed
@@ -60,11 +61,12 @@ def matchup(pokemon: Profile, opponent: Profile, chart: TypeChart) -> Matchup:
     opponent_attack = best_attack(opponent, pokemon, chart)
     speed = relative_speed(pokemon, opponent)
     difference = pokemon.stat_total - opponent.stat_total
-    score = (
+    score = round(
         points(attack.multiplier)
         - points(opponent_attack.multiplier)
         + POWER_WEIGHT * difference / 100
-        + _speed_points(speed)
+        + _speed_points(speed),
+        SCORE_DECIMALS,
     )
     return Matchup(
         attack=attack,

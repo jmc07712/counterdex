@@ -8,7 +8,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Self
 
-from app.counter.constants import SHARED_WEAKNESS_LIMIT, SHARED_WEAKNESS_PENALTY
+from app.counter.constants import (
+    SCORE_DECIMALS,
+    SHARED_WEAKNESS_LIMIT,
+    SHARED_WEAKNESS_PENALTY,
+)
 from app.counter.types import Contender
 from app.pokemon.enums import PokemonType
 
@@ -46,7 +50,7 @@ class _Standing:
 
     def score(self) -> float:
         shared = sum(1 for count in self.weak.values() if count >= SHARED_WEAKNESS_LIMIT)
-        return sum(self.best) - SHARED_WEAKNESS_PENALTY * shared
+        return round(sum(self.best) - SHARED_WEAKNESS_PENALTY * shared, SCORE_DECIMALS)
 
 
 def counter_team(contenders: Sequence[Contender], size: int) -> list[Contender]:
@@ -84,7 +88,7 @@ def _strength(contender: Contender) -> tuple[float, int, int]:
     Pokémon, then its base stat total, then the lower id.
     """
     profile = contender.candidate.profile
-    total = sum(matchup.score for matchup in contender.matchups)
+    total = round(sum(matchup.score for matchup in contender.matchups), SCORE_DECIMALS)
     return total, profile.stat_total, -profile.id
 
 

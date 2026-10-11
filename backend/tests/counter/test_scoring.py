@@ -140,6 +140,13 @@ def test_adds_a_quarter_point_for_being_faster_and_takes_one_off_for_being_slowe
     assert (result.speed, result.score) == (relative, bonus)
 
 
+def test_gives_a_score_as_it_is_on_paper() -> None:
+    # 0.25 * 7 / 100 - 0.25 comes out of float arithmetic as -0.23249999999999998.
+    slightly_stronger_but_slower = profile(stat_total=507, speed=99)
+
+    assert matchup(slightly_stronger_but_slower, profile(), TYPE_CHART).score == -0.2325
+
+
 def test_scores_the_opponents_side_as_the_opposite() -> None:
     golem_side = matchup(real(GOLEM), real(CHARIZARD), TYPE_CHART)
     charizard_side = matchup(real(CHARIZARD), real(GOLEM), TYPE_CHART)

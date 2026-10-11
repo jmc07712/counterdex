@@ -13,7 +13,7 @@ from app.accounts.types import SignedIn
 from app.core.config import get_settings
 from app.core.db import Base, get_engine, get_session
 from app.pokemon import models
-from tests.support.accounts import ASH, MISTY
+from tests.support.accounts import ASH, MISTY, OAK, sign_up_admin
 from tests.support.pokemon import LEVEL_16, LEVEL_36, add_species, make_pokemon
 
 # Same major version as production (Neon) and docker-compose.yml.
@@ -169,3 +169,9 @@ def ash(db_session: Session) -> SignedIn:
 def misty(db_session: Session) -> SignedIn:
     """Misty, signed up and so signed in: a second user."""
     return service.sign_up(db_session, MISTY)
+
+
+@pytest.fixture
+def oak(db_session: Session) -> SignedIn:
+    """Oak, signed up as an admin and so signed in: see tests.support.accounts.sign_up_admin."""
+    return sign_up_admin(db_session, OAK)

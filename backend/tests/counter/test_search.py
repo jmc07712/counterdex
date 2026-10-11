@@ -42,6 +42,11 @@ def ids(team: list[Contender]) -> list[int]:
     return [member.candidate.profile.id for member in team]
 
 
+# Scores whose totals are equal on paper, 2.315, but come out of float arithmetic as
+# 2.3150000000000004 and 2.3149999999999995.
+EQUAL_ON_PAPER = ((-2.26, 4.575, 0), (-2.81, 0.155, 4.97))
+
+
 # --- Team scores ---
 
 
@@ -118,6 +123,16 @@ def test_then_by_base_stat_total() -> None:
     assert ids(counter_team(pool, size=2)) == [1, 3]
 
 
+def test_treats_team_scores_that_are_equal_on_paper_as_a_tie() -> None:
+    higher_in_floats, lower_in_floats = EQUAL_ON_PAPER
+    pool = [
+        contender(1, *higher_in_floats, stat_total=500),
+        contender(2, *lower_in_floats, stat_total=600),
+    ]
+
+    assert ids(counter_team(pool, size=1)) == [2]
+
+
 def test_then_by_the_lowest_id() -> None:
     pool = [contender(1, 5), contender(3, 1), contender(2, 1)]
 
@@ -175,6 +190,16 @@ def test_breaks_ties_between_threats_by_base_stat_total_then_id() -> None:
     pool = [contender(3, 1), contender(2, 1), contender(1, 1, stat_total=400)]
 
     assert ids(threats(pool, limit=10)) == [2, 3, 1]
+
+
+def test_treats_threat_totals_that_are_equal_on_paper_as_a_tie() -> None:
+    higher_in_floats, lower_in_floats = EQUAL_ON_PAPER
+    pool = [
+        contender(1, *higher_in_floats, stat_total=500),
+        contender(2, *lower_in_floats, stat_total=600),
+    ]
+
+    assert ids(threats(pool, limit=10)) == [2, 1]
 
 
 def test_lists_threats_up_to_the_limit() -> None:
