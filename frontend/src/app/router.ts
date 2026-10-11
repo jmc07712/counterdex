@@ -15,7 +15,7 @@ export const routes: RouteObject[] = [
   {
     Component: AppLayout,
     children: [
-      { index: true, Component: TeamsPage },
+      { path: paths.home.path, Component: TeamsPage },
       { path: paths.team.path, Component: TeamPage },
       { path: paths.teamEdit.path, Component: TeamEditPage },
       { path: paths.pokedex.path, Component: PokedexPage },
