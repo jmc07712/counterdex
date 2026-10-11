@@ -2,7 +2,6 @@ import { type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
 
 import type { TeamMember } from '@/api'
-import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { displayName } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
@@ -13,6 +12,7 @@ import { m } from '@/paraglide/messages.js'
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { memberColors, MUTED } from '../utils/member-colors'
 import { teamTypes } from '../utils/team-types'
+import { ChangedThisWeek } from './changed-this-week'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
 import { TeamPower } from './team-power'
@@ -34,7 +34,6 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
   const nameId = useId()
   const summaryId = useId()
   const powerId = useId()
-  const changed = members.some((member) => member.pokemon.changed_recently)
   const types = teamTypes(members)
   return (
     <article
@@ -44,9 +43,8 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
     >
       <div id={summaryId} className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 id={nameId} className="flex min-w-0 items-center gap-1 font-heading text-lg font-bold">
-            <span className="truncate">{name}</span>
-            {changed && <ChangedMark />}
+          <h2 id={nameId} className="min-w-0 truncate font-heading text-lg font-bold">
+            {name}
           </h2>
           <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
             {m.team_member_count({ count: members.length, max: MAX_TEAM_SIZE })}
@@ -67,6 +65,7 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
             </li>
           ))}
         </ol>
+        <ChangedThisWeek members={members} compact />
         {members.filter(isRemoved).map((member) => (
           <p key={member.pokemon.id} className="text-xs text-muted-foreground">
             {m.team_member_removed_on({

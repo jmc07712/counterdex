@@ -19,14 +19,29 @@ describe('TeamCard', () => {
     expect(badges.map((type) => type.textContent)).toEqual(['Fire', 'Flying', 'Water', 'Dragon'])
   })
 
-  it('names its link with the team’s name, size, types and power', () => {
-    const members = [catalog.charizard, catalog.vaporeon, catalog.dragonite].map(asMember)
+  it('names its link with the team’s name, size, what changed this week, types and power', () => {
+    const charizard = { ...catalog.charizard, changed_recently: true }
+    const members = [charizard, catalog.vaporeon, catalog.dragonite].map(asMember)
 
     renderWithProviders(<TeamCard to="/teams/1" name="Sky" members={members} note="by ash" />)
 
     expect(screen.getByRole('link')).toHaveAccessibleName(
-      'Sky 3 of 6 by ash Types: Fire, Flying, Water, Dragon 1,620',
+      'Sky 3 of 6 by ash Charizard changed this week Types: Fire, Flying, Water, Dragon 1,620',
     )
+  })
+
+  it('says under its tiles which members a sync changed this week', () => {
+    const vaporeon = { ...catalog.vaporeon, changed_recently: true }
+    const dragonite = { ...catalog.dragonite, changed_recently: true }
+    const members = [catalog.charizard, vaporeon, dragonite].map(asMember)
+
+    renderWithProviders(<TeamCard to="/teams/1" name="Sky" members={members} />)
+
+    const line = screen.getByText('Vaporeon and Dragonite changed this week')
+    const [tiles] = screen.getAllByRole('list', { hidden: true })
+    expect(tiles.compareDocumentPosition(line)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    // The line says it, so the name doesn't.
+    expect(screen.getByRole('heading', { name: 'Sky' })).toBeInTheDocument()
   })
 
   it('holds an action beside its link, not in it, and next in focus order', async () => {
