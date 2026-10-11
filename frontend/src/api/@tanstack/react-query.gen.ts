@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -554,3 +554,37 @@ export const reorderTeamMutation = (options?: Partial<Options<ReorderTeamData>>)
     };
     return mutationOptions;
 };
+
+export const findCounterTeamQueryKey = (options: Options<FindCounterTeamData>) => createQueryKey('findCounterTeam', options);
+
+/**
+ * Find a counter team
+ *
+ * A team as big as the given one that beats it, for a saved team or a guest's draft.
+ *
+ * Each of our Pokémon is matched one-on-one against each of theirs: both at level 50, each
+ * attacking every turn with its strongest move of its own types, until one is knocked out. A
+ * matchup's `verdict` is `counter` if ours can switch in, take a free hit and still win,
+ * `check` if it wins only from a neutral start, and otherwise `loses`.
+ *
+ * The team gives each of theirs the best answer it can, ideally a counter, and a backup, and
+ * avoids letting one of theirs beat three or more of ours. It has one Pokémon from each
+ * evolution family, so it can be saved as a team. It comes in battle order: our lead answers
+ * their lead, and the rest follow the order of the Pokémon they answer best.
+ *
+ * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their
+ * team may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no
+ * Pokémon is a 422.
+ */
+export const findCounterTeamOptions = (options: Options<FindCounterTeamData>) => queryOptions<FindCounterTeamResponse, FindCounterTeamError, FindCounterTeamResponse, ReturnType<typeof findCounterTeamQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await findCounterTeam({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: findCounterTeamQueryKey(options)
+});

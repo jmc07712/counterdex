@@ -8,7 +8,7 @@ from app.api.caching import NoStoreByDefault
 from app.api.constants import API_PREFIX, API_TITLE, OPENAPI_URL
 from app.api.cross_origin import CrossOriginProtection
 from app.api.errors import ConflictError, conflict, validation_error
-from app.api.routes import accounts, docs, health, pokemon, sync, teams
+from app.api.routes import accounts, counter, docs, health, pokemon, sync, teams
 from app.api.tags import TAG_GROUPS, TAGS
 
 
@@ -48,3 +48,4 @@ app.include_router(sync.router, prefix=API_PREFIX)
 app.include_router(accounts.router, prefix=API_PREFIX)
 app.include_router(teams.router, prefix=API_PREFIX)
 app.include_router(teams.members_router, prefix=API_PREFIX)
+app.include_router(counter.router, prefix=API_PREFIX)

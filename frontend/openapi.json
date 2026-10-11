@@ -1221,10 +1221,148 @@
           }
         }
       }
+    },
+    "/api/counter-team": {
+      "get": {
+        "tags": [
+          "Counter team"
+        ],
+        "summary": "Find a counter team",
+        "description": "A team as big as the given one that beats it, for a saved team or a guest's draft.\n\nEach of our Pokémon is matched one-on-one against each of theirs: both at level 50, each\nattacking every turn with its strongest move of its own types, until one is knocked out. A\nmatchup's `verdict` is `counter` if ours can switch in, take a free hit and still win,\n`check` if it wins only from a neutral start, and otherwise `loses`.\n\nThe team gives each of theirs the best answer it can, ideally a counter, and a backup, and\navoids letting one of theirs beat three or more of ours. It has one Pokémon from each\nevolution family, so it can be saved as a team. It comes in battle order: our lead answers\ntheir lead, and the rest follow the order of the Pokémon they answer best.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. Their\nteam may have Pokémon that PokéAPI no longer lists; ours never does. An `id` with no\nPokémon is a 422.",
+        "operationId": "find_counter_team",
+        "parameters": [
+          {
+            "name": "pokemon_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "maximum": 2147483647,
+                "minimum": 1
+              },
+              "minItems": 1,
+              "maxItems": 6,
+              "description": "A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.",
+              "title": "Pokemon Id"
+            },
+            "description": "A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six."
+          },
+          {
+            "name": "forms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also choose from alternate forms, such as Mega Evolutions and regional forms.",
+              "default": false,
+              "title": "Forms"
+            },
+            "description": "Also choose from alternate forms, such as Mega Evolutions and regional forms."
+          },
+          {
+            "name": "legendaries",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also choose from legendary and mythical Pokémon.",
+              "default": false,
+              "title": "Legendaries"
+            },
+            "description": "Also choose from legendary and mythical Pokémon."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Challenger"
+                  },
+                  "title": "Response Find Counter Team"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Pokédex hasn't been synced enough to answer: run a sync first."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Attack": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/PokemonType",
+            "description": "One of the attacker's own types."
+          },
+          "multiplier": {
+            "type": "number",
+            "title": "Multiplier",
+            "description": "How effective the type is against the defender's types: 0, 0.25, 0.5, 1, 2 or 4."
+          },
+          "hits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hits",
+            "description": "How many of these attacks knock the defender out; `null` if they do no damage."
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "multiplier",
+          "hits"
+        ],
+        "title": "Attack",
+        "description": "A Pokémon's strongest attack on its opponent: a move of one of its own types, of the same\npower for every Pokémon, physical or special, whichever does more damage."
+      },
+      "Challenger": {
+        "properties": {
+          "pokemon": {
+            "$ref": "#/components/schemas/Pokemon"
+          },
+          "matchups": {
+            "items": {
+              "$ref": "#/components/schemas/Matchup"
+            },
+            "type": "array",
+            "title": "Matchups",
+            "description": "Against each of the team's Pokémon, in the order the team was given."
+          }
+        },
+        "type": "object",
+        "required": [
+          "pokemon",
+          "matchups"
+        ],
+        "title": "Challenger",
+        "description": "A Pokémon and how it fares one-on-one against each of a team's Pokémon."
+      },
       "ChangeKind": {
         "type": "string",
         "enum": [
@@ -1622,6 +1760,47 @@
         "title": "ListingStatus",
         "description": "Whether PokéAPI still lists a Pokémon."
       },
+      "Matchup": {
+        "properties": {
+          "opponent_id": {
+            "type": "integer",
+            "title": "Opponent Id",
+            "description": "The `id` of the team's Pokémon."
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict",
+            "description": "`counter`: it can switch in, take a free hit, and still win. `check`: it wins only from\na neutral start, where the faster Pokémon strikes first. `loses`: it doesn't win, even from\na neutral start."
+          },
+          "hp_left": {
+            "type": "number",
+            "title": "Hp Left",
+            "description": "The winner's share of its HP left at the end, from 0 to 1: this Pokémon's after\nswitching in, for a `counter`; its own from a neutral start, for a `check`; the opponent's\nfrom a neutral start, when it `loses`."
+          },
+          "speed": {
+            "$ref": "#/components/schemas/RelativeSpeed",
+            "description": "How its Speed compares to the opponent's. The faster one strikes first; a tie counts\nagainst it, as the games settle a tie at random."
+          },
+          "attack": {
+            "$ref": "#/components/schemas/Attack",
+            "description": "Its strongest attack on the opponent."
+          },
+          "opponent_attack": {
+            "$ref": "#/components/schemas/Attack",
+            "description": "The opponent's strongest attack on it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "opponent_id",
+          "verdict",
+          "hp_left",
+          "speed",
+          "attack",
+          "opponent_attack"
+        ],
+        "title": "Matchup",
+        "description": "How a Pokémon fares one-on-one against one of the team's Pokémon. Both are taken at\nlevel 50, and each uses its strongest attack every turn until one is knocked out."
+      },
       "NewAccount": {
         "properties": {
           "username": {
@@ -1972,6 +2151,16 @@
         ],
         "title": "RelativePhysicalStats",
         "description": "How a Pokémon's Attack compares to its Defense."
+      },
+      "RelativeSpeed": {
+        "type": "string",
+        "enum": [
+          "faster",
+          "tied",
+          "slower"
+        ],
+        "title": "RelativeSpeed",
+        "description": "How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games\nsettle a tie at random."
       },
       "Species": {
         "properties": {
@@ -2427,6 +2616,16 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Verdict": {
+        "type": "string",
+        "enum": [
+          "counter",
+          "check",
+          "loses"
+        ],
+        "title": "Verdict",
+        "description": "How a Pokémon fares one-on-one against an opponent, in the competitive sense."
       }
     },
     "securitySchemes": {
@@ -2460,6 +2659,10 @@
       "description": "The Pokémon on one of your teams, in slot order. Every route needs signing in."
     },
     {
+      "name": "Counter team",
+      "description": "Teams that beat a team, worked out from each Pokémon's types and base stats. No sign-in needed."
+    },
+    {
       "name": "Health",
       "description": "Whether the API is up."
     }
@@ -2482,7 +2685,8 @@
       "name": "Teams",
       "tags": [
         "Teams",
-        "Team members"
+        "Team members",
+        "Counter team"
       ]
     },
     {

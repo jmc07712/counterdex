@@ -60,7 +60,7 @@ def test_the_docs_sort_every_route_under_one_tag_in_a_group(openapi: dict[str, A
     assert groups == {
         "Pokédex": ["Pokémon", "Sync"],
         "Account": ["Session"],
-        "Teams": ["Teams", "Team members"],
+        "Teams": ["Teams", "Team members", "Counter team"],
         "Service": ["Health"],
     }
     assert [tag["name"] for tag in openapi["tags"]] == [
@@ -69,12 +69,14 @@ def test_the_docs_sort_every_route_under_one_tag_in_a_group(openapi: dict[str, A
         "Session",
         "Teams",
         "Team members",
+        "Counter team",
         "Health",
     ]
     assert tagged["GET /api/teams/preview"] == ["Teams"]
     assert tagged["GET /api/users/{username}/teams"] == ["Teams"]
     assert tagged["POST /api/teams/{team_id}/members"] == ["Team members"]
     assert tagged["PUT /api/teams/{team_id}/order"] == ["Team members"]
+    assert tagged["GET /api/counter-team"] == ["Counter team"]
     assert tagged["GET /api/session"] == ["Session"]
     assert tagged["POST /api/users"] == ["Session"]
     # Every route is under exactly one tag, and every tag is in a group.

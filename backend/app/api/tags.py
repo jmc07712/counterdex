@@ -7,6 +7,7 @@ SYNC = "Sync"
 SESSION = "Session"
 TEAMS = "Teams"
 TEAM_MEMBERS = "Team members"
+COUNTER_TEAM = "Counter team"
 HEALTH = "Health"
 
 # In sidebar order, each with the line the docs show under its name.
@@ -42,6 +43,13 @@ TAGS: list[dict[str, Any]] = [
             "The Pokémon on one of your teams, in slot order. Every route needs signing in."
         ),
     },
+    {
+        "name": COUNTER_TEAM,
+        "description": (
+            "Teams that beat a team, worked out from each Pokémon's types and base stats. No "
+            "sign-in needed."
+        ),
+    },
     {"name": HEALTH, "description": "Whether the API is up."},
 ]
 
@@ -49,6 +57,6 @@ TAGS: list[dict[str, Any]] = [
 TAG_GROUPS: list[dict[str, Any]] = [
     {"name": "Pokédex", "tags": [POKEMON, SYNC]},
     {"name": "Account", "tags": [SESSION]},
-    {"name": "Teams", "tags": [TEAMS, TEAM_MEMBERS]},
+    {"name": "Teams", "tags": [TEAMS, TEAM_MEMBERS, COUNTER_TEAM]},
     {"name": "Service", "tags": [HEALTH]},
 ]

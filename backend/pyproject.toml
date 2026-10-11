@@ -69,12 +69,19 @@ include_external_packages = true
 [[tool.importlinter.contracts]]
 name = "Domains build on core, never the other way round"
 type = "layers"
-layers = ["app.sync : app.teams", "app.pokemon : app.accounts", "app.core"]
+layers = ["app.sync : app.teams : app.counter", "app.pokemon : app.accounts", "app.core"]
 
 [[tool.importlinter.contracts]]
 name = "Domains and core know nothing about entrypoints or the web framework"
 type = "forbidden"
-source_modules = ["app.core", "app.accounts", "app.pokemon", "app.sync", "app.teams"]
+source_modules = [
+    "app.core",
+    "app.accounts",
+    "app.pokemon",
+    "app.sync",
+    "app.teams",
+    "app.counter",
+]
 forbidden_modules = ["app.api", "app.jobs", "fastapi", "starlette"]
 
 [[tool.importlinter.contracts]]

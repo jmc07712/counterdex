@@ -5,6 +5,46 @@ export type ClientOptions = {
 };
 
 /**
+ * Attack
+ *
+ * A Pokémon's strongest attack on its opponent: a move of one of its own types, of the same
+ * power for every Pokémon, physical or special, whichever does more damage.
+ */
+export type Attack = {
+    /**
+     * One of the attacker's own types.
+     */
+    type: PokemonType;
+    /**
+     * Multiplier
+     *
+     * How effective the type is against the defender's types: 0, 0.25, 0.5, 1, 2 or 4.
+     */
+    multiplier: number;
+    /**
+     * Hits
+     *
+     * How many of these attacks knock the defender out; `null` if they do no damage.
+     */
+    hits: number | null;
+};
+
+/**
+ * Challenger
+ *
+ * A Pokémon and how it fares one-on-one against each of a team's Pokémon.
+ */
+export type Challenger = {
+    pokemon: Pokemon;
+    /**
+     * Matchups
+     *
+     * Against each of the team's Pokémon, in the order the team was given.
+     */
+    matchups: Array<Matchup>;
+};
+
+/**
  * ChangeKind
  */
 export const ChangeKind = {
@@ -278,6 +318,48 @@ export const ListingStatus = { LISTED: 'listed', REMOVED: 'removed' } as const;
 export type ListingStatus = typeof ListingStatus[keyof typeof ListingStatus];
 
 /**
+ * Matchup
+ *
+ * How a Pokémon fares one-on-one against one of the team's Pokémon. Both are taken at
+ * level 50, and each uses its strongest attack every turn until one is knocked out.
+ */
+export type Matchup = {
+    /**
+     * Opponent Id
+     *
+     * The `id` of the team's Pokémon.
+     */
+    opponent_id: number;
+    /**
+     * `counter`: it can switch in, take a free hit, and still win. `check`: it wins only from
+     * a neutral start, where the faster Pokémon strikes first. `loses`: it doesn't win, even from
+     * a neutral start.
+     */
+    verdict: Verdict;
+    /**
+     * Hp Left
+     *
+     * The winner's share of its HP left at the end, from 0 to 1: this Pokémon's after
+     * switching in, for a `counter`; its own from a neutral start, for a `check`; the opponent's
+     * from a neutral start, when it `loses`.
+     */
+    hp_left: number;
+    /**
+     * How its Speed compares to the opponent's. The faster one strikes first; a tie counts
+     * against it, as the games settle a tie at random.
+     */
+    speed: RelativeSpeed;
+    /**
+     * Its strongest attack on the opponent.
+     */
+    attack: Attack;
+    /**
+     * The opponent's strongest attack on it.
+     */
+    opponent_attack: Attack;
+};
+
+/**
  * NewAccount
  *
  * A username and password, for signing up.
@@ -531,6 +613,26 @@ export const RelativePhysicalStats = {
  * How a Pokémon's Attack compares to its Defense.
  */
 export type RelativePhysicalStats = typeof RelativePhysicalStats[keyof typeof RelativePhysicalStats];
+
+/**
+ * RelativeSpeed
+ *
+ * How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games
+ * settle a tie at random.
+ */
+export const RelativeSpeed = {
+    FASTER: 'faster',
+    TIED: 'tied',
+    SLOWER: 'slower'
+} as const;
+
+/**
+ * RelativeSpeed
+ *
+ * How a Pokémon's Speed compares to its opponent's. The faster one strikes first; the games
+ * settle a tie at random.
+ */
+export type RelativeSpeed = typeof RelativeSpeed[keyof typeof RelativeSpeed];
 
 /**
  * Species
@@ -886,6 +988,24 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
+
+/**
+ * Verdict
+ *
+ * How a Pokémon fares one-on-one against an opponent, in the competitive sense.
+ */
+export const Verdict = {
+    COUNTER: 'counter',
+    CHECK: 'check',
+    LOSES: 'loses'
+} as const;
+
+/**
+ * Verdict
+ *
+ * How a Pokémon fares one-on-one against an opponent, in the competitive sense.
+ */
+export type Verdict = typeof Verdict[keyof typeof Verdict];
 
 /**
  * Credentials
@@ -1690,3 +1810,53 @@ export type ReorderTeamResponses = {
 };
 
 export type ReorderTeamResponse = ReorderTeamResponses[keyof ReorderTeamResponses];
+
+export type FindCounterTeamData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Pokemon Id
+         *
+         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.
+         */
+        pokemon_id: Array<number>;
+        /**
+         * Forms
+         *
+         * Also choose from alternate forms, such as Mega Evolutions and regional forms.
+         */
+        forms?: boolean;
+        /**
+         * Legendaries
+         *
+         * Also choose from legendary and mythical Pokémon.
+         */
+        legendaries?: boolean;
+    };
+    url: '/api/counter-team';
+};
+
+export type FindCounterTeamErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * The Pokédex hasn't been synced enough to answer: run a sync first.
+     */
+    503: unknown;
+};
+
+export type FindCounterTeamError = FindCounterTeamErrors[keyof FindCounterTeamErrors];
+
+export type FindCounterTeamResponses = {
+    /**
+     * Response Find Counter Team
+     *
+     * Successful Response
+     */
+    200: Array<Challenger>;
+};
+
+export type FindCounterTeamResponse = FindCounterTeamResponses[keyof FindCounterTeamResponses];
