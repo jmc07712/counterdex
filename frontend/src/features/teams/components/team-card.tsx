@@ -33,7 +33,8 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
   return (
     <Link
       to={to}
-      className="group/hop flex flex-col gap-3 rounded-2xl border bg-card p-4 transition-colors hover:border-foreground/30 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      // As tall as its grid cell, so the cards in a row are as tall as the tallest.
+      className="group/hop flex h-full flex-col gap-3 rounded-2xl border bg-card p-4 transition-colors hover:border-foreground/30 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-1 font-heading text-lg font-bold">
@@ -72,7 +73,7 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
           : [],
       )}
       {types.length > 0 && <TypeBadges types={types} />}
-      {/* At the bottom, so it lines up across cards with more or fewer rows of types. */}
+      {/* At the card's bottom, level with the power bars of the other cards in its row. */}
       <TeamPower members={members} className="mt-auto" />
     </Link>
   )
