@@ -2,6 +2,7 @@ import { http, HttpResponse, type JsonBodyType } from 'msw'
 
 import {
   type CredentialsWritable,
+  type FindCounterTeamResponse,
   type Pokemon,
   type PokemonChange,
   type PokemonDetails,
@@ -377,4 +378,50 @@ export function holdTeamFetches() {
     }),
   )
   return { release }
+}
+
+/**
+ * Stands in for the API's counter teams: answers a team with as many of `catalog`'s Pokémon as it
+ * has, the first ones not on it, in `catalog`'s order; or, given `refuse`, with that status
+ * instead. Returns each request's query string, in the order they came.
+ */
+export function serveCounterTeam({
+  catalog = [],
+  refuse,
+}: { catalog?: Pokemon[]; refuse?: number } = {}) {
+  const requests: string[] = []
+  server.use(
+    http.get('/api/counter-team', ({ request }) => {
+      const query = new URL(request.url).searchParams
+      requests.push(query.toString())
+      if (refuse) return refusal(refuse)
+      const theirs = query.getAll('pokemon_id').map(Number)
+      const counter: FindCounterTeamResponse = catalog
+        .filter((pokemon) => !theirs.includes(pokemon.id))
+        .slice(0, theirs.length)
+        .map((pokemon) => ({ pokemon, matchups: [] }))
+      return HttpResponse.json(counter)
+    }),
+  )
+  return requests
+}
+
+/**
+ * Holds every request for a counter team until `release` is called, then lets the stand-in from
+ * serveCounterTeam answer them. `arrived` counts the requests the app has sent so far. Call it
+ * after serveCounterTeam, so it comes first.
+ */
+export function holdCounterTeams() {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let arrived = 0
+  server.use(
+    http.get('/api/counter-team', async () => {
+      arrived += 1
+      await released
+    }),
+  )
+  return { release, arrived: () => arrived }
 }

@@ -16,10 +16,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { paths } from '@/config/paths'
 import { useDebouncedSearch } from '@/hooks/use-debounced-search'
+import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 import type { TeamsFilters, TeamsView } from '../hooks/use-teams-filters'
 import { useTeamsList } from '../hooks/use-teams-list'
+import { CounterTeamButton } from './counter-team-button'
 import { NewTeamButton } from './new-team-button'
 import { TeamCard } from './team-card'
 
@@ -38,6 +40,7 @@ type TeamsGridProps = {
 export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: TeamsGridProps) {
   const search = useDebouncedSearch(filters.search)
   const teams = useTeamsList({ ...filters, search }, owner)
+  const signedInAs = useCurrentUser().data?.username
 
   // The status comes first in each case below, from the first load on, so it stays the same
   // element as they change: a status that appears with words in it often isn't read out.
@@ -118,6 +121,11 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
                 members={team.members}
                 // Everyone's teams say whose each is; your own don't need to.
                 note={owner === undefined ? m.team_by({ username: team.owner.username }) : undefined}
+                // Someone else's, with Pokémon to counter.
+                action={
+                  team.owner.username !== signedInAs &&
+                  team.members.length > 0 && <CounterTeamButton team={team} />
+                }
               />
             </DealtInItem>
           )),

@@ -22,6 +22,7 @@ import { useTeam } from '../hooks/use-team'
 import { useTeamEditor } from '../hooks/use-team-editor'
 import { BackLink } from './back-link'
 import { BuildYourOwnTeam } from './build-your-own-team'
+import { CounterTeamButton } from './counter-team-button'
 import { TeamBuilder } from './team-builder'
 import { TeamMenu } from './team-menu'
 import { TeamModeToggle } from './team-mode-toggle'
@@ -86,11 +87,8 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
         <TeamParty
           team={team.data}
           onOpenPokemon={onOpenPokemon}
-          back={
-            <BackLink to={paths.home.getHref()}>
-              {m.teams_everyones()}
-            </BackLink>
-          }
+          back={<BackLink to={paths.home.getHref()}>{m.teams_everyones()}</BackLink>}
+          actions={team.data.members.length > 0 && <CounterTeamButton team={team.data} />}
         />
         <BuildYourOwnTeam />
       </>

@@ -12,6 +12,7 @@ import {
   holdNextCurrentUser,
   holdTeamChanges,
   holdTeamFetches,
+  serveCounterTeam,
   servePokemon,
   servePokemonChanges,
   servePokemonDetails,
@@ -98,6 +99,7 @@ describe('TeamPage, for the team’s owner', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove Charmander' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Build your own team' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Build a counter/ })).not.toBeInTheDocument()
 
     await user.click(edit)
 
@@ -467,8 +469,11 @@ describe.each([
       )
       expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute('href', '/')
       expect(screen.queryByRole('link', { name: 'My teams' })).not.toBeInTheDocument()
-      // Each member opens its details, and that's all there is to press.
-      expect(screen.getAllByRole('button')).toEqual([
+      // Besides building a counter to the team, each member opens its details, and that's all
+      // there is to press.
+      expect(
+        screen.getAllByRole('button', { name: (name) => name !== 'Build a counter to Team 1' }),
+      ).toEqual([
         screen.getByRole('button', { name: 'Charmander' }),
         screen.getByRole('button', { name: 'Pikachu' }),
       ])
@@ -478,6 +483,52 @@ describe.each([
       expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
     },
   )
+})
+
+describe('TeamPage, to counter someone else’s team', () => {
+  it('builds a counter from beside the team’s name, then opens it to edit', async () => {
+    serveSession({ signedIn: MISTY })
+    const api = serveTeams({
+      teams: [makeTeam({ pokemon: [charmander, pikachu] })],
+      catalog: CATALOG,
+      signedIn: MISTY,
+    })
+    const counters = serveCounterTeam({ catalog: [lapras, snorlax, gengar] })
+    browse([])
+    const { user, router } = renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    await user.click(screen.getByRole('button', { name: 'Build a counter to Team 1' }))
+
+    expect(await screen.findByRole('textbox', { name: 'Team name' })).toHaveValue(
+      'Counter to Team 1',
+    )
+    expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/)
+    expect(counters).toEqual([`pokemon_id=${charmander.id}&pokemon_id=${pikachu.id}`])
+    expect(memberIds(api.teams()[0])).toEqual([lapras.id, snorlax.id])
+  })
+
+  it('links someone signed out to signing in first, then back to the team', async () => {
+    serveSession()
+    serveTeams({ teams: [makeTeam({ pokemon: [charmander] })], catalog: CATALOG })
+
+    renderTeam()
+
+    expect(await screen.findByRole('link', { name: 'Build a counter to Team 1' })).toHaveAttribute(
+      'href',
+      `/sign-in?next=${encodeURIComponent(VIEW)}`,
+    )
+  })
+
+  it('offers no counter to a team with no Pokémon', async () => {
+    serveSession({ signedIn: MISTY })
+    serveTeams({ teams: [makeTeam()], catalog: CATALOG })
+
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    expect(screen.queryByRole('button', { name: /Build a counter/ })).not.toBeInTheDocument()
+  })
 })
 
 describe('TeamPage, as a party', () => {

@@ -4,7 +4,12 @@ import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
-import { holdNextCurrentUser, serveSession, serveTeams } from '@/test/handlers'
+import {
+  holdNextCurrentUser,
+  serveCounterTeam,
+  serveSession,
+  serveTeams,
+} from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
@@ -272,6 +277,40 @@ describe('TeamsPage, signed in', () => {
 
     expect(await screen.findByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
+
+  it('offers to counter everyone’s teams but your own', async () => {
+    serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+    const { user } = await renderTeams()
+
+    const rain = await screen.findByRole('article', { name: 'Rain' })
+    expect(within(rain).getByRole('button', { name: 'Build a counter to Rain' })).toBeVisible()
+    const fire = screen.getByRole('article', { name: 'Fire' })
+    expect(within(fire).queryByRole('button')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'My teams' }))
+
+    const mine = await screen.findByRole('list', { name: 'My teams' })
+    expect(within(mine).getAllByRole('article')).toHaveLength(2)
+    expect(within(mine).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('builds a counter to a team from its card, then opens it to edit', async () => {
+    const api = serveTeams({ teams: [RAIN], catalog: Object.values(catalog), signedIn: ASH })
+    const counters = serveCounterTeam({ catalog: [catalog.pikachu] })
+    const { user, router } = await renderTeams()
+
+    await user.click(await screen.findByRole('button', { name: 'Build a counter to Rain' }))
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/),
+    )
+    expect(counters).toEqual([`pokemon_id=${catalog.vaporeon.id}`])
+    expect(api.teams()[0]).toMatchObject({
+      name: 'Counter to Rain',
+      owner: { username: ASH.username },
+      members: [asMember(catalog.pikachu, 0)],
+    })
+  })
 })
 
 describe.each([
@@ -314,6 +353,18 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(screen.getByRole('link', { name: /^Fire 1 of 6 by ash/ })).toHaveAttribute(
       'href',
       `/teams/${FIRE.id}`,
+    )
+  })
+
+  it('offers to sign in to counter a team, then come back', async () => {
+    serveTeams({ teams: [RAIN] })
+
+    await renderTeams('/?q=rain')
+
+    const rain = await screen.findByRole('article', { name: 'Rain' })
+    expect(within(rain).getByRole('link', { name: 'Build a counter to Rain' })).toHaveAttribute(
+      'href',
+      '/sign-in?next=%2F%3Fq%3Drain',
     )
   })
 

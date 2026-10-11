@@ -104,8 +104,9 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
         <div id={powerId} className="min-w-0 flex-1">
           <TeamPower members={members} />
         </div>
-        {/* Over the link, so it can be pressed on its own. */}
-        {action && <div className="relative z-10 shrink-0">{action}</div>}
+        {/* Over the link, so it can be pressed on its own. A button overhangs the power's row
+            rather than making the card taller than one without. */}
+        {action && <div className="relative z-10 -my-1.5 shrink-0">{action}</div>}
       </div>
     </article>
   )

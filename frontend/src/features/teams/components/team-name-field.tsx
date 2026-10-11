@@ -2,8 +2,7 @@ import { type FormEvent, useState } from 'react'
 
 import { m } from '@/paraglide/messages.js'
 
-// As the API allows: 1 to 40 characters once spaces at either end are trimmed.
-const MAX_NAME_LENGTH = 40
+import { MAX_TEAM_NAME_LENGTH } from '../utils/team-name'
 
 type TeamNameFieldProps = { name: string; onRename: (name: string) => void }
 
@@ -36,7 +35,7 @@ export function TeamNameField({ name, onRename }: TeamNameFieldProps) {
           name="name"
           aria-label={m.team_name_label()}
           value={shown}
-          maxLength={MAX_NAME_LENGTH}
+          maxLength={MAX_TEAM_NAME_LENGTH}
           onFocus={() => {
             setDraft(name)
             setEditing(true)
