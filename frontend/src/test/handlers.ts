@@ -162,11 +162,11 @@ function newestFirst(one: Team, other: Team) {
 /**
  * Stands in for the API's teams and remembers them: `teams` to begin with, then each change.
  * `catalog` is every Pokémon it knows, and `signedIn` whoever sends the changes. Like the API,
- * it lists everyone's teams that have a Pokémon, `pageSize` at a time; lets only a team's owner
- * change it; and refuses a seventh member, a second Pokémon from one evolution family and an
- * out-of-date order.
- * Returns the changes it was asked for, in order; the query string of each request for the list of
- * everyone's teams, in order; and its teams as they now are, most recently changed first.
+ * it lists everyone's teams that have a Pokémon, or one trainer's (`owner`) with empty ones too,
+ * `pageSize` at a time; lets only a team's owner change it; and refuses a seventh member, a second
+ * Pokémon from one evolution family and an out-of-date order.
+ * Returns the changes it was asked for, in order; the query string of each request for a list of
+ * teams, in order; and its teams as they now are, most recently changed first.
  */
 export function serveTeams({
   teams: initial = [],
@@ -212,7 +212,14 @@ export function serveTeams({
       listQueries.push(query.toString())
       const limit = Number(query.get('limit') ?? pageSize)
       const cursor = query.get('cursor')
-      const listed = teams.filter((each) => each.members.length > 0).sort(newestFirst)
+      const owner = query.get('owner')?.toLowerCase()
+      const listed = teams
+        .filter((each) =>
+          owner === undefined
+            ? each.members.length > 0
+            : each.owner.username.toLowerCase() === owner,
+        )
+        .sort(newestFirst)
       const after = cursor === null ? -1 : listed.findIndex((each) => each.id === cursor)
       // A cursor that no team has gives an empty page.
       const start = cursor !== null && after === -1 ? listed.length : after + 1

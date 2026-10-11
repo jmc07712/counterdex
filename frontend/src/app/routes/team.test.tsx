@@ -92,8 +92,8 @@ describe('TeamPage, for the team’s owner', () => {
     expect(edit).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
     // Back to the owner's teams, as from Edit.
-    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/')
-    expect(screen.queryByRole('link', { name: 'Explore teams' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'Everyone’s teams' })).not.toBeInTheDocument()
     expect(slotRows()[0]).toHaveTextContent('Lead')
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove Charmander' })).not.toBeInTheDocument()
@@ -157,7 +157,7 @@ describe('TeamPage, for the team’s owner', () => {
     const view = screen.getByRole('link', { name: 'View' })
     expect(view).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/')
 
     await user.click(view)
 
@@ -461,7 +461,11 @@ describe.each([
       expect(rows).toHaveLength(6)
       expect(rows[0]).toHaveTextContent('Charmander')
       expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
-      expect(screen.getByRole('link', { name: 'Explore teams' })).toHaveAttribute('href', '/explore')
+      expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute(
+        'href',
+        '/?scope=everyone',
+      )
+      expect(screen.queryByRole('link', { name: 'My teams' })).not.toBeInTheDocument()
       // Each member opens its details, and that's all there is to press.
       expect(screen.getAllByRole('button')).toEqual([
         screen.getByRole('button', { name: 'Charmander' }),
@@ -584,7 +588,7 @@ describe('TeamPage, for anyone', () => {
     renderTeam()
 
     expect(await screen.findByText('This team doesn’t exist')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'All teams' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Go to Teams' })).toHaveAttribute('href', '/')
   })
 
   it('says when the team couldn’t load, and tries again', async () => {

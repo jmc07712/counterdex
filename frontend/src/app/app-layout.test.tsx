@@ -15,7 +15,7 @@ describe('AppLayout', () => {
     serveSyncStatus({ last_synced_at: THREE_HOURS_AGO, latest_run: null })
   })
 
-  it.each(['/', '/explore', '/teams/42'])(
+  it.each(['/', '/teams/42', '/sign-in'])(
     'shows how fresh the Pokédex data is in the header at %s',
     async (path) => {
       renderRoutes(routes, { path })

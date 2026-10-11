@@ -1,5 +1,5 @@
 import { UsersRound } from 'lucide-react'
-import { Link } from 'react-router'
+import { useRef } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -7,34 +7,42 @@ import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
 import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
 import { NewTeamButton } from '@/features/teams/components/new-team-button'
-import { TeamList } from '@/features/teams/components/team-list'
+import { TeamsFilters } from '@/features/teams/components/teams-filters'
+import { TeamsGrid } from '@/features/teams/components/teams-grid'
+import { NO_FILTERS, useTeamsFilters } from '@/features/teams/hooks/use-teams-filters'
 import { useUserTeams } from '@/features/teams/hooks/use-user-teams'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 export function TeamsPage() {
   const currentUser = useCurrentUser()
-  const username = currentUser.data?.username
-  const teams = useUserTeams(username)
-  // With no teams yet, the list's own empty state has the button.
-  const hasTeams = teams.data !== undefined && teams.data.length > 0
+  const user = currentUser.data
+  const [filters, setFilters] = useTeamsFilters({ signedIn: Boolean(user) })
+  // How many teams you have, to name the next one.
+  const teamCount = useUserTeams(user?.username).data?.length
+  const search = useRef<HTMLInputElement>(null)
+
+  function clearFilters() {
+    setFilters({ ...filters, ...NO_FILTERS })
+    // Clear filters goes with the empty state it's in, so focus moves to the search.
+    search.current?.focus()
+  }
+
+  function showEveryone() {
+    setFilters({ ...filters, scope: 'everyone' })
+    // As with Clear filters, the button goes with the empty state it's in.
+    search.current?.focus()
+  }
+
+  // With no teams yet, the empty state of your own teams has the button instead.
+  const offerNewTeam = teamCount !== undefined && (teamCount > 0 || filters.scope === 'everyone')
 
   return (
     <>
       <PageHeader
         title={m.teams_title()}
-        description={
-          <>
-            {m.teams_description()}{' '}
-            <Link
-              to={paths.explore.getHref()}
-              className="font-medium text-foreground underline underline-offset-4 hover:text-brand-deep"
-            >
-              {m.teams_explore_link()}
-            </Link>
-          </>
-        }
-        action={hasTeams && <NewTeamButton teamCount={teams.data.length} />}
+        description={m.teams_description()}
+        action={offerNewTeam && <NewTeamButton teamCount={teamCount} />}
       />
       {currentUser.isError && (
         <Alert variant="destructive">
@@ -47,14 +55,32 @@ export function TeamsPage() {
           </AlertAction>
         </Alert>
       )}
-      {username && <TeamList username={username} />}
-      {currentUser.data === null && (
-        <SignInPrompt
-          icon={<UsersRound />}
-          title={m.teams_sign_in_title()}
-          description={m.teams_sign_in_description()}
-          next={paths.home.getHref()}
-        />
+      {user === null && (
+        <div className="mb-6">
+          <SignInPrompt
+            icon={<UsersRound />}
+            title={m.teams_sign_in_title()}
+            description={m.teams_sign_in_description()}
+            next={paths.home.getHref()}
+          />
+        </div>
+      )}
+      {/* Only once it's known who's signed in, so it never shows the wrong teams first. */}
+      {user !== undefined && (
+        <>
+          <TeamsFilters
+            filters={filters}
+            onChange={setFilters}
+            showScope={user !== null}
+            searchRef={search}
+          />
+          <TeamsGrid
+            filters={filters}
+            owner={filters.scope === 'mine' ? user?.username : undefined}
+            onClearFilters={clearFilters}
+            onShowEveryone={showEveryone}
+          />
+        </>
       )}
     </>
   )

@@ -6,7 +6,6 @@
   "nav_primary": "Primary",
   "nav_pokedex": "Pokédex",
   "nav_teams": "Teams",
-  "nav_explore": "Explore",
   "nav_api": "API",
   "nav_sign_in": "Sign in",
   "nav_opens_in_new_tab": "(opens in a new tab)",
@@ -31,20 +30,134 @@
   "not_found_go_to_pokedex": "Go to the Pokédex",
   "pokedex_title": "Pokédex",
   "pokedex_description": "Every Pokémon with its types and base stats. Search, filter, and add any of them to a team.",
-  "teams_title": "Your teams",
-  "teams_description": "Up to six Pokémon each, in battle order. Anyone can see your teams on Explore, but only you can change them.",
-  "teams_explore_link": "See what other trainers have built",
+  "teams_title": "Teams",
+  "teams_description": "Up to six Pokémon each, in battle order. Anyone can see your teams, but only you can change them.",
   "teams_session_check_failed": "Couldn’t check whether you’re signed in",
   "teams_sign_in_title": "Sign in to build teams",
   "teams_sign_in_description": "Teams are saved to your account, so you’ll need one.",
   "teams_new": "New team",
   "teams_creating": "Creating…",
-  "teams_empty_title": "Build your first team",
-  "teams_empty_description": "Pick up to six Pokémon and put them in battle order.",
-  "teams_loading": "Loading your teams",
-  "teams_load_failed": "Couldn’t load your teams",
-  "team_all_teams": "All teams",
-  "team_explore_teams": "Explore teams",
+  "teams_mine": "My teams",
+  "teams_everyones": "Everyone’s teams",
+  "teams_loading": "Loading teams",
+  "teams_load_failed": "Couldn’t load teams",
+  "teams_empty_title": "No teams yet",
+  "teams_empty_description": [
+    {
+      "declarations": [
+        "input scope"
+      ],
+      "selectors": [
+        "scope"
+      ],
+      "match": {
+        "scope=mine": "Pick up to six Pokémon and put them in battle order.",
+        "scope=everyone": "Teams show here once they have a Pokémon on them.",
+        "scope=*": "{scope}"
+      }
+    }
+  ],
+  "teams_browse_everyone": "Browse everyone’s teams",
+  "teams_shown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} team shown",
+        "countPlural=other": "{shown} teams shown"
+      }
+    }
+  ],
+  "teams_shown_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{shown} team shown, more to load",
+        "countPlural=other": "{shown} teams shown, more to load"
+      }
+    }
+  ],
+  "teams_search": "Search teams, trainers or Pokémon",
+  "teams_scope_label": "Show",
+  "teams_scope_option": [
+    {
+      "declarations": [
+        "input scope"
+      ],
+      "selectors": [
+        "scope"
+      ],
+      "match": {
+        "scope=mine": "My teams",
+        "scope=everyone": "Everyone",
+        "scope=*": "{scope}"
+      }
+    }
+  ],
+  "teams_scope_info_label": "About what’s shown",
+  "teams_scope_info": "My teams is every team you’ve built, empty ones too. Everyone is every trainer’s teams that have a Pokémon, yours among them.",
+  "teams_view_label": "View",
+  "teams_view_option": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "All",
+        "view=changed": "Changed this week",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "teams_view_info_label": "About views",
+  "teams_view_info": "All is every team. Changed this week is the teams with a Pokémon a sync changed in the last week.",
+  "teams_types_info": "Teams with a Pokémon of every type you pick, on one Pokémon or several. Pick as many types as you like.",
+  "teams_nothing_found_title": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "No teams match these filters",
+        "view=changed": "No recent changes",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "teams_nothing_found_description": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "Try a shorter search, or fewer types.",
+        "view=changed": "No sync has changed a Pokémon on these teams in the last week.",
+        "view=*": "{view}"
+      }
+    }
+  ],
   "team_default_name": "Team {number}",
   "team_member_count": "{count} of {max}",
   "team_name_label": "Team name",
@@ -85,6 +198,7 @@
   "team_deleted": "Deleted {name}",
   "team_not_found_title": "This team doesn’t exist",
   "team_not_found_description": "It may have been deleted.",
+  "team_go_to_teams": "Go to Teams",
   "team_load_failed": "Couldn’t load this team",
   "team_add_pokemon": "Add Pokémon",
   "team_browser_description": "Choose Pokémon for {team}.",
@@ -132,94 +246,6 @@
         "problem=not_found": "This team changed somewhere else, so it’s been reloaded.",
         "problem=failed": "Couldn’t save that change. Check your connection and try again.",
         "problem=*": "{problem}"
-      }
-    }
-  ],
-  "explore_title": "Explore teams",
-  "explore_description": "Every team with a Pokémon on it, newest first. Open one to see it slot by slot.",
-  "explore_loading": "Loading teams",
-  "explore_load_failed": "Couldn’t load teams",
-  "explore_empty_title": "No teams yet",
-  "explore_empty_description": "Teams show here once they have a Pokémon on them.",
-  "explore_shown": [
-    {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural",
-        "local shown = count: number"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
-      "match": {
-        "countPlural=one": "{shown} team shown",
-        "countPlural=other": "{shown} teams shown"
-      }
-    }
-  ],
-  "explore_shown_more": [
-    {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural",
-        "local shown = count: number"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
-      "match": {
-        "countPlural=one": "{shown} team shown, more to load",
-        "countPlural=other": "{shown} teams shown, more to load"
-      }
-    }
-  ],
-  "explore_search": "Search teams, trainers or Pokémon",
-  "explore_view_label": "View",
-  "explore_view_option": [
-    {
-      "declarations": [
-        "input view"
-      ],
-      "selectors": [
-        "view"
-      ],
-      "match": {
-        "view=all": "All teams",
-        "view=changed": "Changed this week",
-        "view=*": "{view}"
-      }
-    }
-  ],
-  "explore_view_info_label": "About views",
-  "explore_view_info": "All teams is every team with a Pokémon on it. Changed this week is the teams with a Pokémon a sync changed in the last week.",
-  "explore_types_info": "Teams with a Pokémon of every type you pick, on one Pokémon or several. Pick as many types as you like.",
-  "explore_nothing_found_title": [
-    {
-      "declarations": [
-        "input view"
-      ],
-      "selectors": [
-        "view"
-      ],
-      "match": {
-        "view=all": "No teams match these filters",
-        "view=changed": "No recent changes",
-        "view=*": "{view}"
-      }
-    }
-  ],
-  "explore_nothing_found_description": [
-    {
-      "declarations": [
-        "input view"
-      ],
-      "selectors": [
-        "view"
-      ],
-      "match": {
-        "view=all": "Try a shorter search, or fewer types.",
-        "view=changed": "No sync has changed a Pokémon on these teams in the last week.",
-        "view=*": "{view}"
       }
     }
   ],

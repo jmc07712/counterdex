@@ -3,7 +3,6 @@ import {
   ArrowUpRight,
   BookOpenText,
   CircleUserRound,
-  Compass,
   LayoutGrid,
   type LucideIcon,
   UsersRound,
@@ -36,12 +35,6 @@ const primaryNav: NavItem[] = [
     label: m.nav_teams,
     icon: UsersRound,
     sections: [paths.home.path, paths.team.path, paths.teamEdit.path],
-  },
-  {
-    to: paths.explore.getHref(),
-    label: m.nav_explore,
-    icon: Compass,
-    sections: [paths.explore.path],
   },
   {
     to: paths.pokedex.getHref(),
@@ -160,7 +153,7 @@ export function AppShell({ status }: AppShellProps) {
           'data-[state=hidden]:not-has-focus-visible:translate-y-full',
         )}
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-4">
           {primaryNav.map((item) => (
             <li key={item.to}>
               <TabLink item={item} />

@@ -1,4 +1,4 @@
-import { Compass, SearchX } from 'lucide-react'
+import { Compass, SearchX, UsersRound } from 'lucide-react'
 
 import { DealtInItem } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
@@ -18,25 +18,29 @@ import { paths } from '@/config/paths'
 import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { m } from '@/paraglide/messages.js'
 
-import type { ExploreFilters, ExploreView } from '../hooks/use-explore-filters'
-import { useExploreTeams } from '../hooks/use-explore-teams'
+import type { TeamsFilters, TeamsView } from '../hooks/use-teams-filters'
+import { useTeamsList } from '../hooks/use-teams-list'
+import { NewTeamButton } from './new-team-button'
 import { TeamCard } from './team-card'
 
 const GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
-type ExploreTeamsProps = {
-  filters: ExploreFilters
+type TeamsGridProps = {
+  filters: TeamsFilters
+  // The trainer whose teams to show, empty ones too, or no one for everyone's.
+  owner: string | undefined
   onClearFilters: () => void
+  onShowEveryone: () => void
 }
 
-/** Everyone's teams that match `filters`, each by its owner, with more a page at a time. */
-export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
+/** The teams that match `filters`, with more a page at a time. */
+export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: TeamsGridProps) {
   const search = useDebouncedSearch(filters.search)
-  const teams = useExploreTeams({ ...filters, search })
+  const teams = useTeamsList({ ...filters, search }, owner)
 
   if (teams.isPending) {
     return (
-      <ul aria-label={m.explore_loading()} className={GRID}>
+      <ul aria-label={m.teams_loading()} className={GRID}>
         {[0, 1, 2].map((each) => (
           <li key={each}>
             {/* As tall as a card with one row of types. */}
@@ -50,7 +54,7 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
   if (teams.isError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>{m.explore_load_failed()}</AlertTitle>
+        <AlertTitle>{m.teams_load_failed()}</AlertTitle>
         <AlertDescription>{m.common_check_connection()}</AlertDescription>
         <AlertAction>
           <Button variant="outline" size="sm" onClick={() => void teams.refetch()}>
@@ -68,17 +72,24 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
 
   if (shown === 0) {
     const filtered = search !== '' || filters.types.length > 0 || filters.view !== 'all'
-    return filtered ? (
+    if (filtered) {
+      return (
+        <>
+          <ResultsStatus settled={settled}>
+            {m.teams_nothing_found_title({ view: filters.view })}
+          </ResultsStatus>
+          <NoTeamsMatch view={filters.view} onClearFilters={onClearFilters} />
+        </>
+      )
+    }
+    return (
       <>
-        <ResultsStatus settled={settled}>
-          {m.explore_nothing_found_title({ view: filters.view })}
-        </ResultsStatus>
-        <NoTeamsMatch view={filters.view} onClearFilters={onClearFilters} />
-      </>
-    ) : (
-      <>
-        <ResultsStatus settled={settled}>{m.explore_empty_title()}</ResultsStatus>
-        <NoTeamsYet />
+        <ResultsStatus settled={settled}>{m.teams_empty_title()}</ResultsStatus>
+        {owner === undefined ? (
+          <NoTeamsYet />
+        ) : (
+          <NoTeamsOfYourOwn onShowEveryone={onShowEveryone} />
+        )}
       </>
     )
   }
@@ -86,12 +97,10 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
   return (
     <>
       <ResultsStatus settled={settled}>
-        {teams.hasNextPage
-          ? m.explore_shown_more({ count: shown })
-          : m.explore_shown({ count: shown })}
+        {teams.hasNextPage ? m.teams_shown_more({ count: shown }) : m.teams_shown({ count: shown })}
       </ResultsStatus>
       <ul
-        aria-label={m.explore_title()}
+        aria-label={owner === undefined ? m.teams_everyones() : m.teams_mine()}
         aria-busy={teams.isPlaceholderData}
         className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
       >
@@ -102,7 +111,8 @@ export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
                 to={paths.team.getHref(team.id)}
                 name={team.name}
                 members={team.members}
-                note={m.team_by({ username: team.owner.username })}
+                // Everyone's teams say whose each is; your own don't need to.
+                note={owner === undefined ? m.team_by({ username: team.owner.username }) : undefined}
               />
             </DealtInItem>
           )),
@@ -125,22 +135,42 @@ function NoTeamsYet() {
         <EmptyMedia variant="icon">
           <Compass />
         </EmptyMedia>
-        <EmptyTitle>{m.explore_empty_title()}</EmptyTitle>
-        <EmptyDescription>{m.explore_empty_description()}</EmptyDescription>
+        <EmptyTitle>{m.teams_empty_title()}</EmptyTitle>
+        <EmptyDescription>{m.teams_empty_description({ scope: 'everyone' })}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   )
 }
 
-function NoTeamsMatch({ view, onClearFilters }: { view: ExploreView; onClearFilters: () => void }) {
+function NoTeamsOfYourOwn({ onShowEveryone }: { onShowEveryone: () => void }) {
+  return (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <UsersRound />
+        </EmptyMedia>
+        <EmptyTitle>{m.teams_empty_title()}</EmptyTitle>
+        <EmptyDescription>{m.teams_empty_description({ scope: 'mine' })}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent className="flex-row flex-wrap justify-center gap-2">
+        <NewTeamButton teamCount={0} />
+        <Button variant="outline" onClick={onShowEveryone}>
+          {m.teams_browse_everyone()}
+        </Button>
+      </EmptyContent>
+    </Empty>
+  )
+}
+
+function NoTeamsMatch({ view, onClearFilters }: { view: TeamsView; onClearFilters: () => void }) {
   return (
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <SearchX />
         </EmptyMedia>
-        <EmptyTitle>{m.explore_nothing_found_title({ view })}</EmptyTitle>
-        <EmptyDescription>{m.explore_nothing_found_description({ view })}</EmptyDescription>
+        <EmptyTitle>{m.teams_nothing_found_title({ view })}</EmptyTitle>
+        <EmptyDescription>{m.teams_nothing_found_description({ view })}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <Button variant="outline" onClick={onClearFilters}>

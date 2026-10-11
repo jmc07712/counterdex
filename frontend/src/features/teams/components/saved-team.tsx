@@ -71,7 +71,7 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
         </EmptyHeader>
         <EmptyContent>
           <Button asChild variant="outline">
-            <Link to={paths.home.getHref()}>{m.team_all_teams()}</Link>
+            <Link to={paths.home.getHref()}>{m.team_go_to_teams()}</Link>
           </Button>
         </EmptyContent>
       </Empty>
@@ -86,14 +86,18 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
         <TeamParty
           team={team.data}
           onOpenPokemon={onOpenPokemon}
-          back={<BackLink to={paths.explore.getHref()}>{m.team_explore_teams()}</BackLink>}
+          back={
+            <BackLink to={paths.home.getHref({ scope: 'everyone' })}>
+              {m.teams_everyones()}
+            </BackLink>
+          }
         />
         <BuildYourOwnTeam />
       </>
     )
   }
   // The owner's way back is to their own teams, from either mode.
-  const back = <BackLink to={paths.home.getHref()}>{m.team_all_teams()}</BackLink>
+  const back = <BackLink to={paths.home.getHref()}>{m.teams_mine()}</BackLink>
   if (mode === 'edit') return <SavedTeamBuilder team={team.data} back={back} />
   return (
     <TeamParty
