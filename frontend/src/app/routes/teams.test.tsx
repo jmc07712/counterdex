@@ -1,9 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveSession, serveTeams } from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
-import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
+import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
 import { TeamsPage } from './teams'
@@ -62,6 +63,33 @@ describe('TeamsPage', () => {
     expect(cards[0]).toHaveAttribute('href', `/teams/${TEAM_ID}`)
     expect(cards[0]).toHaveTextContent('Fire')
     expect(within(cards[0]).getByText('1 of 6')).toBeInTheDocument()
+  })
+
+  it('shows each team as six tiles: its members, in their types, then its empty slots', async () => {
+    serveSession({ signedIn: ASH })
+    serveTeams({
+      teams: [
+        makeTeam({
+          members: [
+            asMember(catalog.charizard, 0),
+            { ...asMember(catalog.pikachu, 1), removed_at: '2026-10-11T09:00:00Z' },
+          ],
+        }),
+      ],
+    })
+
+    renderWithProviders(<TeamsPage />)
+
+    const card = await screen.findByRole('link', { name: /Team 1/ })
+    // Decoration: the link names the team, so its tiles are hidden from assistive technology.
+    const tiles = within(card).getAllByRole('listitem', { hidden: true })
+    expect(tiles).toHaveLength(6)
+    expect(tiles[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
+    expect(tiles[0].querySelector('img')).toBeInTheDocument()
+    // No longer in the Pokédex, so not painted in its type, but still there.
+    expect(tiles[1]).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
+    expect(tiles[1].querySelector('img')).toBeInTheDocument()
+    for (const empty of tiles.slice(2)) expect(empty.querySelector('img')).not.toBeInTheDocument()
   })
 
   it.each([
