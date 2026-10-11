@@ -94,7 +94,9 @@ The sync adds:
   `q` matches a team's name, its owner's username or a member's name, ignoring case; `type`,
   repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
   week; `owner` keeps one user's teams, including those with no Pokémon yet unless another filter
-  needs one. Filters combine.
+  needs one. Filters combine. `sort=power` orders by the sum of the members' base stats instead,
+  worked out on read from current stats, so no index serves it and each page reads every
+  matching team.
 
 ## Atomicity and races
 
