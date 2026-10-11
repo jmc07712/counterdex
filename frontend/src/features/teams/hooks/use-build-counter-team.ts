@@ -5,7 +5,10 @@ import { findCounterTeam, type Team } from '@/api'
 import { counterTeamName } from '../utils/team-name'
 import { useCreateTeam } from './use-create-team'
 
-/** The API's 503 for a counter team: no sync has stored what it's worked out from yet. */
+/**
+ * The API's 503 for a counter team: no sync has stored enough to find one yet, whether the type
+ * chart or enough Pokémon to choose from.
+ */
 export class PokedexNotSyncedError extends Error {}
 
 type CounterTo = {
