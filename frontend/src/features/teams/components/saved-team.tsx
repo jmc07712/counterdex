@@ -19,28 +19,24 @@ import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 import { useTeam } from '../hooks/use-team'
-import { useTeamEditor } from '../hooks/use-team-editor'
 import { BackLink } from './back-link'
 import { BuildYourOwnTeam } from './build-your-own-team'
 import { CounterTeamButton } from './counter-team-button'
-import { TeamBuilder } from './team-builder'
-import { TeamMenu } from './team-menu'
-import { TeamModeToggle } from './team-mode-toggle'
 import { TeamParty } from './team-party'
 
 type SavedTeamProps = {
   teamId: string
-  // Its party, or its builder; only its owner gets the builder.
-  mode: 'view' | 'edit'
-  // Opens a member's details.
+  // Opens a member's details from the party.
   onOpenPokemon: (pokemonId: number) => void
+  // What the team's owner sees of it, such as its party or its builder.
+  children: (team: Team) => ReactNode
 }
 
 /**
- * A team, by id, as its party. Its owner can switch to editing it in the builder; everyone else
- * sees its party in either mode.
+ * A team, by id, once it has loaded. Its owner sees `children`; everyone else sees its party, with
+ * a way to build a team of their own.
  */
-export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
+export function SavedTeam({ teamId, onOpenPokemon, children }: SavedTeamProps) {
   const team = useTeam(teamId)
   const currentUser = useCurrentUser()
 
@@ -94,32 +90,5 @@ export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
       </>
     )
   }
-  // The owner's way back is to their own teams, from either mode.
-  const back = <BackLink to={paths.home.getHref({ scope: 'mine' })}>{m.teams_mine()}</BackLink>
-  if (mode === 'edit') return <SavedTeamBuilder team={team.data} back={back} />
-  return (
-    <TeamParty
-      team={team.data}
-      onOpenPokemon={onOpenPokemon}
-      back={back}
-      actions={<OwnerActions team={team.data} />}
-      emptySlotsTo={paths.teamEdit.getHref(team.data.id)}
-      replaceTo={(pokemonId) => paths.teamEdit.getHref(teamId, { replace: pokemonId })}
-    />
-  )
-}
-
-function SavedTeamBuilder({ team, back }: { team: Team; back: ReactNode }) {
-  const editor = useTeamEditor(team)
-  return <TeamBuilder editor={editor} back={back} actions={<OwnerActions team={team} />} />
-}
-
-// The owner's View / Edit toggle and team menu.
-function OwnerActions({ team }: { team: Team }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1">
-      <TeamModeToggle teamId={team.id} />
-      <TeamMenu team={team} />
-    </div>
-  )
+  return children(team.data)
 }
