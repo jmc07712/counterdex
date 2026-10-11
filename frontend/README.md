@@ -27,18 +27,21 @@ npm run dev        # http://localhost:5173
 
 ```
 src/
-  app/          the router, and the pages in routes/, which compose features
+  app/          the route table, the layout around every page, and the pages in routes/, which
+                compose features
   features/     auth, pokedex, pokemon-details, sync-status and teams, each with the
                 components/, hooks/ and utils/ it needs
   components/   shared UI: ui/ (shadcn), layout/ (the app shell), pokemon/ (cards, badges),
-                filters/ (the search, type and view filters the Pokédex and Explore share)
-                and lists/ (Load more, and the grids' card entrance)
+                filters/ (the search, type and view filters the Pokédex and the Teams page
+                share) and lists/ (Load more, the grids' card entrance, and their results
+                region and status)
   hooks/        shared hooks, such as a debounced search
   lib/          app-wide helpers: who's signed in, the query client, the theme, dates
   config/       page paths
   api/          the generated API client
   paraglide/    the generated messages (not committed)
   test/         the MSW server and handlers, render helpers and test data
+  main.tsx      makes the router from app/'s route table and renders the app
 messages/en.json  the text the app shows
 ```
 
@@ -56,8 +59,9 @@ page that needs two features, such as a team with its Pokémon's details, render
   API, such as types and change kinds, are worded by select messages, and tests check that every
   value has wording.
 - **Keep filters and the open Pokémon in the URL**, so a view can be shared or reloaded: the
-  Pokédex's and Explore's filters (`?q=char&type=fire`), and the Pokémon whose details are open
-  (`?pokemon=6`). Opening a Pokémon adds a history entry, so Back closes it.
+  Pokédex's and the Teams page's filters (`?q=char&type=fire`, `?scope=everyone`), and the
+  Pokémon whose details are open (`?pokemon=6`). Opening a Pokémon adds a history entry, so Back
+  closes it.
 - **Change a team through its hooks.** Each change (`useAddTeamMember`, `useRemoveTeamMember`,
   `useReplaceTeamMember`, `useReorderTeam`, `useRenameTeam`) is built on `useTeamChange`: the team
   shows the change at once, changes to one team share a mutation scope so they're sent one at a
@@ -77,10 +81,10 @@ page that needs two features, such as a team with its Pokémon's details, render
 
 ## The team views
 
-- **Teams** (`/`) lists your teams, and **Explore** (`/explore`) everyone's, searchable and
-  filterable by type and by "Changed this week". Each card shows the team as party tiles, its
-  types and its power, is marked if a member changed recently, and says which member was removed
-  from PokéAPI and when.
+- **Teams** (`/`) lists your teams, empty ones too, or everyone's (`?scope=everyone`, and always
+  when signed out, with each card saying whose it is), searchable and filterable by type and by
+  "Changed this week". Each card shows the team as party tiles, its types and its power, is
+  marked if a member changed recently, and says which member was removed from PokéAPI and when.
 - **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
   order, each slot in its main type's color with its stats, and the team's power, the sum of its
   members' base stat totals. Opening a member shows its details. A removed member is muted, with
@@ -97,8 +101,8 @@ Every page has to work at phone width.
   on any scroll up. A Pokémon's details open as a bottom sheet.
 - Toasts take their distance from the bottom from `--toaster-bottom`: above the tab bar below `md`,
   and sonner's default 24px from `md` up.
-- Below `lg`, the header's sync status is just its light and a short age, though the full words
-  are still read out, and the builder's Pokémon browser opens in a bottom sheet.
+- Below `lg`, the header's sync status is just its light and a short age, or "Failed", though
+  the full words are still read out, and the builder's Pokémon browser opens in a bottom sheet.
 
 ## Tests
 

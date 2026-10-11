@@ -30,9 +30,9 @@ what it fetches, fair use and its safeguards.
 **A change is something users can see.** A Pokémon's tracked fields are its name, types, base
 stats, sprite and default-form flag. A sync records a change, with before and after snapshots,
 when their hash differs or when PokéAPI stops or starts listing the Pokémon. These changes flag
-team members and fill Explore's "Changed this week". Species, evolution families, the type chart
-and the legendary and mythical flags are reference data, overwritten without history, so they
-never flag a team. Team power is always worked out from current stats.
+team members and fill the Teams page's "Changed this week". Species, evolution families, the type
+chart and the legendary and mythical flags are reference data, overwritten without history, so
+they never flag a team. Team power is always worked out from current stats.
 
 **Flag changed members when a team is read, not through a queue.** Each Pokémon keeps when a sync
 last changed it, so every team member comes with `changed_recently`: whether that was in the last
@@ -41,7 +41,8 @@ member shows its change history from `GET /api/pokemon/{id}/changes`. Nothing is
 so nothing goes stale.
 
 **Teams are public; only the owner can change one.** Anyone can open a team, or search and filter
-everyone's in Explore. Every change goes through an owner check that answers 403 to other users.
+everyone's on the Teams page. Every change goes through an owner check that answers 403 to other
+users.
 
 **One Pokémon per evolution family.** Charmander, Charizard and Mega Charizard X can't share a
 team. Each member stores its species and family; a unique `(team_id, family_id)` and a composite
