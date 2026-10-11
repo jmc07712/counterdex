@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import type { ChangeKind, Pokemon, PokemonChange } from '@/api'
@@ -18,6 +18,14 @@ const REWORKED: Pokemon = {
   is_default: false,
   form: 'mega',
   sprite_url: 'https://example.com/10034.png',
+}
+
+// The one-line summary's parts, each as its own item.
+function summaryItems() {
+  const summary = screen.getByRole('list')
+  return within(summary)
+    .getAllByRole('listitem')
+    .map((item) => item.textContent)
 }
 
 function change(kind: ChangeKind, before: Pokemon | null, after: Pokemon | null): PokemonChange {
@@ -60,19 +68,17 @@ describe('ChangeEntry', () => {
 })
 
 describe('ChangeSummary', () => {
-  it('sums up an update on one line: each field it changed, in order', () => {
+  it('sums up an update on one line: each field it changed, as an item of its own, in order', () => {
     const { container } = render(<ChangeSummary change={change('updated', CHARIZARD, REWORKED)} />)
 
-    expect(container).toHaveTextContent(
-      [
-        'Name Charizard → Charizard Mega X',
-        'Types Fire, Flying → Fire, Dragon',
-        'Attack 125 → 130',
-        'Speed 81 → 100',
-        'Form Standard → Mega',
-        'Sprite New image',
-      ].join(''),
-    )
+    expect(summaryItems()).toEqual([
+      'Name Charizard → Charizard Mega X',
+      'Types Fire, Flying → Fire, Dragon',
+      'Attack 125 → 130',
+      'Speed 81 → 100',
+      'Form Standard → Mega',
+      'Sprite New image',
+    ])
     expect(container).not.toHaveTextContent('Updated')
   })
 
@@ -80,10 +86,9 @@ describe('ChangeSummary', () => {
     ['removed', null, 'Removed from PokéAPI'],
     ['restored', REWORKED, 'Back in PokéAPI'],
   ])('sums up a change %s as its kind and date', (kind, after, words) => {
-    const { container } = render(<ChangeSummary change={change(kind, CHARIZARD, after)} />)
+    render(<ChangeSummary change={change(kind, CHARIZARD, after)} />)
 
-    expect(container).toHaveTextContent(`${words}Oct 9, 2026`)
-    expect(container).not.toHaveTextContent('→')
+    expect(summaryItems()).toEqual([words, 'Oct 9, 2026'])
   })
 })
 

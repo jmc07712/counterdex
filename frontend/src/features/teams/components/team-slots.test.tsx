@@ -45,6 +45,13 @@ function slot() {
   return first
 }
 
+// The text of each list item in `slot`: its types, and the parts of its one-line change.
+function listItems(slot: HTMLElement) {
+  return within(slot)
+    .getAllByRole('listitem')
+    .map((item) => item.textContent)
+}
+
 function renderLead(member: TeamMember) {
   renderWithProviders(
     <PartySlots>
@@ -117,7 +124,9 @@ describe('TeamSlot', () => {
 
     const row = renderRow(asMember(charizard, 1))
 
-    await waitFor(() => expect(row).toHaveTextContent('Attack 120 → 125Speed 76 → 81'))
+    await waitFor(() =>
+      expect(listItems(row)).toEqual(expect.arrayContaining(['Attack 120 → 125', 'Speed 76 → 81'])),
+    )
     expect(row).not.toHaveTextContent('Updated')
   })
 
@@ -126,8 +135,9 @@ describe('TeamSlot', () => {
 
     const row = renderRow(asMember(charizard, 1))
 
-    const summary = await within(row).findByText('Back in PokéAPI')
-    expect(summary.parentElement).toHaveTextContent('Back in PokéAPIOct 9, 2026')
+    await waitFor(() =>
+      expect(listItems(row)).toEqual(expect.arrayContaining(['Back in PokéAPI', 'Oct 9, 2026'])),
+    )
   })
 
   it('shows a removed member’s removal once, as the change, without asking for it', async () => {

@@ -1,5 +1,3 @@
-import { Fragment } from 'react'
-
 import { ChangeKind, type Pokemon, type PokemonChange } from '@/api'
 import { formatDate, formatList } from '@/lib/dates'
 import type { Message } from '@/lib/messages'
@@ -79,9 +77,13 @@ export function ChangeEntry({ change, className }: ChangeEntryProps) {
 
 type ChangeSummaryProps = { change: PokemonChange; className?: string }
 
+// A part of a one-line change: inline, after a dot unless it's the first.
+const SUMMARY_ITEM =
+  'inline not-first:before:mx-1.5 not-first:before:inline-block not-first:before:size-1 not-first:before:rounded-full not-first:before:bg-current not-first:before:align-middle'
+
 /**
  * A change on one line, cut short if it doesn't fit: each field an update changed, or a removal's
- * or restoration's kind and date.
+ * or restoration's kind and date. Each is an item of an inline list, with a dot between them.
  */
 export function ChangeSummary({ change, className }: ChangeSummaryProps) {
   const differences =
@@ -89,22 +91,24 @@ export function ChangeSummary({ change, className }: ChangeSummaryProps) {
       ? differencesBetween(change.before, change.after)
       : []
   return (
-    <p className={cn('truncate', className)}>
+    <ul className={cn('truncate', className)}>
       {differences.length > 0 ? (
-        differences.map(({ field, difference }, index) => (
-          <Fragment key={field}>
-            {index > 0 && <Separator />}
+        differences.map(({ field, difference }) => (
+          <li key={field} className={SUMMARY_ITEM}>
             {field} <span className="font-semibold tabular-nums">{difference}</span>
-          </Fragment>
+          </li>
         ))
       ) : (
         <>
-          <span className="font-semibold">{m.changes_kind({ kind: change.kind })}</span>
-          <Separator />
-          <time dateTime={change.detected_at}>{formatDate(change.detected_at)}</time>
+          <li className={cn(SUMMARY_ITEM, 'font-semibold')}>
+            {m.changes_kind({ kind: change.kind })}
+          </li>
+          <li className={SUMMARY_ITEM}>
+            <time dateTime={change.detected_at}>{formatDate(change.detected_at)}</time>
+          </li>
         </>
       )}
-    </p>
+    </ul>
   )
 }
 
@@ -118,16 +122,6 @@ function Differences({ before, after }: { before: Pokemon; after: Pokemon }) {
         </div>
       ))}
     </dl>
-  )
-}
-
-// Between the parts of a one-line change.
-function Separator() {
-  return (
-    <span
-      aria-hidden="true"
-      className="mx-1.5 inline-block size-1 rounded-full bg-current align-middle"
-    />
   )
 }
 
