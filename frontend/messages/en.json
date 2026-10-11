@@ -186,6 +186,24 @@
   "team_remove": "Remove {name}",
   "team_removed_on": "Removed from PokéAPI on {date}",
   "team_member_removed_on": "{name} was removed from PokéAPI on {date}",
+  "team_changed_one": "{name} changed this week",
+  "team_changed_two": "{first} and {second} changed this week",
+  "team_changed_more": [
+    {
+      "declarations": [
+        "input names",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{names} and {count} more changed this week",
+        "countPlural=other": "{names} and {count} more changed this week"
+      }
+    }
+  ],
   "team_replace": "Replace",
   "team_replace_named": "Replace {name}",
   "team_actions": "Team actions",

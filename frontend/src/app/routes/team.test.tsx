@@ -211,6 +211,17 @@ describe('TeamPage, for the team’s owner', () => {
     expect(within(pikachuSlot).getByRole('button', { name: 'Remove Pikachu' })).toBeInTheDocument()
   })
 
+  it('says above the slots it edits which members a sync changed this week', async () => {
+    serveAsh([makeTeam({ pokemon: [{ ...charizard, changed_recently: true }, pikachu] })])
+    browse([])
+
+    renderTeam(EDIT)
+
+    const line = await screen.findByText('Charizard changed this week')
+    const slots = screen.getByRole('list', { name: 'Team, in battle order' })
+    expect(line.compareDocumentPosition(slots)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
   it('adds a Pokémon from the browser beside the team, which stays open', async () => {
     onWideScreen()
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
@@ -598,6 +609,38 @@ describe('TeamPage, as a party', () => {
       expect(row).toHaveTextContent('Empty slot')
       expect(within(row).queryByRole('link')).not.toBeInTheDocument()
     }
+  })
+
+  it('says above its members which of them a sync changed this week', async () => {
+    serveSession()
+    serveTeams({
+      teams: [
+        makeTeam({
+          pokemon: [
+            charizard,
+            { ...pikachu, changed_recently: true },
+            { ...gengar, changed_recently: true },
+          ],
+        }),
+      ],
+      catalog: CATALOG,
+    })
+
+    renderTeam()
+
+    const line = await screen.findByText('Pikachu and Gengar changed this week')
+    const slots = screen.getByRole('list', { name: 'Team, in battle order' })
+    expect(line.compareDocumentPosition(slots)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('says nothing changed this week when no sync changed a member', async () => {
+    serveSession()
+    serveTeams({ teams: [makeTeam({ pokemon: [charizard, pikachu] })], catalog: CATALOG })
+
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    expect(screen.queryByText(/changed this week/)).not.toBeInTheDocument()
   })
 
   it('opens a member’s Pokédex details from its slot, and puts it in the URL', async () => {
