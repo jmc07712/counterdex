@@ -39,6 +39,25 @@ export function formatShortAge(date: Date | string) {
   })
 }
 
+/** "2 min, 5 sec": the time from `start` to `end`, to the nearest second */
+export function formatDuration(start: Date | string, end: Date | string) {
+  const total = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor(total / 60) % 60
+  const seconds = total % 60
+  const parts: string[] = []
+  if (hours > 0) parts.push(formatUnit(hours, 'hour'))
+  if (minutes > 0) parts.push(formatUnit(minutes, 'minute'))
+  if (seconds > 0 || parts.length === 0) parts.push(formatUnit(seconds, 'second'))
+  return formatList(parts)
+}
+
+function formatUnit(amount: number, unit: 'hour' | 'minute' | 'second') {
+  return new Intl.NumberFormat(getLocale(), { style: 'unit', unit, unitDisplay: 'short' }).format(
+    amount,
+  )
+}
+
 /** "Fire, Flying" */
 export function formatList(items: string[]) {
   return new Intl.ListFormat(getLocale(), { type: 'unit', style: 'short' }).format(items)
