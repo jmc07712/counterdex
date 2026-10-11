@@ -30,8 +30,8 @@ export const STATS = [
 ] as const satisfies (keyof Stats)[]
 
 /**
- * Arceus's base stat total. Only some special forms, such as a few Mega Evolutions, go higher.
- * Bars of a total measure against it.
+ * The base stat total that bars of a total measure against. A few special forms, such as some
+ * Mega Evolutions, go past it.
  */
 export const MAX_STAT_TOTAL = 720
 

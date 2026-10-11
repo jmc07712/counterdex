@@ -31,7 +31,7 @@ function ModeLink({ to, icon, children }: ModeLinkProps) {
       className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-sm sm:px-2.5 [&_svg]:size-4"
     >
       {icon}
-      {/* Icons alone on phones, where the header is narrow; the words still name the link. */}
+      {/* Icons alone on phones; the words still name the link. */}
       <span className="sr-only sm:not-sr-only">{children}</span>
     </NavLink>
   )

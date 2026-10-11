@@ -302,8 +302,7 @@ function PanelStats({ stats, className }: StatsProps) {
   )
 }
 
-// The base stat total, with a bar against MAX_STAT_TOTAL, like the HP bar on the games' party
-// screen. A total past it fills the bar.
+// The base stat total, with a bar against MAX_STAT_TOTAL that a total past it fills.
 function TotalBar({ stats }: StatsProps) {
   const total = statTotal(stats)
   return (

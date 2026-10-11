@@ -112,7 +112,7 @@ function SavedTeamBuilder({ team, back }: { team: Team; back: ReactNode }) {
   return <TeamBuilder editor={editor} back={back} actions={<OwnerActions team={team} />} />
 }
 
-// Every change saves at once, so the toggle back to View is the way out of editing.
+// The owner's View / Edit toggle and team menu.
 function OwnerActions({ team }: { team: Team }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
