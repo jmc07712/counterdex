@@ -37,7 +37,7 @@ export function TeamMenu({ team }: { team: Team }) {
     remove.mutate(undefined, {
       onSuccess: () => {
         toast.success(m.team_deleted({ name: team.name }))
-        void navigate(paths.home.getHref())
+        void navigate(paths.home.getHref({ scope: 'mine' }))
       },
       onError: (error) => toast.error(m.team_problem({ problem: teamProblem(error) })),
     })

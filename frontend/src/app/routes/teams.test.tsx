@@ -59,7 +59,7 @@ describe('TeamsPage, signed out', () => {
     serveSession()
   })
 
-  it('asks you to sign in or sign up to build teams, then come back', async () => {
+  it('asks you to sign in or sign up to build teams, then shows you your own', async () => {
     serveTeams()
 
     await renderTeams()
@@ -67,11 +67,11 @@ describe('TeamsPage, signed out', () => {
     expect(screen.getByText('Sign in to build teams')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
-      '/sign-in?next=%2F',
+      '/sign-in?next=%2F%3Fscope%3Dmine',
     )
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
       'href',
-      '/sign-up?next=%2F',
+      '/sign-up?next=%2F%3Fscope%3Dmine',
     )
   })
 
@@ -94,7 +94,8 @@ describe('TeamsPage, before it knows who’s signed in', () => {
     const release = holdNextCurrentUser(ASH)
     const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
 
-    renderWithProviders(<TeamsPage />)
+    // Signed out, this would be everyone's teams.
+    renderWithProviders(<TeamsPage />, { path: '/?scope=mine' })
 
     expect(screen.queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
     expect(screen.queryByText('Sign in to build teams')).not.toBeInTheDocument()
@@ -125,10 +126,21 @@ describe('TeamsPage, signed in', () => {
     serveSession({ signedIn: ASH })
   })
 
-  it('lists your teams, empty ones too, without saying whose they are', async () => {
+  it('opens on everyone’s teams, with a choice of your own', async () => {
     const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
 
     await renderTeams()
+
+    expect(screen.getByRole('radio', { name: 'Everyone' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'My teams' })).not.toBeChecked()
+    expect(await screen.findByRole('list', { name: 'Everyone’s teams' })).toBeInTheDocument()
+    expect(listQueries).toEqual([''])
+  })
+
+  it('lists your teams, empty ones too, without saying whose they are', async () => {
+    const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+
+    await renderTeams('/?scope=mine')
 
     expect(screen.getByRole('heading', { level: 1, name: 'Teams' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'My teams' })).toBeChecked()
@@ -144,39 +156,30 @@ describe('TeamsPage, signed in', () => {
     expect(listQueries).toEqual(['owner=ash'])
   })
 
-  it('switches to everyone’s teams, keeping the choice in the URL', async () => {
+  it('switches to your teams, keeping the choice in the URL', async () => {
     const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT] })
     const { user, router } = await renderTeams()
-    await screen.findByRole('list', { name: 'My teams' })
-
-    await user.click(screen.getByRole('radio', { name: 'Everyone' }))
-
-    const list = await screen.findByRole('list', { name: 'Everyone’s teams' })
-    expect(within(list).getAllByRole('link').map((card) => card.textContent)).toEqual([
+    const everyones = await screen.findByRole('list', { name: 'Everyone’s teams' })
+    expect(within(everyones).getAllByRole('link').map((card) => card.textContent)).toEqual([
       expect.stringContaining('by misty'),
       expect.stringContaining('by ash'),
     ])
-    expect(listQueries).toEqual(['owner=ash', ''])
-    expect(router.state.location.search).toBe('?scope=everyone')
 
     await user.click(screen.getByRole('radio', { name: 'My teams' }))
 
     expect(await screen.findByRole('list', { name: 'My teams' })).toBeInTheDocument()
+    expect(listQueries).toEqual(['', 'owner=ash'])
+    expect(router.state.location.search).toBe('?scope=mine')
+
+    await user.click(screen.getByRole('radio', { name: 'Everyone' }))
+
+    expect(await screen.findByRole('list', { name: 'Everyone’s teams' })).toBeInTheDocument()
     expect(router.state.location.search).toBe('')
-  })
-
-  it('starts from everyone’s teams in the URL', async () => {
-    const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
-
-    await renderTeams('/?scope=everyone')
-
-    expect(screen.getByRole('radio', { name: 'Everyone' })).toBeChecked()
-    await waitFor(() => expect(listQueries).toEqual(['']))
   })
 
   it('filters your teams as it does everyone’s', async () => {
     const { listQueries } = serveTeams({ teams: [FIRE] })
-    const { user } = await renderTeams('/?q=fire')
+    const { user } = await renderTeams('/?scope=mine&q=fire')
     const types = screen.getByRole('toolbar', { name: 'Types' })
 
     await user.click(within(types).getByRole('button', { name: 'Fire' }))
@@ -221,7 +224,7 @@ describe('TeamsPage, signed in', () => {
 
   it('invites you to build your first team, or to browse everyone’s', async () => {
     serveTeams({ teams: [RAIN] })
-    const { user, router } = await renderTeams()
+    const { user, router } = await renderTeams('/?scope=mine')
 
     expect(await screen.findByText('No teams yet', ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByText('Pick up to six Pokémon and put them in battle order.')).toBeVisible()
@@ -232,7 +235,7 @@ describe('TeamsPage, signed in', () => {
 
     expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Everyone' })).toBeChecked()
-    expect(router.state.location.search).toBe('?scope=everyone')
+    expect(router.state.location.search).toBe('')
   })
 
   it('creates one team however often New team is clicked, and opens it to edit', async () => {
@@ -251,7 +254,7 @@ describe('TeamsPage, signed in', () => {
 
   it('puts New team beside the heading once you have a team, named after the next', async () => {
     const api = serveTeams({ teams: [FIRE], signedIn: ASH })
-    const { user, router } = await renderTeams()
+    const { user, router } = await renderTeams('/?scope=mine')
     await screen.findByRole('list', { name: 'My teams' })
 
     await user.click(await screen.findByRole('button', { name: 'New team' }))
@@ -265,7 +268,7 @@ describe('TeamsPage, signed in', () => {
   it('offers New team while showing everyone’s teams too', async () => {
     serveTeams({ teams: [RAIN] })
 
-    await renderTeams('/?scope=everyone')
+    await renderTeams()
 
     expect(await screen.findByRole('button', { name: 'New team' })).toBeInTheDocument()
   })

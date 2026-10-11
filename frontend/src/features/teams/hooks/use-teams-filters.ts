@@ -23,15 +23,15 @@ export type TeamsFilters = {
 export const NO_FILTERS: Omit<TeamsFilters, 'scope'> = { search: '', types: [], view: 'all' }
 
 /**
- * The Teams page's filters, kept in the URL (?scope=everyone&q=rain&type=water&view=changed) so a
- * filtered view can be shared, bookmarked, or reloaded. Someone signed in sees their own teams
- * unless the URL asks for everyone's; someone signed out sees everyone's.
+ * The Teams page's filters, kept in the URL (?scope=mine&q=rain&type=water&view=changed) so a
+ * filtered view can be shared, bookmarked, or reloaded. It shows everyone's teams unless someone
+ * signed in asks for their own.
  */
 export function useTeamsFilters({ signedIn }: { signedIn: boolean }) {
   const [params, setParams] = useSearchParams()
 
   const filters: TeamsFilters = {
-    scope: signedIn ? (parseOption(TEAMS_SCOPES, params.get('scope')) ?? 'mine') : 'everyone',
+    scope: signedIn ? (parseOption(TEAMS_SCOPES, params.get('scope')) ?? 'everyone') : 'everyone',
     search: params.get('q') ?? '',
     // Each type once, as a hand-edited URL can repeat one.
     types: [...new Set(toPokemonTypes(params.getAll('type')))],
@@ -40,7 +40,7 @@ export function useTeamsFilters({ signedIn }: { signedIn: boolean }) {
 
   function setFilters({ scope, search, types, view }: TeamsFilters) {
     const next = new URLSearchParams()
-    if (signedIn && scope === 'everyone') next.set('scope', scope)
+    if (signedIn && scope === 'mine') next.set('scope', scope)
     if (search) next.set('q', search)
     for (const type of types) next.append('type', type)
     if (view !== 'all') next.set('view', view)

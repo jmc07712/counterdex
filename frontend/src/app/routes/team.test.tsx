@@ -92,7 +92,7 @@ describe('TeamPage, for the team’s owner', () => {
     expect(edit).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
     // Back to the owner's teams, as from Edit.
-    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/?scope=mine')
     expect(screen.queryByRole('link', { name: 'Everyone’s teams' })).not.toBeInTheDocument()
     expect(slotRows()[0]).toHaveTextContent('Lead')
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
@@ -157,7 +157,7 @@ describe('TeamPage, for the team’s owner', () => {
     const view = screen.getByRole('link', { name: 'View' })
     expect(view).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'My teams' })).toHaveAttribute('href', '/?scope=mine')
 
     await user.click(view)
 
@@ -411,7 +411,7 @@ describe('TeamPage, for the team’s owner', () => {
     )
   })
 
-  it('deletes after you confirm, then goes home', async () => {
+  it('deletes after you confirm, then goes to your teams', async () => {
     const api = serveAsh([makeTeam()])
     browse([])
     const { user, router } = renderTeam(EDIT)
@@ -421,6 +421,7 @@ describe('TeamPage, for the team’s owner', () => {
     await user.click(await screen.findByRole('button', { name: 'Delete team' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(router.state.location.search).toBe('?scope=mine')
     expect(api.teams()).toEqual([])
   })
 
@@ -460,11 +461,11 @@ describe.each([
       const rows = slotRows()
       expect(rows).toHaveLength(6)
       expect(rows[0]).toHaveTextContent('Charmander')
-      expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
-      expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute(
         'href',
-        '/?scope=everyone',
+        '/?scope=mine',
       )
+      expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute('href', '/')
       expect(screen.queryByRole('link', { name: 'My teams' })).not.toBeInTheDocument()
       // Each member opens its details, and that's all there is to press.
       expect(screen.getAllByRole('button')).toEqual([

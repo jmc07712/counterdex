@@ -65,7 +65,8 @@ export function TeamsPage() {
             icon={<UsersRound />}
             title={m.teams_sign_in_title()}
             description={m.teams_sign_in_description()}
-            next={paths.home.getHref()}
+            // Once signed in, to their own teams.
+            next={paths.home.getHref({ scope: 'mine' })}
           />
         </div>
       )}

@@ -1,8 +1,8 @@
 export const paths = {
   home: {
     path: '/',
-    // The Teams page; `scope: 'everyone'` shows everyone's teams to someone signed in.
-    getHref: ({ scope }: { scope?: 'everyone' } = {}) =>
+    // The Teams page; `scope: 'mine'` shows someone signed in their own teams.
+    getHref: ({ scope }: { scope?: 'mine' } = {}) =>
       scope === undefined ? '/' : `/?${new URLSearchParams({ scope })}`,
   },
   team: { path: '/teams/:teamId', getHref: (teamId: string) => `/teams/${teamId}` },
