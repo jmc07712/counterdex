@@ -533,7 +533,7 @@ describe('TeamPage, for the team’s owner', () => {
         ),
       ),
     )
-    const { user } = renderTeam(EDIT)
+    const { user, queryClient } = renderTeam(EDIT)
     const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
     // Held, so what shows is the change undone rather than the team fetched again.
     const fetches = holdTeamFetches()
@@ -545,6 +545,8 @@ describe('TeamPage, for the team’s owner', () => {
     ).toBeInTheDocument()
     expect(await screen.findByText('Charmander')).toBeInTheDocument()
     fetches.release()
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(slotRows()[0]).toHaveTextContent('Charmander')
   })
 
   it('shows the team as anyone sees it once a change finds you signed out', async () => {
