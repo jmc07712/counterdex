@@ -63,6 +63,121 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
   })
 
+  it('searches by team name, trainer or Pokémon once you pause typing', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+    const { user, router } = renderWithProviders(<ExplorePage />)
+
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search teams, trainers or Pokémon' }),
+      ' rain ',
+    )
+
+    // One request for the whole search, none for each letter on the way.
+    await waitFor(() => expect(listQueries).toEqual(['', 'q=rain']))
+    expect(router.state.location.search).toBe('?q=+rain+')
+  })
+
+  it('filters by every type picked, with no limit on how many', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+    const { user, router } = renderWithProviders(<ExplorePage />)
+    const types = screen.getByRole('toolbar', { name: 'Types' })
+
+    for (const type of ['Water', 'Fire', 'Grass']) {
+      await user.click(within(types).getByRole('button', { name: type }))
+    }
+
+    await waitFor(() => expect(listQueries.at(-1)).toBe('type=water&type=fire&type=grass'))
+    for (const type of ['Water', 'Fire', 'Grass']) {
+      expect(within(types).getByRole('button', { name: type })).toBePressed()
+    }
+    expect(router.state.location.search).toBe('?type=water&type=fire&type=grass')
+  })
+
+  it('can list only the teams a sync changed this week', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+    const { user, router } = renderWithProviders(<ExplorePage />)
+
+    await user.click(screen.getByRole('radio', { name: 'Changed this week' }))
+
+    await waitFor(() => expect(listQueries.at(-1)).toBe('changed=true'))
+    expect(router.state.location.search).toBe('?view=changed')
+  })
+
+  it('always keeps one view chosen', async () => {
+    serveTeams({ teams: [RAIN] })
+    const { user, router } = renderWithProviders(<ExplorePage />)
+
+    await user.click(screen.getByRole('radio', { name: 'All teams' }))
+
+    expect(screen.getByRole('radio', { name: 'All teams' })).toBeChecked()
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('starts from the filters in the URL', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    renderWithProviders(<ExplorePage />, {
+      path: '/?q=rain&type=water&type=fire&view=changed',
+    })
+
+    await waitFor(() => expect(listQueries).toEqual(['q=rain&type=water&type=fire&changed=true']))
+    expect(screen.getByRole('searchbox', { name: /Search teams/ })).toHaveValue('rain')
+    expect(screen.getByRole('button', { name: 'Water' })).toBePressed()
+    expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
+    expect(screen.getByRole('radio', { name: 'Changed this week' })).toBeChecked()
+  })
+
+  it('ignores what isn’t a filter in a hand-edited URL', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+
+    renderWithProviders(<ExplorePage />, { path: '/?type=fire&type=lava&type=fire&view=old' })
+
+    await waitFor(() => expect(listQueries).toEqual(['type=fire']))
+    expect(screen.getByRole('radio', { name: 'All teams' })).toBeChecked()
+  })
+
+  it.each([
+    ['About views', 'Changed this week is the teams with a Pokémon a sync changed'],
+    ['About types', 'Teams with a Pokémon of every type you pick'],
+  ])('explains a filter from its info button: %s', async (button, explanation) => {
+    serveTeams({ teams: [RAIN] })
+    const { user } = renderWithProviders(<ExplorePage />)
+
+    await user.click(screen.getByRole('button', { name: button }))
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent(explanation)
+  })
+
+  it('offers to clear the filters when no team matches', async () => {
+    const { listQueries } = serveTeams({ teams: [RAIN] })
+    // Added last, so it answers first: nothing matches a search, and anything else goes on to
+    // the stand-in.
+    server.use(
+      http.get('/api/teams', ({ request }) => {
+        if (new URL(request.url).searchParams.has('q')) {
+          return HttpResponse.json({ items: [], next_cursor: null })
+        }
+      }),
+    )
+    const { user, router } = renderWithProviders(<ExplorePage />, { path: '/?q=zzz&type=fire' })
+
+    expect(await screen.findByText('No teams match these filters')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
+    expect(listQueries).toEqual([''])
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('says when no team has changed this week', async () => {
+    serveTeams()
+
+    renderWithProviders(<ExplorePage />, { path: '/?view=changed' })
+
+    expect(await screen.findByText('No recent changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+  })
+
   it('says when there are no teams yet', async () => {
     serveTeams()
 

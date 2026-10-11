@@ -23,6 +23,7 @@
   "common_check_connection": "Check your connection and try again.",
   "common_load_more": "Load more",
   "common_loading_more": "Loading…",
+  "common_clear_filters": "Clear filters",
   "filters_label": "Filters",
   "filters_types_info_label": "About types",
   "not_found_title": "Page not found",
@@ -136,6 +137,56 @@
   "explore_load_failed": "Couldn’t load teams",
   "explore_empty_title": "No teams yet",
   "explore_empty_description": "Teams show here once they have a Pokémon on them.",
+  "explore_search": "Search teams, trainers or Pokémon",
+  "explore_view_label": "View",
+  "explore_view_option": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "All teams",
+        "view=changed": "Changed this week",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "explore_view_info_label": "About views",
+  "explore_view_info": "All teams is every team with a Pokémon on it. Changed this week is the teams with a Pokémon a sync changed in the last week.",
+  "explore_types_info": "Teams with a Pokémon of every type you pick, on one Pokémon or several. Pick as many types as you like.",
+  "explore_nothing_found_title": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "No teams match these filters",
+        "view=changed": "No recent changes",
+        "view=*": "{view}"
+      }
+    }
+  ],
+  "explore_nothing_found_description": [
+    {
+      "declarations": [
+        "input view"
+      ],
+      "selectors": [
+        "view"
+      ],
+      "match": {
+        "view=all": "Try a shorter search, or fewer types.",
+        "view=changed": "No sync has changed a Pokémon on these teams in the last week.",
+        "view=*": "{view}"
+      }
+    }
+  ],
   "auth_username": "Username",
   "auth_password": "Password",
   "auth_go_to_sign_in": "Sign in",
@@ -481,7 +532,6 @@
     }
   ],
   "pokedex_load_failed": "Couldn’t load the Pokédex",
-  "pokedex_clear_filters": "Clear filters",
   "pokedex_loading": "Loading Pokémon",
   "sync_last_failed": "Last sync failed",
   "sync_synced_ago": "Synced {ago}",

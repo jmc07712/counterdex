@@ -1,4 +1,4 @@
-import { Compass } from 'lucide-react'
+import { Compass, SearchX } from 'lucide-react'
 
 import { DealtInItem } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
@@ -6,6 +6,7 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -13,16 +14,24 @@ import {
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { paths } from '@/config/paths'
+import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { m } from '@/paraglide/messages.js'
 
+import type { ExploreFilters, ExploreView } from '../hooks/use-explore-filters'
 import { useExploreTeams } from '../hooks/use-explore-teams'
 import { TeamCard } from './team-card'
 
 const GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
-/** Everyone's teams, each by its owner, with more a page at a time. */
-export function ExploreTeams() {
-  const teams = useExploreTeams()
+type ExploreTeamsProps = {
+  filters: ExploreFilters
+  onClearFilters: () => void
+}
+
+/** Everyone's teams that match `filters`, each by its owner, with more a page at a time. */
+export function ExploreTeams({ filters, onClearFilters }: ExploreTeamsProps) {
+  const search = useDebouncedSearch(filters.search)
+  const teams = useExploreTeams({ ...filters, search })
 
   if (teams.isPending) {
     return (
@@ -53,22 +62,21 @@ export function ExploreTeams() {
   const { pages } = teams.data
 
   if (pages.every((page) => page.items.length === 0)) {
-    return (
-      <Empty className="border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Compass />
-          </EmptyMedia>
-          <EmptyTitle>{m.explore_empty_title()}</EmptyTitle>
-          <EmptyDescription>{m.explore_empty_description()}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+    const filtered = search !== '' || filters.types.length > 0 || filters.view !== 'all'
+    return filtered ? (
+      <NoTeamsMatch view={filters.view} onClearFilters={onClearFilters} />
+    ) : (
+      <NoTeamsYet />
     )
   }
 
   return (
     <>
-      <ul aria-label={m.explore_title()} className={GRID}>
+      <ul
+        aria-label={m.explore_title()}
+        aria-busy={teams.isPlaceholderData}
+        className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
+      >
         {pages.flatMap((page) =>
           page.items.map((team, index) => (
             <DealtInItem key={team.id} index={index}>
@@ -89,5 +97,38 @@ export function ExploreTeams() {
         />
       )}
     </>
+  )
+}
+
+function NoTeamsYet() {
+  return (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Compass />
+        </EmptyMedia>
+        <EmptyTitle>{m.explore_empty_title()}</EmptyTitle>
+        <EmptyDescription>{m.explore_empty_description()}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  )
+}
+
+function NoTeamsMatch({ view, onClearFilters }: { view: ExploreView; onClearFilters: () => void }) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <SearchX />
+        </EmptyMedia>
+        <EmptyTitle>{m.explore_nothing_found_title({ view })}</EmptyTitle>
+        <EmptyDescription>{m.explore_nothing_found_description({ view })}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" onClick={onClearFilters}>
+          {m.common_clear_filters()}
+        </Button>
+      </EmptyContent>
+    </Empty>
   )
 }

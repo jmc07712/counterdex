@@ -64,7 +64,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
         </EmptyHeader>
         <EmptyContent>
           <Button variant="outline" onClick={onClearFilters}>
-            {m.pokedex_clear_filters()}
+            {m.common_clear_filters()}
           </Button>
         </EmptyContent>
       </Empty>

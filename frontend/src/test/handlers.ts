@@ -160,8 +160,8 @@ function newestFirst(one: Team, other: Team) {
  * it lists everyone's teams that have a Pokémon, `pageSize` at a time; lets only a team's owner
  * change it; and refuses a seventh member, a second Pokémon from one evolution family and an
  * out-of-date order.
- * Returns the changes it was asked for, in order, and its teams as they now are, most recently
- * changed first.
+ * Returns the changes it was asked for, in order; the query string of each request for the list of
+ * everyone's teams, in order; and its teams as they now are, most recently changed first.
  */
 export function serveTeams({
   teams: initial = [],
@@ -171,6 +171,7 @@ export function serveTeams({
 }: { teams?: Team[]; catalog?: Pokemon[]; signedIn?: User | null; pageSize?: number } = {}) {
   let teams = structuredClone(initial)
   const requests: TeamRequest[] = []
+  const listQueries: string[] = []
   const pokemon = (id: number) => catalog.find((each) => each.id === id)
   const team = (id: unknown) => teams.find((each) => each.id === id)
 
@@ -203,6 +204,7 @@ export function serveTeams({
   server.use(
     http.get('/api/teams', ({ request }) => {
       const query = new URL(request.url).searchParams
+      listQueries.push(query.toString())
       const limit = Number(query.get('limit') ?? pageSize)
       const cursor = query.get('cursor')
       const listed = teams.filter((each) => each.members.length > 0).sort(newestFirst)
@@ -315,7 +317,7 @@ export function serveTeams({
       return HttpResponse.json(save(found, ordered))
     }),
   )
-  return { requests, teams: () => teams }
+  return { requests, listQueries, teams: () => teams }
 }
 
 /**
