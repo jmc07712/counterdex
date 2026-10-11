@@ -90,6 +90,12 @@ describe('ChangeSummary', () => {
 
     expect(summaryItems()).toEqual([words, 'Oct 9, 2026'])
   })
+
+  it('says it’s a list, as Safari drops the role of a list styled without markers', () => {
+    render(<ChangeSummary change={change('removed', CHARIZARD, null)} />)
+
+    expect(screen.getByRole('list')).toHaveAttribute('role', 'list')
+  })
 })
 
 describe('ChangeDot', () => {

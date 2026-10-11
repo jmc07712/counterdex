@@ -91,7 +91,8 @@ export function ChangeSummary({ change, className }: ChangeSummaryProps) {
       ? differencesBetween(change.before, change.after)
       : []
   return (
-    <ul className={cn('truncate', className)}>
+    // Safari drops a list's role when it's styled without markers, so it's given again.
+    <ul role="list" className={cn('truncate', className)}>
       {differences.length > 0 ? (
         differences.map(({ field, difference }) => (
           <li key={field} className={SUMMARY_ITEM}>
