@@ -1,22 +1,19 @@
 """Teams as the API takes and shows them. Descriptions appear in the API docs."""
 
 import uuid
-from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.accounts.constants import USERNAME_PATTERN
 from app.core.text import NO_NUL
-from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.enums import PokemonType
-from app.pokemon.schemas import Pokemon, SearchText
+from app.pokemon.schemas import Pokemon, PokemonId, PokemonIds, SearchText
 from app.teams.constants import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     MAX_TEAM_NAME_LENGTH,
-    MAX_TEAM_SIZE,
 )
 from app.teams.enums import TeamConflictReason
 
@@ -25,16 +22,6 @@ TeamName = Annotated[
     StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_TEAM_NAME_LENGTH),
     NO_NUL,
 ]
-PokemonId = Annotated[int, Field(ge=1, le=MAX_POKEMON_ID)]
-
-
-def _each_once[T: Sequence[int]](pokemon_ids: T) -> T:
-    if len(set(pokemon_ids)) != len(pokemon_ids):
-        raise ValueError("Each Pokémon can be on a team only once.")
-    return pokemon_ids
-
-
-PokemonIds = Annotated[list[PokemonId], Field(max_length=MAX_TEAM_SIZE), AfterValidator(_each_once)]
 
 
 class NewTeam(BaseModel):

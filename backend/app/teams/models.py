@@ -17,7 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
-from app.teams.constants import MAX_TEAM_NAME_LENGTH, MAX_TEAM_SIZE
+from app.pokemon.constants import MAX_TEAM_SIZE
+from app.teams.constants import MAX_TEAM_NAME_LENGTH
 
 
 class Team(Base):

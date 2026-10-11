@@ -13,6 +13,11 @@ MAX_BASE_STAT = 255
 MIN_TYPES = 1
 MAX_TYPES = 2
 
+# --- Teams ---
+
+# A team holds up to six Pokémon, as in the games.
+MAX_TEAM_SIZE = 6
+
 # --- Type chart ---
 # How much of a move's damage a Pokémon of one type takes: none, half, normal or double, by the
 # move's type. A Pokémon with two types takes the product of both multipliers.

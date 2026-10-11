@@ -4,21 +4,11 @@ docs.
 
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.counter.constants import MAX_TEAM_SIZE
 from app.counter.enums import RelativeSpeed, Verdict
-from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.enums import PokemonType
-from app.pokemon.schemas import Pokemon
-
-PokemonId = Annotated[int, Field(ge=1, le=MAX_POKEMON_ID)]
-
-
-def _each_once(pokemon_ids: list[int]) -> list[int]:
-    if len(set(pokemon_ids)) != len(pokemon_ids):
-        raise ValueError("Each Pokémon can be on a team only once.")
-    return pokemon_ids
+from app.pokemon.schemas import Pokemon, PokemonIds
 
 
 class TeamMatchupQuery(BaseModel):
@@ -27,15 +17,13 @@ class TeamMatchupQuery(BaseModel):
     model_config = ConfigDict(frozen=True, validate_by_name=True)
 
     pokemon_ids: Annotated[
-        list[PokemonId],
+        PokemonIds,
         Field(
             alias="pokemon_id",
             min_length=1,
-            max_length=MAX_TEAM_SIZE,
             description="A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot "
             "order, from one to six.",
         ),
-        AfterValidator(_each_once),
     ]
     forms: Annotated[
         bool,

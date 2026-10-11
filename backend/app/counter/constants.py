@@ -2,8 +2,6 @@
 
 # --- Teams ---
 
-# A team holds up to six Pokémon, as in the games.
-MAX_TEAM_SIZE = 6
 # How many threats to a team are listed, at most.
 MAX_THREATS = 12
 

@@ -2,11 +2,12 @@
 API serves it. Descriptions are written for API users; they appear in the docs.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Annotated, Any, Self
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -23,6 +24,7 @@ from app.pokemon.constants import (
     MAX_PAGE_SIZE,
     MAX_POKEMON_ID,
     MAX_SEARCH_LENGTH,
+    MAX_TEAM_SIZE,
     MAX_TYPES,
     MIN_BASE_STAT,
     MIN_TYPES,
@@ -39,6 +41,17 @@ from app.pokemon.enums import (
 )
 
 BaseStat = Annotated[int, Field(ge=MIN_BASE_STAT, le=MAX_BASE_STAT)]
+PokemonId = Annotated[int, Field(ge=1, le=MAX_POKEMON_ID)]
+
+
+def _each_once[T: Sequence[int]](pokemon_ids: T) -> T:
+    if len(set(pokemon_ids)) != len(pokemon_ids):
+        raise ValueError("Each Pokémon can be on a team only once.")
+    return pokemon_ids
+
+
+# A team's Pokémon, by id: up to MAX_TEAM_SIZE of them, each once.
+PokemonIds = Annotated[list[PokemonId], Field(max_length=MAX_TEAM_SIZE), AfterValidator(_each_once)]
 
 
 class Stats(BaseModel):
