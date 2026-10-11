@@ -3,12 +3,11 @@ sees what it did. Each locks the team with lock_owned_team first, as require_tea
 request.
 """
 
-import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
@@ -18,19 +17,10 @@ from app.teams.exceptions import TeamConflictError
 from app.teams.schemas import NewTeam
 from tests.support.accounts import ASH
 from tests.support.pokemon import add_species, make_pokemon
-from tests.support.teams import add_species_pokemon
+from tests.support.teams import add_species_pokemon, wait_until_a_session_waits_for_a_lock
 
 # A change to a team, made once lock_owned_team has locked it.
 Change = Callable[[Session, models.Team], object]
-
-
-def wait_until_a_session_waits_for_a_lock(engine: Engine) -> None:
-    deadline = time.monotonic() + 10
-    with engine.connect() as connection:
-        while not connection.scalar(text("select exists (select from pg_locks where not granted)")):
-            if time.monotonic() > deadline:
-                raise TimeoutError("no session waited for a lock")
-            time.sleep(0.01)
 
 
 def setup_team(sessions: sessionmaker[Session], *pokemon_ids: int) -> tuple[int, uuid.UUID]:

@@ -1,14 +1,27 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
+from app.accounts import service as accounts
 from app.accounts.types import SignedIn
+from app.api.main import app
 from app.api.routes.teams import conflict_detail
+from app.api.session_cookie import session_cookie_name
+from app.teams import service
 from app.teams.enums import TeamConflictReason
-from tests.support.teams import add_eevee_family, add_species_pokemon, backdate, make_team
+from tests.support.accounts import ASH
+from tests.support.teams import (
+    add_eevee_family,
+    add_species_pokemon,
+    backdate,
+    make_team,
+    wait_until_a_session_waits_for_a_lock,
+)
 
 TEAM_ID = "00000000-0000-4000-8000-000000000001"
 TEAM = f"/api/teams/{TEAM_ID}"
@@ -267,6 +280,35 @@ def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient, db_session: 
             ),
             "reason": "order_out_of_date",
         },
+    )
+
+
+def test_a_change_waits_for_one_in_progress_then_sees_it(
+    committing_sessions: sessionmaker[Session], migrated_engine: Engine
+) -> None:
+    # A real request on its own connection: it finds the team full only if the route locks the
+    # team before reading its members.
+    with committing_sessions() as session:
+        add_species_pokemon(session, 201, 202, 203, 204, 205, 206, 207)
+        ash = accounts.sign_up(session, ASH)
+        team = make_team(session, ash.user.id, 201, 202, 203, 204, 205)
+        session.commit()
+
+    with (
+        TestClient(app, base_url="https://testserver") as client,
+        ThreadPoolExecutor(1) as pool,
+        committing_sessions() as first,
+    ):
+        service.add_member(first, service.lock_owned_team(first, ash.user.id, team.id), 206)
+        client.cookies.set(session_cookie_name(), ash.token)
+        add = pool.submit(client.post, f"/api/teams/{team.id}/members", json={"pokemon_id": 207})
+        wait_until_a_session_waits_for_a_lock(migrated_engine)
+        first.commit()
+        response = add.result(timeout=10)
+
+    assert (response.status_code, response.json()) == (
+        409,
+        {"detail": "The team already has six Pokémon.", "reason": "team_full"},
     )
 
 

@@ -1,9 +1,10 @@
 """Pokémon, species and teams for the teams tests."""
 
+import time
 import uuid
 from datetime import timedelta
 
-from sqlalchemy import func, update
+from sqlalchemy import Engine, func, text, update
 from sqlalchemy.orm import Session
 
 from app.teams import models, service
@@ -55,3 +56,13 @@ def backdate(session: Session, team_id: uuid.UUID, age: timedelta) -> None:
 def member_ids(team: Team) -> list[int]:
     """The team's Pokémon ids, in slot order."""
     return [member.pokemon.id for member in team.members]
+
+
+def wait_until_a_session_waits_for_a_lock(engine: Engine) -> None:
+    """Returns once a session is waiting for a lock that another holds, or fails after 10s."""
+    deadline = time.monotonic() + 10
+    with engine.connect() as connection:
+        while not connection.scalar(text("select exists (select from pg_locks where not granted)")):
+            if time.monotonic() > deadline:
+                raise TimeoutError("no session waited for a lock")
+            time.sleep(0.01)
