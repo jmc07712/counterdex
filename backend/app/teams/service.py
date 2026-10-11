@@ -1,7 +1,8 @@
 """Teams and the Pokémon on them.
 
-Anyone can see a team; only its owner can change it. Every change takes a team that lock_owned_team
-has locked, so changes to one team happen one at a time and each sees the result of the one before.
+Anyone can see a team; only its owner can change it. Every change its owner makes takes a team that
+lock_owned_team has locked, so changes to one team happen one at a time and each sees the result of
+the one before.
 Nothing here commits: the caller owns the transaction.
 """
 
@@ -292,6 +293,20 @@ def reorder(session: Session, team: models.Team, pokemon_ids: Sequence[int]) -> 
         )
     _check_slots(session)
     return _changed(session, team)
+
+
+def follow_species_families(session: Session) -> None:
+    """Puts each member in its species' evolution family, for after a sync has moved Pokémon to
+    other species. Raises IntegrityError if that would put two Pokémon from one family on a team.
+    """
+    session.execute(
+        update(models.TeamMember)
+        .where(
+            models.TeamMember.species_id == pokemon_models.Species.id,
+            models.TeamMember.family_id != pokemon_models.Species.evolution_chain_id,
+        )
+        .values(family_id=pokemon_models.Species.evolution_chain_id)
+    )
 
 
 def _members(session: Session, team_id: uuid.UUID) -> Sequence[Member]:

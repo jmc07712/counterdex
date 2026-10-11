@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.models import User
 from app.accounts.types import SignedIn
-from app.pokemon.models import Species
+from app.pokemon.models import Species, SpeciesVariety
 from app.teams.models import Team, TeamMember
 from tests.support.teams import add_species_pokemon
 
@@ -34,6 +34,11 @@ def member(
 def check_slots_now(session: Session) -> None:
     # The slot constraint is checked at commit, which these tests never reach.
     session.execute(text("set constraints uq_team_members_team_id_position immediate"))
+
+
+def check_families_now(session: Session) -> None:
+    # So is the family's foreign key.
+    session.execute(text("set constraints fk_team_members_species_id_species immediate"))
 
 
 def test_slots_run_from_0_to_5(db_session: Session, ash: SignedIn, charmander_family: None) -> None:
@@ -105,9 +110,32 @@ def test_a_members_family_is_its_species(
 ) -> None:
     team_id = add_team(db_session, ash.user.id)
     db_session.add(member(team_id, 0, 4, 4, family_id=67))
+    db_session.flush()
 
     with pytest.raises(IntegrityError, match="fk_team_members_species_id_species"):
-        db_session.flush()
+        check_families_now(db_session)
+
+
+def test_a_member_can_be_between_families_until_the_commit(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201, 202)
+    team_id = add_team(db_session, ash.user.id)
+    db_session.add(member(team_id, 0, 201, 201, 1201))
+    db_session.flush()
+
+    # As a sync does when PokéAPI moves a Pokémon to a species in another family: the member
+    # takes the new species at once, and its family is put right before the commit.
+    db_session.execute(
+        update(SpeciesVariety).where(SpeciesVariety.pokemon_id == 201).values(species_id=202)
+    )
+    db_session.execute(update(TeamMember).values(family_id=1202))
+    check_families_now(db_session)
+
+    assert db_session.execute(select(TeamMember.species_id, TeamMember.family_id)).one() == (
+        202,
+        1202,
+    )
 
 
 def test_a_member_follows_its_species_to_another_family(

@@ -376,13 +376,13 @@ export type Pokemon = {
     /**
      * Species Id
      *
-     * Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species.
+     * Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species, and always `null` in a change's `before` and `after`.
      */
     species_id?: number | null;
     /**
      * Family Id
      *
-     * Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species.
+     * Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species, and always `null` in a change's `before` and `after`.
      */
     family_id?: number | null;
 };

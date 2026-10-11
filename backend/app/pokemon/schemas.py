@@ -118,7 +118,7 @@ class Pokemon(BaseModel):
         int | None,
         Field(
             description="Its species' id, which is the species' Pokédex number; `null` until a "
-            "sync has stored its species."
+            "sync has stored its species, and always `null` in a change's `before` and `after`."
         ),
     ] = None
 
@@ -128,7 +128,7 @@ class Pokemon(BaseModel):
         int | None,
         Field(
             description="Its evolution family's id (PokéAPI's evolution chain); `null` until a "
-            "sync has stored its species."
+            "sync has stored its species, and always `null` in a change's `before` and `after`."
         ),
     ] = None
 

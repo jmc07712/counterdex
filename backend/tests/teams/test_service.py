@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts import service as accounts
 from app.accounts.types import SignedIn
-from app.pokemon.models import Pokemon
+from app.pokemon.models import Pokemon, SpeciesVariety
 from app.teams import service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
@@ -572,6 +572,27 @@ def test_an_order_that_isnt_the_members_is_out_of_date(
         service.reorder(db_session, locked, order)
 
     assert conflict.value.reason is TeamConflictReason.ORDER_OUT_OF_DATE
+
+
+# --- Following a sync ---
+
+
+def test_members_follow_their_pokemon_to_another_species_family(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201, 202, 203)
+    team = make_team(db_session, ash.user.id, 201, 203)
+    # As a sync does when PokéAPI moves a Pokémon to a species in another family.
+    db_session.execute(
+        update(SpeciesVariety).where(SpeciesVariety.pokemon_id == 201).values(species_id=202)
+    )
+
+    service.follow_species_families(db_session)
+
+    assert [
+        (member.pokemon.id, member.pokemon.species_id, member.pokemon.family_id)
+        for member in service.get_team(db_session, team.id).members
+    ] == [(201, 202, 1202), (203, 203, 1203)]
 
 
 # --- Previewing ---

@@ -15,6 +15,7 @@ from app.core.db import get_engine
 from app.sync.client import PokeApiClient
 from app.sync.constants import POKEAPI_BASE_URL, REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from app.sync.service import record_failed_sync, run_sync, utc_now
+from app.teams.service import follow_species_families
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,9 @@ async def sync_pokemon(client: PokeApiClient, sessions: Callable[[], Session]) -
     with sessions() as session:
         try:
             report = await run_sync(client, session)
+            # A team member whose Pokémon the sync moved to a species in another family moves
+            # to that family, in the same transaction.
+            follow_species_families(session)
             session.commit()
         # The job's outermost boundary: whatever went wrong, keep nothing from the attempt,
         # record that it failed, and exit non-zero.

@@ -60,23 +60,29 @@ class TeamMember(Base):
             initially="DEFERRED",
         ),
         # One Pokémon from each evolution family: Charmander, Charizard and Mega Charizard X
-        # can't share a team. This also keeps a team to one of each species.
+        # can't share a team. This also keeps a team to one of each species. A sync that would
+        # put two Pokémon from one family on a team fails here, and the whole sync is rolled
+        # back.
         UniqueConstraint("team_id", "family_id", name="uq_team_members_team_id_family_id"),
-        # The species is this Pokémon's. If PokéAPI moves a Pokémon to another species, its
-        # slots follow.
+        # The species is this Pokémon's. When a sync moves a Pokémon to another species, its
+        # members' species_id changes with it.
         ForeignKeyConstraint(
             ["pokemon_id", "species_id"],
             ["species_varieties.pokemon_id", "species_varieties.species_id"],
             name="fk_team_members_pokemon_id_species_varieties",
             onupdate="CASCADE",
         ),
-        # The family is this species'. If PokéAPI moves a species to another family, its slots
-        # follow.
+        # The family is this species'. When a sync moves a species to another family, its
+        # members' family_id changes with it. Checked when the transaction commits, so a member
+        # whose Pokémon moved to a species in another family can be moved to that family before
+        # then.
         ForeignKeyConstraint(
             ["species_id", "family_id"],
             ["species.id", "species.evolution_chain_id"],
             name="fk_team_members_species_id_species",
             onupdate="CASCADE",
+            deferrable=True,
+            initially="DEFERRED",
         ),
     )
 

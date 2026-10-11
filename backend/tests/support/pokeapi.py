@@ -66,12 +66,14 @@ def fake_pokeapi(
     speeds: Mapping[int, int] | None = None,
     extra_urls: Sequence[str] = (),
     requested: list[str] | None = None,
+    edit: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> PokeApiClient:
     """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species.
 
     Requests for the `failing` paths, such as "pokemon/6" (or "pokemon" for the listing), get a
     server error every time. `speeds` changes Pokémon's speed by id, `extra_urls` are listed
-    after the Pokémon, and every URL requested is added to `requested`.
+    after the Pokémon, and every URL requested is added to `requested`. `edit` is called with
+    each response's path, such as "pokemon-species/6", and its JSON, which it may change.
     """
 
     async def handler(request: httpx2.Request) -> httpx2.Response:
@@ -82,24 +84,23 @@ def fake_pokeapi(
             return httpx2.Response(500)
         match path.split("/"):
             case ["pokemon"]:
-                listing = listing_response(6, 25)
-                listing["results"] += [{"name": url, "url": url} for url in extra_urls]
-                return httpx2.Response(200, json=listing)
+                data = listing_response(6, 25)
+                data["results"] += [{"name": url, "url": url} for url in extra_urls]
             case ["pokemon", pokemon_id]:
                 data = pokemon_response(int(pokemon_id))
                 if speeds and int(pokemon_id) in speeds:
                     speed = next(s for s in data["stats"] if s["stat"]["name"] == "speed")
                     speed["base_stat"] = speeds[int(pokemon_id)]
-                return httpx2.Response(200, json=data)
             case ["pokemon-species"]:
-                return httpx2.Response(
-                    200, json=listing_response(*SPECIES_IDS, resource="pokemon-species")
-                )
+                data = listing_response(*SPECIES_IDS, resource="pokemon-species")
             case ["pokemon-species", species_id]:
-                return httpx2.Response(200, json=species_response(int(species_id)))
+                data = species_response(int(species_id))
             case ["evolution-chain", chain_id]:
-                return httpx2.Response(200, json=evolution_chain_response(int(chain_id)))
+                data = evolution_chain_response(int(chain_id))
             case _:
                 return httpx2.Response(404)
+        if edit is not None:
+            edit(path, data)
+        return httpx2.Response(200, json=data)
 
     return client_for(handler)

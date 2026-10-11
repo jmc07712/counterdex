@@ -1734,7 +1734,7 @@
               }
             ],
             "title": "Species Id",
-            "description": "Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species."
+            "description": "Its species' id, which is the species' Pokédex number; `null` until a sync has stored its species, and always `null` in a change's `before` and `after`."
           },
           "family_id": {
             "anyOf": [
@@ -1746,7 +1746,7 @@
               }
             ],
             "title": "Family Id",
-            "description": "Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species."
+            "description": "Its evolution family's id (PokéAPI's evolution chain); `null` until a sync has stored its species, and always `null` in a change's `before` and `after`."
           }
         },
         "type": "object",
