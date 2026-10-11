@@ -455,6 +455,34 @@
             "description": "Part of a team's name, its owner's username or the name of a Pokémon on it, e.g. `rain` or `char`. Case doesn't matter."
           },
           {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/PokemonType"
+              },
+              "maxItems": 18,
+              "description": "Only teams with a Pokémon of this type. Repeat it (`type=fire&type=water`) to require one of each, on one Pokémon or different ones.",
+              "default": [],
+              "title": "Type"
+            },
+            "description": "Only teams with a Pokémon of this type. Repeat it (`type=fire&type=water`) to require one of each, on one Pokémon or different ones."
+          },
+          {
+            "name": "changed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only teams with a Pokémon a sync has changed in the last week: updated, removed or listed again.",
+              "default": false,
+              "title": "Changed"
+            },
+            "description": "Only teams with a Pokémon a sync has changed in the last week: updated, removed or listed again."
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,

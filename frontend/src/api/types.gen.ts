@@ -1206,6 +1206,18 @@ export type ListTeamsData = {
          */
         q?: string | null;
         /**
+         * Type
+         *
+         * Only teams with a Pokémon of this type. Repeat it (`type=fire&type=water`) to require one of each, on one Pokémon or different ones.
+         */
+        type?: Array<PokemonType>;
+        /**
+         * Changed
+         *
+         * Only teams with a Pokémon a sync has changed in the last week: updated, removed or listed again.
+         */
+        changed?: boolean;
+        /**
          * Limit
          *
          * How many teams per page.

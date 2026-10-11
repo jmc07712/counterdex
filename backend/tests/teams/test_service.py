@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.accounts import service as accounts
 from app.accounts.types import SignedIn
+from app.pokemon.constants import RECENTLY_CHANGED
+from app.pokemon.enums import PokemonType
 from app.pokemon.models import Pokemon, SpeciesVariety
 from app.teams import service
 from app.teams.enums import TeamConflictReason
@@ -320,6 +322,121 @@ def test_a_search_with_a_cursor_no_team_has_gives_an_empty_page(
     page = service.list_teams(db_session, TeamsQuery(q="rain", cursor=TEAM_ID))
 
     assert page == TeamPage(items=[], next_cursor=None)
+
+
+# --- Filtering everyone's teams ---
+
+
+def add_teams_to_filter(session: Session, ash: SignedIn) -> None:
+    """Ash's teams, newest first: "Fire and water" (Charmander, Fire, and Pokémon 201, Water and
+    Flying), "Fire" (Charmander) and "Water" (201). Needs the charmander_family fixture.
+    """
+    add_species_pokemon(session, 201)
+    make_team(session, ash.user.id, 4, 201, name="Fire and water")
+    fire = make_team(session, ash.user.id, 4, name="Fire")
+    water = make_team(session, ash.user.id, 201, name="Water")
+    backdate(session, fire.id, timedelta(hours=1))
+    backdate(session, water.id, timedelta(hours=2))
+
+
+def change_recently(session: Session, pokemon_id: int, age: timedelta = timedelta(0)) -> None:
+    """Makes it look as if a sync changed the Pokémon `age` ago."""
+    session.execute(
+        update(Pokemon).where(Pokemon.id == pokemon_id).values(last_changed_at=func.now() - age)
+    )
+
+
+@pytest.mark.parametrize(
+    ("types", "found"),
+    [
+        pytest.param((PokemonType.FIRE,), ["Fire and water", "Fire"], id="one-type"),
+        pytest.param(
+            (PokemonType.FIRE, PokemonType.WATER), ["Fire and water"], id="types-on-two-members"
+        ),
+        pytest.param(
+            (PokemonType.WATER, PokemonType.FLYING),
+            ["Fire and water", "Water"],
+            id="types-on-one-member",
+        ),
+        pytest.param((PokemonType.DRAGON,), [], id="a-type-no-member-has"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_types_find_teams_with_a_pokemon_of_each(
+    db_session: Session, ash: SignedIn, types: tuple[PokemonType, ...], found: list[str]
+) -> None:
+    add_teams_to_filter(db_session, ash)
+
+    page = service.list_teams(db_session, TeamsQuery(types=types))
+
+    assert (team_names(page), page.next_cursor) == (found, None)
+
+
+@pytest.mark.parametrize(
+    ("age", "found"),
+    [
+        pytest.param(RECENTLY_CHANGED, ["Fire and water", "Water"], id="a-week-ago"),
+        pytest.param(RECENTLY_CHANGED + timedelta(microseconds=1), [], id="just-over-a-week-ago"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_changed_finds_teams_with_a_pokemon_a_sync_changed_in_the_last_week(
+    db_session: Session, ash: SignedIn, age: timedelta, found: list[str]
+) -> None:
+    add_teams_to_filter(db_session, ash)
+    # Pokémon 201 is on "Fire and water" and "Water"; Charmander has never changed.
+    change_recently(db_session, 201, age)
+
+    page = service.list_teams(db_session, TeamsQuery(changed=True))
+
+    assert team_names(page) == found
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param(TeamsQuery(q="fire", types=(PokemonType.WATER,)), id="search-and-type"),
+        pytest.param(TeamsQuery(q="fire", changed=True), id="search-and-changed"),
+        pytest.param(TeamsQuery(types=(PokemonType.FIRE,), changed=True), id="type-and-changed"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_filters_combine_with_each_other_and_a_search(
+    db_session: Session, ash: SignedIn, query: TeamsQuery
+) -> None:
+    add_teams_to_filter(db_session, ash)
+    change_recently(db_session, 201)
+
+    assert team_names(service.list_teams(db_session, query)) == ["Fire and water"]
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_pages_through_filtered_teams_without_repeating_or_skipping_one(
+    db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    # Teams with Charmander, a Fire type, at 1, 3, 5, 7 and 9 hours old, and teams of Pokémon
+    # 201, Water and Flying, between them.
+    for hours in range(1, 10):
+        pokemon_id = 4 if hours % 2 else 201
+        team = make_team(db_session, ash.user.id, pokemon_id, name=f"{hours}h")
+        backdate(db_session, team.id, timedelta(hours=hours))
+    fire = (PokemonType.FIRE,)
+
+    first = service.list_teams(db_session, TeamsQuery(types=fire, limit=2))
+    second = service.list_teams(
+        db_session, TeamsQuery(types=fire, limit=2, cursor=first.next_cursor)
+    )
+    third = service.list_teams(
+        db_session, TeamsQuery(types=fire, limit=2, cursor=second.next_cursor)
+    )
+
+    assert [team_names(page) for page in (first, second, third)] == [
+        ["1h", "3h"],
+        ["5h", "7h"],
+        ["9h"],
+    ]
+    assert third.next_cursor is None
 
 
 # --- Locking a team to change it ---

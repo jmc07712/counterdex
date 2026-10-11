@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy import Engine, func, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
@@ -12,6 +12,7 @@ from app.accounts.types import SignedIn
 from app.api.main import app
 from app.api.routes.teams import conflict_detail
 from app.api.session_cookie import session_cookie_name
+from app.pokemon.models import Pokemon
 from app.teams import service
 from app.teams.enums import TeamConflictReason
 from tests.support.accounts import ASH
@@ -474,6 +475,29 @@ def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None
     assert client.get("/api/teams", params={"limit": limit}).status_code == 200
 
 
+@pytest.mark.usefixtures("charmander_family")
+def test_filters_everyones_teams_by_type_and_recent_changes(
+    client: TestClient, db_session: Session, ash: SignedIn
+) -> None:
+    add_species_pokemon(db_session, 201)
+    make_team(db_session, ash.user.id, 4, 201, name="Fire and water")
+    make_team(db_session, ash.user.id, 4, name="Fire")
+    db_session.execute(update(Pokemon).where(Pokemon.id == 201).values(last_changed_at=func.now()))
+
+    by_types = client.get("/api/teams", params={"type": ["fire", "water"]}).json()
+    by_changes = client.get("/api/teams", params={"changed": "true"}).json()
+
+    assert [team["name"] for team in by_types["items"]] == ["Fire and water"]
+    assert [team["name"] for team in by_changes["items"]] == ["Fire and water"]
+
+
+def test_documents_each_filter(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/teams"]["get"]
+    described = {param["name"] for param in operation["parameters"] if param.get("description")}
+
+    assert {"q", "type", "changed", "limit", "cursor"} <= described
+
+
 @pytest.mark.parametrize(
     "params",
     [
@@ -484,6 +508,9 @@ def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None
         pytest.param({"q": "   "}, id="q-blank"),
         pytest.param({"q": "x" * 51}, id="q-too-long"),
         pytest.param({"q": "char\x00"}, id="q-with-a-nul-character"),
+        pytest.param({"type": "shadow"}, id="unknown-type"),
+        pytest.param({"type": ["fire"] * 19}, id="more-types-than-there-are"),
+        pytest.param({"changed": "maybe"}, id="changed-not-a-bool"),
     ],
 )
 def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:

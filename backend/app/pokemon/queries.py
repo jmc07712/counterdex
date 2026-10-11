@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import ColumnElement, exists, func, select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
@@ -38,7 +38,7 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
         types = [type_.value for type_ in query.types]
         statement = statement.where(models.Pokemon.types.contains(types))
     if query.changed:
-        statement = statement.where(models.Pokemon.last_changed_at >= func.now() - RECENTLY_CHANGED)
+        statement = statement.where(changed_lately())
     if query.forms is not FormFilter.ALL:
         is_default = query.forms is FormFilter.DEFAULT
         statement = statement.where(models.Pokemon.is_default.is_(is_default))
@@ -48,6 +48,13 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
     items = [pokemon_from_columns(row) for row in rows[: query.limit]]
     next_cursor = items[-1].id if len(rows) > query.limit else None
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
+
+
+def changed_lately() -> ColumnElement[bool]:
+    """Whether a sync changed the Pokémon in the last week: updated it, removed it or listed it
+    again.
+    """
+    return models.Pokemon.last_changed_at >= func.now() - RECENTLY_CHANGED
 
 
 def pokemon_exists(session: Session, pokemon_id: int) -> bool:

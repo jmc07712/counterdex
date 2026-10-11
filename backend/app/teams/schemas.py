@@ -9,6 +9,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstra
 
 from app.core.text import NO_NUL
 from app.pokemon.constants import MAX_POKEMON_ID
+from app.pokemon.enums import PokemonType
 from app.pokemon.schemas import Pokemon, SearchText
 from app.teams.constants import (
     DEFAULT_PAGE_SIZE,
@@ -88,9 +89,9 @@ class TeamPreviewQuery(BaseModel):
 
 
 class TeamsQuery(BaseModel):
-    """Which of everyone's teams to list, and which page."""
+    """Which of everyone's teams to list, and which page. A team must match every filter given."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, validate_by_name=True)
 
     q: Annotated[
         SearchText | None,
@@ -99,6 +100,22 @@ class TeamsQuery(BaseModel):
             "it, e.g. `rain` or `char`. Case doesn't matter."
         ),
     ] = None
+    types: Annotated[
+        tuple[PokemonType, ...],
+        Field(
+            alias="type",
+            max_length=len(PokemonType),
+            description="Only teams with a Pokémon of this type. Repeat it "
+            "(`type=fire&type=water`) to require one of each, on one Pokémon or different ones.",
+        ),
+    ] = ()
+    changed: Annotated[
+        bool,
+        Field(
+            description="Only teams with a Pokémon a sync has changed in the last week: updated, "
+            "removed or listed again."
+        ),
+    ] = False
     limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
         DEFAULT_PAGE_SIZE
     )

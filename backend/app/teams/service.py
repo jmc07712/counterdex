@@ -13,6 +13,8 @@ from typing import Any
 
 from psycopg.errors import UniqueViolation
 from sqlalchemy import (
+    ColumnElement,
+    Exists,
     Insert,
     Row,
     Select,
@@ -32,7 +34,7 @@ from sqlalchemy.orm import Session, aliased
 
 from app.accounts import models as accounts_models
 from app.pokemon import models as pokemon_models
-from app.pokemon.queries import pokemon_from_columns
+from app.pokemon.queries import changed_lately, pokemon_from_columns
 from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
 from app.teams.constants import MAX_TEAM_SIZE
@@ -61,7 +63,9 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
 
     With a search, only the teams whose name, owner's username or a Pokémon's name contains it,
     whatever the case. As in the Pokédex, a Pokémon's name is searched for the words joined by
-    hyphens: "mega x" finds charizard-mega-x. A cursor that no team has gives an empty page.
+    hyphens: "mega x" finds charizard-mega-x. With types, only the teams with a Pokémon of each
+    type, and with `changed`, only those with a Pokémon a sync changed in the last week. A cursor
+    that no team has gives an empty page.
     """
     statement = (
         _with_owners()
@@ -72,18 +76,22 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
         # Escaped, so a % or _ in the search matches itself rather than acting as a wildcard.
         # A Pokémon is matched in a subquery, so a team with several matches is listed once.
         # A Pokémon's name is searched as it's stored, with hyphens; the others as typed.
-        pokemon_on_team = exists().where(
-            models.TeamMember.team_id == models.Team.id,
-            models.TeamMember.pokemon_id == pokemon_models.Pokemon.id,
-            pokemon_models.Pokemon.name.icontains(as_stored_name(query.q), autoescape=True),
-        )
         statement = statement.where(
             or_(
                 models.Team.name.icontains(query.q, autoescape=True),
                 accounts_models.User.username.icontains(query.q, autoescape=True),
-                pokemon_on_team,
+                _has_a_pokemon(
+                    pokemon_models.Pokemon.name.icontains(as_stored_name(query.q), autoescape=True)
+                ),
             )
         )
+    # A subquery for each type, so the types can be on different Pokémon.
+    for type_ in query.types:
+        statement = statement.where(
+            _has_a_pokemon(pokemon_models.Pokemon.types.contains([type_.value]))
+        )
+    if query.changed:
+        statement = statement.where(_has_a_pokemon(changed_lately()))
     if query.cursor is not None:
         # A row subquery, so Postgres can start scanning the (created_at, id) index at the
         # cursor's team. A cursor that no team has makes it null, which no row is less than.
@@ -423,6 +431,15 @@ def _changed(session: Session, team: models.Team) -> schemas.Team:
     team.updated_at = func.clock_timestamp()
     session.flush()
     return get_team(session, team.id)
+
+
+def _has_a_pokemon(condition: ColumnElement[bool]) -> Exists:
+    """Whether the team has a Pokémon that meets the condition."""
+    return exists().where(
+        models.TeamMember.team_id == models.Team.id,
+        models.TeamMember.pokemon_id == pokemon_models.Pokemon.id,
+        condition,
+    )
 
 
 def _with_owners() -> Select[models.Team, str]:
