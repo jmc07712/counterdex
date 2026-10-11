@@ -67,10 +67,8 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     pokemon = queries.pokemon(session, query.pokemon_ids)
     answers = [
         schemas.Answer(
-            opponent_id=opponent_id,
             pokemon_id=query.pokemon_ids[position],
-            score=team[position][index].score,
-            rating=team[position][index].rating,
+            matchup=_matchup(opponent_id, team[position][index]),
         )
         for index, (opponent_id, position) in enumerate(
             zip(query.opponent_ids, search.best_answers(team), strict=True)
@@ -88,7 +86,7 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
             for pokemon_id, row in zip(query.pokemon_ids, team, strict=True)
         ],
         answers=answers,
-        every_opponent_answered=all(answer.rating is Rating.GOOD for answer in answers),
+        every_opponent_answered=all(answer.matchup.rating is Rating.GOOD for answer in answers),
     )
 
 

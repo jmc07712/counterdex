@@ -136,14 +136,10 @@ class Answer(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    opponent_id: int
-    """Their Pokémon's `id`."""
     pokemon_id: int
     """The `id` of our Pokémon with the best score against it; the first in our order, on a tie."""
-    score: float
-    """That Pokémon's score against it."""
-    rating: Rating
-    """That score's rating."""
+    matchup: Matchup
+    """That Pokémon's matchup against it."""
 
 
 class TeamMatchups(BaseModel):

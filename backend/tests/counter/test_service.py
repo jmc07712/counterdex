@@ -177,12 +177,22 @@ def test_finds_our_best_answer_to_each_of_theirs(db_session: Session) -> None:
     scored = score_teams(db_session, versus([SNORLAX, GOLEM], [CHARIZARD, VENUSAUR]))
 
     assert [
-        (answer.opponent_id, answer.pokemon_id, answer.rating) for answer in scored.answers
+        (
+            answer.matchup.opponent_id,
+            answer.pokemon_id,
+            answer.matchup.score,
+            answer.matchup.rating,
+        )
+        for answer in scored.answers
     ] == [
-        (CHARIZARD, GOLEM, Rating.GOOD),
-        (VENUSAUR, SNORLAX, Rating.EVEN),
+        (CHARIZARD, GOLEM, 2.6525, Rating.GOOD),
+        (VENUSAUR, SNORLAX, -0.2125, Rating.EVEN),
     ]
-    assert scored.answers[1].score == -0.2125
+    snorlax, golem = scored.members
+    assert [answer.matchup for answer in scored.answers] == [
+        golem.matchups[0],
+        snorlax.matchups[1],
+    ]
     assert scored.every_opponent_answered is False
 
 
@@ -191,6 +201,19 @@ def test_says_when_every_one_of_theirs_has_a_good_answer(db_session: Session) ->
     scored = score_teams(db_session, versus([GOLEM], [CHARIZARD]))
 
     assert scored.every_opponent_answered is True
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_scores_a_pokemon_against_itself_as_even(db_session: Session) -> None:
+    scored = score_teams(db_session, versus([CHARIZARD], [CHARIZARD]))
+
+    (answer,) = scored.answers
+    assert (answer.pokemon_id, answer.matchup.score, answer.matchup.rating) == (
+        CHARIZARD,
+        0,
+        Rating.EVEN,
+    )
+    assert scored.every_opponent_answered is False
 
 
 @pytest.mark.usefixtures("pokedex")

@@ -179,20 +179,17 @@ def test_scores_one_team_against_another(client: TestClient) -> None:
     assert member["pokemon"]["name"] == "golem"
     # Rock is 4x against Charizard (+2), and Charizard's Fire 1/2x against Golem (+1). Golem's
     # base stat total is 495 to Charizard's 534 (0.25 * -39 / 100), and it's slower (-0.25).
-    assert member["matchups"] == [
-        {
-            "opponent_id": CHARIZARD,
-            "attack": {"type": "rock", "multiplier": 4},
-            "opponent_attack": {"type": "fire", "multiplier": 0.5},
-            "speed": "slower",
-            "stat_total_difference": -39,
-            "score": 2.6525,
-            "rating": "good",
-        }
-    ]
-    assert body["answers"] == [
-        {"opponent_id": CHARIZARD, "pokemon_id": GOLEM, "score": 2.6525, "rating": "good"}
-    ]
+    golem_on_charizard = {
+        "opponent_id": CHARIZARD,
+        "attack": {"type": "rock", "multiplier": 4},
+        "opponent_attack": {"type": "fire", "multiplier": 0.5},
+        "speed": "slower",
+        "stat_total_difference": -39,
+        "score": 2.6525,
+        "rating": "good",
+    }
+    assert member["matchups"] == [golem_on_charizard]
+    assert body["answers"] == [{"pokemon_id": GOLEM, "matchup": golem_on_charizard}]
     assert body["every_opponent_answered"] is True
 
 

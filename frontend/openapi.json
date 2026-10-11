@@ -1569,32 +1569,20 @@
     "schemas": {
       "Answer": {
         "properties": {
-          "opponent_id": {
-            "type": "integer",
-            "title": "Opponent Id",
-            "description": "Their Pokémon's `id`."
-          },
           "pokemon_id": {
             "type": "integer",
             "title": "Pokemon Id",
             "description": "The `id` of our Pokémon with the best score against it; the first in our order, on a tie."
           },
-          "score": {
-            "type": "number",
-            "title": "Score",
-            "description": "That Pokémon's score against it."
-          },
-          "rating": {
-            "$ref": "#/components/schemas/Rating",
-            "description": "That score's rating."
+          "matchup": {
+            "$ref": "#/components/schemas/Matchup",
+            "description": "That Pokémon's matchup against it."
           }
         },
         "type": "object",
         "required": [
-          "opponent_id",
           "pokemon_id",
-          "score",
-          "rating"
+          "matchup"
         ],
         "title": "Answer",
         "description": "Our best answer to one of their Pokémon."

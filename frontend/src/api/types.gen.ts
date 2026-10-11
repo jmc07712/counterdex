@@ -11,27 +11,15 @@ export type ClientOptions = {
  */
 export type Answer = {
     /**
-     * Opponent Id
-     *
-     * Their Pokémon's `id`.
-     */
-    opponent_id: number;
-    /**
      * Pokemon Id
      *
      * The `id` of our Pokémon with the best score against it; the first in our order, on a tie.
      */
     pokemon_id: number;
     /**
-     * Score
-     *
-     * That Pokémon's score against it.
+     * That Pokémon's matchup against it.
      */
-    score: number;
-    /**
-     * That score's rating.
-     */
-    rating: Rating;
+    matchup: Matchup;
 };
 
 /**
