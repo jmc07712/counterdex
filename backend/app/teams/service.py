@@ -14,6 +14,7 @@ from psycopg.errors import UniqueViolation
 from sqlalchemy import (
     Insert,
     Row,
+    Select,
     Update,
     delete,
     exists,
@@ -48,6 +49,8 @@ SLOT = "uq_team_members_team_id_position"
 
 # A member's row: id, position, pokemon_id and species_id.
 Member = Row[int, int, int, int]
+# A team and its owner's username.
+TeamWithOwner = Row[models.Team, str]
 
 
 def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
@@ -56,7 +59,7 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     A cursor that no team has gives an empty page.
     """
     statement = (
-        select(models.Team)
+        _with_owners()
         .where(exists().where(models.TeamMember.team_id == models.Team.id))
         .order_by(models.Team.created_at.desc(), models.Team.id.desc())
     )
@@ -68,7 +71,7 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
             < tuple_(cursor_team.created_at, cursor_team.id)
         )
     # One extra row shows whether another page follows, without counting the rest.
-    teams = session.scalars(statement.limit(query.limit + 1)).all()
+    teams = session.execute(statement.limit(query.limit + 1)).all()
 
     items = _shown(session, teams[: query.limit])
     next_cursor = items[-1].id if len(teams) > query.limit else None
@@ -87,8 +90,8 @@ def list_user_teams(session: Session, username: str) -> list[schemas.Team]:
     )
     if user_id is None:
         raise UserNotFoundError(username)
-    teams = session.scalars(
-        select(models.Team)
+    teams = session.execute(
+        _with_owners()
         .where(models.Team.user_id == user_id)
         .order_by(models.Team.updated_at.desc(), models.Team.created_at.desc())
     ).all()
@@ -97,10 +100,11 @@ def list_user_teams(session: Session, username: str) -> list[schemas.Team]:
 
 def get_team(session: Session, team_id: uuid.UUID) -> schemas.Team:
     """A team, whoever owns it. Raises TeamNotFoundError if no team has this id."""
-    team = session.scalars(select(models.Team).where(models.Team.id == team_id)).one_or_none()
+    team = session.execute(_with_owners().where(models.Team.id == team_id)).one_or_none()
     if team is None:
         raise TeamNotFoundError(team_id)
-    return _shown_one(session, team)
+    (shown,) = _shown(session, [team])
+    return shown
 
 
 def preview(session: Session, pokemon_ids: Sequence[int]) -> list[schemas.TeamMember]:
@@ -151,7 +155,7 @@ def create_team(
         return get_team(session, team_id), False
     for pokemon_id in new.pokemon_ids:
         _append(session, team_id, pokemon_id)
-    return _shown_one(session, team), True
+    return get_team(session, team_id), True
 
 
 def lock_owned_team(session: Session, user_id: int, team_id: uuid.UUID) -> models.Team:
@@ -359,23 +363,18 @@ def _changed(session: Session, team: models.Team) -> schemas.Team:
     # transaction.
     team.updated_at = func.clock_timestamp()
     session.flush()
-    return _shown_one(session, team)
+    return get_team(session, team.id)
 
 
-def _shown_one(session: Session, team: models.Team) -> schemas.Team:
-    (shown,) = _shown(session, [team])
-    return shown
-
-
-def _shown(session: Session, teams: Sequence[models.Team]) -> list[schemas.Team]:
-    """The teams as the API shows them, each with its owner and its members in slot order."""
-    usernames: dict[int, str] = dict(
-        session.execute(
-            select(accounts_models.User.id, accounts_models.User.username).where(
-                accounts_models.User.id.in_({team.user_id for team in teams})
-            )
-        ).all()
+def _with_owners() -> Select[models.Team, str]:
+    """Teams, each with its owner's username."""
+    return select(models.Team, accounts_models.User.username).join(
+        accounts_models.User, accounts_models.User.id == models.Team.user_id
     )
+
+
+def _shown(session: Session, teams: Sequence[TeamWithOwner]) -> list[schemas.Team]:
+    """The teams as the API shows them, each with its owner and its members in slot order."""
     rows = (
         session.execute(
             select(
@@ -385,7 +384,7 @@ def _shown(session: Session, teams: Sequence[models.Team]) -> list[schemas.Team]
                 models.TeamMember.species_id,
             )
             .join(pokemon_models.Pokemon, pokemon_models.Pokemon.id == models.TeamMember.pokemon_id)
-            .where(models.TeamMember.team_id.in_([team.id for team in teams]))
+            .where(models.TeamMember.team_id.in_([team.id for team, _ in teams]))
             .order_by(models.TeamMember.position)
         )
         .mappings()
@@ -399,12 +398,12 @@ def _shown(session: Session, teams: Sequence[models.Team]) -> list[schemas.Team]
         schemas.Team(
             id=team.id,
             name=team.name,
-            owner=schemas.TeamOwner(username=usernames[team.user_id]),
+            owner=schemas.TeamOwner(username=username),
             created_at=team.created_at,
             updated_at=team.updated_at,
             members=_members_shown(by_team[team.id], earlier),
         )
-        for team in teams
+        for team, username in teams
     ]
 
 
