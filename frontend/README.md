@@ -59,7 +59,7 @@ page that needs two features, such as a team with its Pokémon's details, render
   API, such as types and change kinds, are worded by select messages, and tests check that every
   value has wording.
 - **Keep filters and the open Pokémon in the URL**, so a view can be shared or reloaded: the
-  Pokédex's and the Teams page's filters (`?q=char&type=fire`, `?scope=everyone`), and the
+  Pokédex's and the Teams page's filters (`?q=char&type=fire`, `?scope=mine`), and the
   Pokémon whose details are open (`?pokemon=6`). Opening a Pokémon adds a history entry, so Back
   closes it.
 - **Change a team through its hooks.** Each change (`useAddTeamMember`, `useRemoveTeamMember`,
@@ -98,8 +98,8 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
 
 ## The team views
 
-- **Teams** (`/`) lists your teams, empty ones too, or everyone's (`?scope=everyone`, and always
-  when signed out, with each card saying whose it is), searchable and filterable by type and by
+- **Teams** (`/`) lists everyone's teams, with each card saying whose it is, or, for someone
+  signed in, their own, empty ones too (`?scope=mine`), searchable and filterable by type and by
   "Changed this week". Each card shows the team as party tiles, its types and its power, is
   marked if a member changed recently, and says which member was removed from PokéAPI and when.
 - **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
