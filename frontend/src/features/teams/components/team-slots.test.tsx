@@ -140,6 +140,20 @@ describe('TeamSlot', () => {
     expect(asked).toEqual([])
   })
 
+  it('marks a removal from this week with the dot the Pokédex marks a removal with', () => {
+    const row = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
+
+    const line = within(row).getByText('Removed from PokéAPI on Oct 9, 2026')
+    expect(line.querySelector('[aria-hidden="true"]')).toHaveClass('bg-destructive')
+  })
+
+  it('leaves a removal from before this week unmarked', () => {
+    const row = renderRow({ ...asMember(catalog.charizard, 1), removed_at: '2026-09-01T09:00:00Z' })
+
+    const line = within(row).getByText('Removed from PokéAPI on Sep 1, 2026')
+    expect(line.querySelector('[aria-hidden="true"]')).not.toBeInTheDocument()
+  })
+
   it('shows a small skeleton while the change loads', async () => {
     let release = () => {}
     const released = new Promise<void>((resolve) => {

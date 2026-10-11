@@ -286,16 +286,19 @@ function MemberNumber({ member }: PartOfMemberProps) {
   )
 }
 
-// Its types, ringed so a badge in the panel's own color still shows; or when it was removed, which
-// is its newest change, marked as the Pokédex's change history marks a removal.
+// Its types, ringed so a badge in the panel's own color still shows; or when it was removed. A
+// removal from this week is the member's change, so it gets the dot the Pokédex's change history
+// marks a removal with.
 function MemberTypes({ member }: PartOfMemberProps) {
   if (member.removed_at) {
     return (
       <p className="text-xs">
-        <ChangeDot
-          kind={ChangeKind.REMOVED}
-          className="mr-1.5 inline-block size-2.5 align-[-0.0625rem]"
-        />
+        {member.pokemon.changed_recently && (
+          <ChangeDot
+            kind={ChangeKind.REMOVED}
+            className="mr-1.5 inline-block size-2.5 align-[-0.0625rem]"
+          />
+        )}
         {m.team_removed_on({ date: formatDate(member.removed_at) })}
       </p>
     )
