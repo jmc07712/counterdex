@@ -10,6 +10,8 @@
     --font-heading: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
     --font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
     --color-brand: var(--brand);
+    --color-brand-deep: var(--brand-deep);
+    --color-brand-foreground: var(--brand-foreground);
     --color-led-yellow: var(--led-yellow);
     --color-led-green: var(--led-green);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -60,8 +62,8 @@
     --card-foreground: #1c2033;
     --popover: #ffffff;
     --popover-foreground: #1c2033;
-    --primary: #1c2033;
-    --primary-foreground: #f5f7fa;
+    --primary: var(--brand-deep);
+    --primary-foreground: var(--brand-foreground);
     --secondary: #e9edf2;
     --secondary-foreground: #1c2033;
     --muted: #e9edf2;
@@ -73,6 +75,10 @@
     --input: #dce1e8;
     --ring: #6b7489;
     --brand: #e3350d;
+    /* The brand red, deepened so that white text keeps 4.5:1 contrast on it, and on it at 80%
+       over the page, as buttons are on hover. */
+    --brand-deep: color-mix(in oklab, var(--brand) 84%, black);
+    --brand-foreground: #ffffff;
     --led-yellow: #f2c230;
     --led-green: #3fb86b;
     --chart-1: oklch(0.87 0 0);
@@ -98,8 +104,8 @@
     --card-foreground: #e8ecf3;
     --popover: #1a2236;
     --popover-foreground: #e8ecf3;
-    --primary: #e8ecf3;
-    --primary-foreground: #131a2c;
+    --primary: var(--brand-deep);
+    --primary-foreground: var(--brand-foreground);
     --secondary: #232c43;
     --secondary-foreground: #e8ecf3;
     --muted: #232c43;
@@ -111,6 +117,8 @@
     --input: #2e3954;
     --ring: #7e89a6;
     --brand: #ff5a36;
+    --brand-deep: color-mix(in oklab, var(--brand) 84%, black);
+    --brand-foreground: #ffffff;
     --led-yellow: #f5cd4a;
     --led-green: #52c87d;
     --chart-1: oklch(0.87 0 0);

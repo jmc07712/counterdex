@@ -1,4 +1,4 @@
-import { useScrollDirection, useWindowScroll } from '@mantine/hooks'
+import { usePrevious, useScrollDirection, useWindowScroll } from '@mantine/hooks'
 import {
   ArrowUpRight,
   BookOpenText,
@@ -7,33 +7,47 @@ import {
   type LucideIcon,
   UsersRound,
 } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router'
 
+import { paths } from '@/config/paths'
+import { useCurrentUser } from '@/lib/auth'
+import type { Message } from '@/lib/messages'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
+import { AccountMenu } from './account-menu'
 import { BrandMark } from './brand-mark'
 import { ThemeSwitch } from './theme-switch'
 
 type NavItem = {
   to: string
-  label: string
+  label: Message
   icon: LucideIcon
 }
 
 const primaryNav: NavItem[] = [
-  { to: '/', label: 'Pokédex', icon: LayoutGrid },
-  { to: '/teams', label: 'Teams', icon: UsersRound },
+  { to: paths.pokedex.getHref(), label: m.nav_pokedex, icon: LayoutGrid },
+  { to: paths.teams.getHref(), label: m.nav_teams, icon: UsersRound },
 ]
 
-const accountNav: NavItem = { to: '/sign-in', label: 'Sign in', icon: CircleUserRound }
+const SIGN_IN = { label: m.nav_sign_in, icon: CircleUserRound }
+
+// Signing in leads back to the page it started from. On the sign-in and sign-up pages, it keeps
+// their ?next=.
+function useSignInNav(): NavItem {
+  const { pathname, search } = useLocation()
+  const onAuthPage = pathname === paths.signIn.path || pathname === paths.signUp.path
+  const next = onAuthPage ? new URLSearchParams(search).get('next') : pathname + search
+  return { ...SIGN_IN, to: paths.signIn.getHref(next ?? undefined) }
+}
 
 // The tab bar always shows within this many pixels of the top of the page, so the bounce at the
 // top can't hide it.
 const TAB_BAR_HIDES_AFTER = 56
 
-// The API serves its own docs, outside this app: a plain link (not a router link) that opens
-// them in a new tab, so the app keeps its place.
-const apiDocs = { href: '/api/docs', label: 'API', icon: BookOpenText }
+// Served by the API, not this app.
+const apiDocs = { href: '/api/docs', label: m.nav_api, icon: BookOpenText }
 
 export function AppShell() {
   // The phone tab bar hides while scrolling down the page and comes back on any scroll up,
@@ -41,6 +55,19 @@ export function AppShell() {
   const scrollDirection = useScrollDirection()
   const [{ y: scrollY }] = useWindowScroll()
   const tabBarHidden = scrollDirection === 'down' && scrollY > TAB_BAR_HIDES_AFTER
+  // Until the API says whether someone's signed in, neither Sign in nor the account shows.
+  const { data: user, isPending } = useCurrentUser()
+  const signInNav = useSignInNav()
+
+  // Signing out removes the account menu, which had focus; it moves to the page rather than
+  // being lost.
+  const main = useRef<HTMLElement>(null)
+  const previousUser = usePrevious(user)
+  useEffect(() => {
+    if (previousUser && user === null && document.activeElement === document.body) {
+      main.current?.focus()
+    }
+  }, [previousUser, user])
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -48,21 +75,21 @@ export function AppShell() {
         href="#main"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
-        Skip to content
+        {m.nav_skip_to_content()}
       </a>
 
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-8 px-4 sm:px-6">
-          <NavLink to="/" aria-label="Counterdex home" className="rounded-md">
+          <NavLink to={paths.pokedex.getHref()} aria-label={m.nav_home()} className="rounded-md">
             <BrandMark />
           </NavLink>
 
-          <nav aria-label="Primary" className="hidden h-full items-stretch gap-6 md:flex">
+          <nav aria-label={m.nav_primary()} className="hidden h-full items-stretch gap-6 md:flex">
             {primaryNav.map((item) => (
               <HeaderLink key={item.to} item={item} />
             ))}
             <a href={apiDocs.href} target="_blank" rel="noopener" className={headerLinkClass(false)}>
-              {apiDocs.label}
+              {apiDocs.label()}
               <ArrowUpRight className="size-3.5" aria-hidden="true" />
               <NewTabNote />
             </a>
@@ -71,18 +98,29 @@ export function AppShell() {
           <div className="ml-auto flex h-full items-center gap-4">
             <ThemeSwitch />
             <div className="hidden h-full items-stretch md:flex">
-              <HeaderLink item={accountNav} />
+              {user ? (
+                <AccountMenu user={user} className={headerLinkClass(false)}>
+                  {user.username}
+                </AccountMenu>
+              ) : (
+                !isPending && <HeaderLink item={signInNav} />
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 sm:px-6 md:pb-16">
+      <main
+        id="main"
+        ref={main}
+        tabIndex={-1}
+        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 outline-none sm:px-6 md:pb-16"
+      >
         <Outlet />
       </main>
 
       <nav
-        aria-label="Primary"
+        aria-label={m.nav_primary()}
         data-state={tabBarHidden ? 'hidden' : 'shown'}
         className={cn(
           'fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden',
@@ -92,15 +130,25 @@ export function AppShell() {
         )}
       >
         <ul className="grid grid-cols-4">
-          {[...primaryNav, accountNav].map((item) => (
+          {primaryNav.map((item) => (
             <li key={item.to}>
               <TabLink item={item} />
             </li>
           ))}
           <li>
+            {user ? (
+              <AccountMenu user={user} side="top" className={cn(tabLinkClass(false), 'w-full')}>
+                <CircleUserRound className="size-5" aria-hidden="true" />
+                <span className="max-w-full truncate px-1">{user.username}</span>
+              </AccountMenu>
+            ) : (
+              !isPending && <TabLink item={signInNav} />
+            )}
+          </li>
+          <li>
             <a href={apiDocs.href} target="_blank" rel="noopener" className={tabLinkClass(false)}>
               <apiDocs.icon className="size-5" aria-hidden="true" />
-              {apiDocs.label}
+              {apiDocs.label()}
               <NewTabNote />
             </a>
           </li>
@@ -133,7 +181,7 @@ function NewTabNote() {
   return (
     <>
       {' '}
-      <span className="sr-only">(opens in a new tab)</span>
+      <span className="sr-only">{m.nav_opens_in_new_tab()}</span>
     </>
   )
 }
@@ -141,7 +189,7 @@ function NewTabNote() {
 function HeaderLink({ item }: { item: NavItem }) {
   return (
     <NavLink to={item.to} className={({ isActive }) => headerLinkClass(isActive)}>
-      {item.label}
+      {item.label()}
     </NavLink>
   )
 }
@@ -151,7 +199,7 @@ function TabLink({ item }: { item: NavItem }) {
   return (
     <NavLink to={item.to} className={({ isActive }) => tabLinkClass(isActive)}>
       <Icon className="size-5" aria-hidden="true" />
-      {item.label}
+      {item.label()}
     </NavLink>
   )
 }

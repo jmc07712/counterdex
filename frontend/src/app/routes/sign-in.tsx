@@ -1,10 +1,10 @@
-import { PageHeader } from '@/components/layout/page-header'
+import { SignInForm } from '@/features/auth/components/sign-in-form'
+import { SignedOutOnly } from '@/features/auth/components/signed-out-only'
 
 export function SignInPage() {
   return (
-    <PageHeader
-      title="Sign in"
-      description="Sign in to keep your teams across devices and hear about changes to your Pokémon."
-    />
+    <SignedOutOnly>
+      <SignInForm />
+    </SignedOutOnly>
   )
 }

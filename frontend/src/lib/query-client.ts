@@ -1,8 +1,9 @@
-import { QueryClient } from '@tanstack/react-query'
+import { type DefaultOptions, QueryClient } from '@tanstack/react-query'
 
-// The API lets browsers reuse Pokémon data for 5 minutes, so the app doesn't refetch sooner.
-const STALE_TIME_MS = 5 * 60 * 1000
+export const queryDefaults = {
+  // The API lets browsers reuse Pokémon data for 5 minutes, so queries don't refetch sooner
+  // unless they say otherwise.
+  queries: { staleTime: 5 * 60 * 1000 },
+} satisfies DefaultOptions
 
-export const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: STALE_TIME_MS } },
-})
+export const queryClient = new QueryClient({ defaultOptions: queryDefaults })

@@ -2,13 +2,15 @@ import { Link } from 'react-router'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
+import { paths } from '@/config/paths'
+import { m } from '@/paraglide/messages.js'
 
 export function NotFoundPage() {
   return (
     <>
-      <PageHeader title="Page not found" description="There's nothing at this address." />
+      <PageHeader title={m.not_found_title()} description={m.not_found_description()} />
       <Button asChild>
-        <Link to="/">Go to the Pokédex</Link>
+        <Link to={paths.pokedex.getHref()}>{m.not_found_go_to_pokedex()}</Link>
       </Button>
     </>
   )
