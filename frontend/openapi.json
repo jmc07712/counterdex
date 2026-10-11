@@ -294,6 +294,79 @@
         }
       }
     },
+    "/api/sync/runs": {
+      "get": {
+        "tags": [
+          "Sync"
+        ],
+        "summary": "List every sync run (admins only)",
+        "description": "Every sync with PokéAPI, successful or not, newest first, one page at a time. Only admins\ncan see it.\n\nThe response says which `page` this is and how many `total_pages` there are: at least 1, so\na list with no runs is page 1 of 1. A page past the last has no runs, and isn't an error.",
+        "operationId": "list_sync_runs",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "description": "Which page, counting from 1. A page past the last one is empty.",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Which page, counting from 1. A page past the last one is empty."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "How many runs per page.",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "How many runs per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRunPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
+          },
+          "403": {
+            "description": "Only admins can see this."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users": {
       "post": {
         "tags": [
@@ -2387,6 +2460,134 @@
         "title": "SyncOverview",
         "description": "How up to date the Pokédex is."
       },
+      "SyncRunDetails": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Runs are numbered in the order they were recorded."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SyncStatus"
+          },
+          "fetched": {
+            "type": "integer",
+            "title": "Fetched",
+            "description": "Pokémon fetched from PokéAPI."
+          },
+          "inserted": {
+            "type": "integer",
+            "title": "Inserted",
+            "description": "Pokémon new to the Pokédex."
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated",
+            "description": "Pokémon whose data changed."
+          },
+          "unchanged": {
+            "type": "integer",
+            "title": "Unchanged",
+            "description": "Pokémon whose data was already up to date."
+          },
+          "removed": {
+            "type": "integer",
+            "title": "Removed",
+            "description": "Pokémon PokéAPI no longer lists."
+          },
+          "restored": {
+            "type": "integer",
+            "title": "Restored",
+            "description": "Removed Pokémon that PokéAPI lists again."
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count",
+            "description": "Pokémon, species and types that couldn't be synced this time."
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "What went wrong when the whole run failed, or `null` when it ran to the end, even if some of what it fetched couldn't be synced."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "finished_at",
+          "status",
+          "fetched",
+          "inserted",
+          "updated",
+          "unchanged",
+          "removed",
+          "restored",
+          "failed_count",
+          "error"
+        ],
+        "title": "SyncRunDetails",
+        "description": "One sync with PokéAPI, successful or not, with everything it counted."
+      },
+      "SyncRunPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SyncRunDetails"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "This page's runs, newest first."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "This page's number, counting from 1."
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "How many runs a full page holds; the last page can hold fewer."
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "How many runs there are in all."
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "How many pages there are: at least 1, even with no runs."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "SyncRunPage",
+        "description": "One page of sync runs."
+      },
       "SyncRunSummary": {
         "properties": {
           "status": {
@@ -2739,7 +2940,7 @@
     },
     {
       "name": "Sync",
-      "description": "How current the Pokédex is: when the sync last ran and what it found. No sign-in needed."
+      "description": "How current the Pokédex is: when the sync last ran and what it found. No sign-in needed, except to list every sync run, which is for admins."
     },
     {
       "name": "Session",

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListTeamThreatsData, ListTeamThreatsErrors, ListTeamThreatsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListSyncRunsData, ListSyncRunsErrors, ListSyncRunsResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListTeamThreatsData, ListTeamThreatsErrors, ListTeamThreatsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -59,6 +59,25 @@ export const listPokemonChanges = <ThrowOnError extends boolean = false>(options
  * When the Pokédex data last came from PokéAPI, and how the most recent sync went.
  */
 export const syncStatus = <ThrowOnError extends boolean = false>(options?: Options<SyncStatusData, ThrowOnError>): RequestResult<SyncStatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<SyncStatusResponses, unknown, ThrowOnError>({ url: '/api/sync/status', ...options });
+
+/**
+ * List every sync run (admins only)
+ *
+ * Every sync with PokéAPI, successful or not, newest first, one page at a time. Only admins
+ * can see it.
+ *
+ * The response says which `page` this is and how many `total_pages` there are: at least 1, so
+ * a list with no runs is page 1 of 1. A page past the last has no runs, and isn't an error.
+ */
+export const listSyncRuns = <ThrowOnError extends boolean = false>(options?: Options<ListSyncRunsData, ThrowOnError>): RequestResult<ListSyncRunsResponses, ListSyncRunsErrors, ThrowOnError> => (options?.client ?? client).get<ListSyncRunsResponses, ListSyncRunsErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-session',
+            type: 'apiKey'
+        }],
+    url: '/api/sync/runs',
+    ...options
+});
 
 /**
  * Sign up

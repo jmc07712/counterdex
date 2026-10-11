@@ -53,3 +53,12 @@ MAX_REMOVED_SHARE = 0.05
 MIN_REMOVALS_ALLOWED = 10
 # Postgres advisory lock that lets only one sync write at a time (any constant works).
 SYNC_LOCK_KEY = 4_202_510
+
+# --- Listing runs ---
+
+DEFAULT_RUNS_PAGE_SIZE = 20
+MAX_RUNS_PAGE_SIZE = 100
+# Far more pages than there will ever be runs, and few enough that a page's offset fits in a
+# Postgres bigint: a larger number would fail in the database instead of being refused as bad
+# input.
+MAX_RUNS_PAGE = 2**31 - 1

@@ -1,7 +1,8 @@
+import math
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.pokemon import schemas as pokemon_schemas
 from app.pokemon.queries import pokemon_from_columns
@@ -36,6 +37,47 @@ def _summarize(run: models.SyncRun) -> schemas.SyncRunSummary:
         removed=run.removed,
         restored=run.restored,
         failed=len(run.failed),
+    )
+
+
+def list_sync_runs(session: Session, query: schemas.SyncRunsQuery) -> schemas.SyncRunPage:
+    """One page of the sync runs, newest first, with how many runs and pages there are.
+
+    There is always at least one page, so an empty list is page 1 of 1. A page past the last has
+    no runs.
+    """
+    total = session.execute(select(func.count()).select_from(models.SyncRun)).scalar_one()
+    failed_count = func.jsonb_array_length(models.SyncRun.failed)
+    rows = session.execute(
+        select(models.SyncRun, failed_count)
+        # Only the number of failures is shown, and the list can be long.
+        .options(defer(models.SyncRun.failed))
+        .order_by(models.SyncRun.started_at.desc(), models.SyncRun.id.desc())
+        .limit(query.page_size)
+        .offset((query.page - 1) * query.page_size)
+    )
+    return schemas.SyncRunPage(
+        items=[
+            schemas.SyncRunDetails(
+                id=run.id,
+                started_at=run.started_at,
+                finished_at=run.finished_at,
+                status=run.status,
+                fetched=run.fetched,
+                inserted=run.inserted,
+                updated=run.updated,
+                unchanged=run.unchanged,
+                removed=run.removed,
+                restored=run.restored,
+                failed_count=count,
+                error=run.error,
+            )
+            for run, count in rows
+        ],
+        page=query.page,
+        page_size=query.page_size,
+        total=total,
+        total_pages=max(1, math.ceil(total / query.page_size)),
     )
 
 

@@ -24,6 +24,13 @@ def ash_client(client: TestClient, ash: SignedIn) -> TestClient:
 
 
 @pytest.fixture
+def oak_client(client: TestClient, oak: SignedIn) -> TestClient:
+    """The client, signed in as Oak, an admin."""
+    client.cookies.set(session_cookie_name(), oak.token)
+    return client
+
+
+@pytest.fixture
 def running_locally(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """The API configured as .env.example configures it for local development."""
     monkeypatch.setenv("CACHE_RESPONSES", "false")

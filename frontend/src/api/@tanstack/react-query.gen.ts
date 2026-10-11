@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listSyncRuns, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListSyncRunsData, ListSyncRunsError, ListSyncRunsResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -211,6 +211,66 @@ export const syncStatusOptions = (options?: Options<SyncStatusData>) => queryOpt
     },
     queryKey: syncStatusQueryKey(options)
 });
+
+export const listSyncRunsQueryKey = (options?: Options<ListSyncRunsData>) => createQueryKey('listSyncRuns', options);
+
+/**
+ * List every sync run (admins only)
+ *
+ * Every sync with PokéAPI, successful or not, newest first, one page at a time. Only admins
+ * can see it.
+ *
+ * The response says which `page` this is and how many `total_pages` there are: at least 1, so
+ * a list with no runs is page 1 of 1. A page past the last has no runs, and isn't an error.
+ */
+export const listSyncRunsOptions = (options?: Options<ListSyncRunsData>) => queryOptions<ListSyncRunsResponse, ListSyncRunsError, ListSyncRunsResponse, ReturnType<typeof listSyncRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listSyncRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listSyncRunsQueryKey(options)
+});
+
+export const listSyncRunsInfiniteQueryKey = (options?: Options<ListSyncRunsData>): QueryKey<Options<ListSyncRunsData>> => createQueryKey('listSyncRuns', options, true);
+
+/**
+ * List every sync run (admins only)
+ *
+ * Every sync with PokéAPI, successful or not, newest first, one page at a time. Only admins
+ * can see it.
+ *
+ * The response says which `page` this is and how many `total_pages` there are: at least 1, so
+ * a list with no runs is page 1 of 1. A page past the last has no runs, and isn't an error.
+ */
+export const listSyncRunsInfiniteOptions = (options?: Options<ListSyncRunsData>) => {
+    const opts = infiniteQueryOptions<ListSyncRunsResponse, ListSyncRunsError, InfiniteData<ListSyncRunsResponse>, QueryKey<Options<ListSyncRunsData>>, number | Pick<QueryKey<Options<ListSyncRunsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListSyncRunsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listSyncRuns({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listSyncRunsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Sign up

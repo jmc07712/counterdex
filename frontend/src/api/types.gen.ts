@@ -723,6 +723,115 @@ export type SyncOverview = {
 };
 
 /**
+ * SyncRunDetails
+ *
+ * One sync with PokéAPI, successful or not, with everything it counted.
+ */
+export type SyncRunDetails = {
+    /**
+     * Id
+     *
+     * Runs are numbered in the order they were recorded.
+     */
+    id: number;
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Finished At
+     */
+    finished_at: string;
+    status: SyncStatus;
+    /**
+     * Fetched
+     *
+     * Pokémon fetched from PokéAPI.
+     */
+    fetched: number;
+    /**
+     * Inserted
+     *
+     * Pokémon new to the Pokédex.
+     */
+    inserted: number;
+    /**
+     * Updated
+     *
+     * Pokémon whose data changed.
+     */
+    updated: number;
+    /**
+     * Unchanged
+     *
+     * Pokémon whose data was already up to date.
+     */
+    unchanged: number;
+    /**
+     * Removed
+     *
+     * Pokémon PokéAPI no longer lists.
+     */
+    removed: number;
+    /**
+     * Restored
+     *
+     * Removed Pokémon that PokéAPI lists again.
+     */
+    restored: number;
+    /**
+     * Failed Count
+     *
+     * Pokémon, species and types that couldn't be synced this time.
+     */
+    failed_count: number;
+    /**
+     * Error
+     *
+     * What went wrong when the whole run failed, or `null` when it ran to the end, even if some of what it fetched couldn't be synced.
+     */
+    error: string | null;
+};
+
+/**
+ * SyncRunPage
+ *
+ * One page of sync runs.
+ */
+export type SyncRunPage = {
+    /**
+     * Items
+     *
+     * This page's runs, newest first.
+     */
+    items: Array<SyncRunDetails>;
+    /**
+     * Page
+     *
+     * This page's number, counting from 1.
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * How many runs a full page holds; the last page can hold fewer.
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * How many runs there are in all.
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * How many pages there are: at least 1, even with no runs.
+     */
+    total_pages: number;
+};
+
+/**
  * SyncRunSummary
  *
  * One sync with PokéAPI.
@@ -1211,6 +1320,52 @@ export type SyncStatusResponses = {
 };
 
 export type SyncStatusResponse = SyncStatusResponses[keyof SyncStatusResponses];
+
+export type ListSyncRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * Which page, counting from 1. A page past the last one is empty.
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * How many runs per page.
+         */
+        page_size?: number;
+    };
+    url: '/api/sync/runs';
+};
+
+export type ListSyncRunsErrors = {
+    /**
+     * Sign in first: POST /api/session with your username and password sets the session cookie.
+     */
+    401: unknown;
+    /**
+     * Only admins can see this.
+     */
+    403: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListSyncRunsError = ListSyncRunsErrors[keyof ListSyncRunsErrors];
+
+export type ListSyncRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SyncRunPage;
+};
+
+export type ListSyncRunsResponse = ListSyncRunsResponses[keyof ListSyncRunsResponses];
 
 export type SignUpData = {
     body: NewAccountWritable;

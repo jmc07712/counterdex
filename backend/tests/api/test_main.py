@@ -26,6 +26,7 @@ def test_operations_are_named_after_their_routes(openapi: dict[str, Any]) -> Non
 
 SIGNED_IN_ROUTES = {
     "GET /api/session",
+    "GET /api/sync/runs",
     "PUT /api/teams/{team_id}",
     "PATCH /api/teams/{team_id}",
     "DELETE /api/teams/{team_id}",

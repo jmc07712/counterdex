@@ -19,8 +19,8 @@ TAGS: list[dict[str, Any]] = [
     {
         "name": SYNC,
         "description": (
-            "How current the Pokédex is: when the sync last ran and what it found. "
-            "No sign-in needed."
+            "How current the Pokédex is: when the sync last ran and what it found. No sign-in "
+            "needed, except to list every sync run, which is for admins."
         ),
     },
     {
