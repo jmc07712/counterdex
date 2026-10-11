@@ -20,14 +20,14 @@ export function PokemonHero({ pokemon, species }: PokemonHeroProps) {
     >
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1 pb-1">
-          <p className="flex items-center gap-1 font-heading text-sm font-bold tabular-nums">
-            <span className="opacity-70">{dexNumber(pokemon.id)}</span>
+          <p className="flex items-center gap-1 font-heading text-sm font-medium tabular-nums">
+            <span>{dexNumber(pokemon.id)}</span>
             {pokemon.changed_recently && <ChangedMark className="text-current" />}
           </p>
           <DialogTitle className="font-heading text-2xl leading-tight font-extrabold text-balance sm:text-3xl">
             {displayName(pokemon.name)}
           </DialogTitle>
-          <DialogDescription className="text-current opacity-80">
+          <DialogDescription className="text-current">
             {species?.genus ?? m.details_genus_unknown()}
           </DialogDescription>
           {/* Ringed, so a badge in the hero's own color still stands out. */}

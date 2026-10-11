@@ -58,7 +58,7 @@ export function LeadSlot({ member, onOpen }: LeadSlotProps) {
   const headingId = useId()
   return (
     <MemberPanel member={member} className="flex flex-col gap-3 rounded-3xl p-5 md:p-6">
-      <p className="self-start rounded-full bg-current/15 px-2.5 py-0.5 text-xs font-bold">
+      <p className="self-start rounded-full border border-current px-2.5 py-0.5 text-xs font-bold">
         {m.team_lead()}
       </p>
       {/* On phones the sprite sits beside the words; from md up, above them. */}
@@ -109,7 +109,7 @@ export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
       <PanelSprite member={member} className="size-16" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
         <MemberNumber member={member} />
-        <MemberName id={headingId} member={member} className="truncate text-lg" />
+        <MemberName id={headingId} member={member} className="truncate text-lg font-extrabold" />
         <MemberTypes member={member} />
         <TotalBar stats={member.pokemon.stats} />
       </div>
@@ -213,7 +213,7 @@ function EmptyBall() {
 }
 
 function SlotNumber({ slot }: { slot: number }) {
-  return <span className="w-4 shrink-0 text-sm font-bold tabular-nums opacity-80">{slot + 1}</span>
+  return <span className="w-4 shrink-0 text-sm font-medium tabular-nums">{slot + 1}</span>
 }
 
 type PartOfMemberProps = { member: TeamMember; className?: string }
@@ -245,8 +245,8 @@ function MemberName({ member, id, className }: PartOfMemberProps & { id: string 
 
 function MemberNumber({ member }: PartOfMemberProps) {
   return (
-    <p className="flex items-center gap-1 text-xs font-bold tabular-nums">
-      <span className="opacity-80">{dexNumber(member.pokemon.id)}</span>
+    <p className="flex items-center gap-1 text-xs font-medium tabular-nums">
+      <span>{dexNumber(member.pokemon.id)}</span>
       {member.pokemon.changed_recently && <ChangedMark className="text-current" />}
     </p>
   )
