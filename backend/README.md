@@ -94,7 +94,8 @@ The sync adds:
 - `GET /api/teams` lists everyone's teams that have a Pokémon, newest first, a page at a time.
   `q` matches a team's name, its owner's username or a member's name, ignoring case; `type`,
   repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
-  week; `owner` keeps one user's teams, including those with no Pokémon yet. Filters combine.
+  week; `owner` keeps one user's teams, including those with no Pokémon yet unless another filter
+  needs one. Filters combine.
 
 ## The type chart and legendary flags
 
