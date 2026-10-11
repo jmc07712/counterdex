@@ -811,6 +811,9 @@ describe.each([
         'href',
         '/?scope=mine',
       )
+      expect(
+        screen.getByText('Pick up to six Pokémon and put them in battle order.'),
+      ).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Everyone’s teams' })).toHaveAttribute('href', '/')
       expect(screen.queryByRole('link', { name: 'My teams' })).not.toBeInTheDocument()
       // Besides building a counter to the team, each member opens its details, and that's all
