@@ -9,6 +9,7 @@ import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import {
+  holdNextCurrentUser,
   holdTeamChanges,
   holdTeamFetches,
   servePokemon,
@@ -522,6 +523,25 @@ describe('TeamPage, as a party', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
     expect(router.state.location.search).toBe('?pokemon=6')
+  })
+})
+
+describe('TeamPage, while it’s not yet known who’s signed in', () => {
+  it('shows neither the party nor the builder on the Edit page', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([])
+    const release = holdNextCurrentUser(ASH)
+    renderTeam(EDIT)
+
+    // Given time, the team has loaded, but who's signed in is held.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Build your own team' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+
+    release()
+
+    expect(await screen.findByRole('textbox', { name: 'Team name' })).toBeInTheDocument()
   })
 })
 
