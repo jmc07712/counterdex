@@ -1,7 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { createTeam } from '@/api'
-import { listUserTeamsQueryKey } from '@/api/@tanstack/react-query.gen'
+import {
+  listTeamsInfiniteQueryKey,
+  listUserTeamsQueryKey,
+} from '@/api/@tanstack/react-query.gen'
 
 import { teamAfter } from '../utils/team-change-error'
 import { teamQueryOptions } from './use-team'
@@ -20,6 +23,7 @@ export function useCreateTeam() {
     onSuccess: (team) => {
       queryClient.setQueryData(teamQueryOptions(team.id).queryKey, team)
       const path = { username: team.owner.username }
+      void queryClient.invalidateQueries({ queryKey: listTeamsInfiniteQueryKey() })
       return queryClient.invalidateQueries({ queryKey: listUserTeamsQueryKey({ path }) })
     },
   })

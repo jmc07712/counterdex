@@ -4,17 +4,20 @@ import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
+import { paths } from '@/config/paths'
 import {
   holdNextCurrentUser,
   serveCounterTeam,
+  servePokemon,
   serveSession,
   serveTeams,
 } from '@/test/handlers'
-import { renderWithProviders } from '@/test/render'
+import { renderRoutes, renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
+import { TeamEditPage } from './team-edit'
 import { TeamsPage } from './teams'
 
 // The results status reads an empty state's title out too; text queries skip it to find the one
@@ -269,6 +272,38 @@ describe('TeamsPage, signed in', () => {
     )
     expect(api.teams().map((team) => team.name)).toEqual(['Team 2', 'Fire'])
   })
+
+  it.each([
+    ['from the empty state, with no teams yet', [], ['Team 1']],
+    ['from beside the heading, with a team', [FIRE], ['Team 2', 'Fire']],
+  ])(
+    'lists a new team made %s, once you go back to your teams',
+    async (_, teams, listed) => {
+      serveTeams({ teams, signedIn: ASH })
+      servePokemon({ items: [], next_cursor: null })
+      const { user } = renderRoutes(
+        [
+          { path: paths.home.path, element: <TeamsPage /> },
+          { path: paths.teamEdit.path, element: <TeamEditPage /> },
+        ],
+        { path: '/?scope=mine' },
+      )
+      // Once your teams have loaded, so the list is there to go stale.
+      await waitFor(() => expect(screen.getByRole('status')).not.toBeEmptyDOMElement())
+
+      await user.click(screen.getByRole('button', { name: 'New team' }))
+      await user.click(await screen.findByRole('link', { name: 'My teams' }))
+
+      const mine = await screen.findByRole('list', { name: 'My teams' })
+      await waitFor(() =>
+        expect(
+          within(mine)
+            .getAllByRole('article')
+            .map((card) => card.querySelector('h2')?.textContent),
+        ).toEqual(listed),
+      )
+    },
+  )
 
   it('offers New team while showing everyone’s teams too', async () => {
     serveTeams({ teams: [RAIN] })
