@@ -119,8 +119,8 @@ class TeamsQuery(BaseModel):
             description="How to order the teams: `newest` first, or by `power`, highest first, "
             "with the newest first among equals. A team's power is the sum of its Pokémon's base "
             "stats, counting Pokémon PokéAPI no longer lists, and is 0 for a team with none. It's "
-            "worked out from the stats as they are now, so a sync that changes stats can move a "
-            "team, and a team that moves between two pages can be skipped or listed twice."
+            "worked out from current stats, so a sync that changes stats, or an edit to a team, "
+            "can move it, and a team that moves between two pages can be skipped or listed twice."
         ),
     ] = TeamSort.NEWEST
     limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
