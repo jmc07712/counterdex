@@ -67,7 +67,7 @@ describe('ExplorePage', () => {
     expect(await screen.findByRole('link', { name: /Fire/ })).toBeInTheDocument()
   })
 
-  it('searches by team name, trainer or Pokémon once you pause typing', async () => {
+  it('sends the search once you pause typing, and keeps it in the URL', async () => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
     const { user, router } = renderWithProviders(<ExplorePage />)
 
