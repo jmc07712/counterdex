@@ -547,6 +547,26 @@ describe('TeamPage, for the team’s owner', () => {
     fetches.release()
   })
 
+  it('shows the team as anyone sees it once a change finds you signed out', async () => {
+    serveSession({ signedIn: ASH })
+    // The API takes no changes from someone signed out.
+    serveTeams({ teams: [makeTeam({ pokemon: [charmander] })], catalog: CATALOG })
+    browse([])
+    const { user } = renderTeam(EDIT)
+    const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
+    // The session ends somewhere else.
+    serveSession()
+
+    await user.click(remove)
+
+    expect(
+      await screen.findByText('You’re signed out. Sign in again to change this team.'),
+    ).toBeInTheDocument()
+    expect(await screen.findByText('by ash')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument()
+  })
+
   it('renames on Enter, and puts back a blank name', async () => {
     const api = serveAsh([makeTeam()])
     browse([])

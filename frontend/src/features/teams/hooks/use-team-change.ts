@@ -6,6 +6,7 @@ import {
   listTeamsInfiniteQueryKey,
   listUserTeamsQueryKey,
 } from '@/api/@tanstack/react-query.gen'
+import { currentUserOptions } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 import { teamProblem } from '../utils/team-change-error'
@@ -29,7 +30,8 @@ type TeamChange<Variables> = {
  * Changes to a team are sent one at a time, in the order they were made, so a response can't
  * overtake an earlier one. The team is fetched again only after the last change waiting has
  * settled, so a fetch can't overwrite changes that are still on their way. A refused change is
- * undone, if no change was made on top of it, and a toast says why.
+ * undone, if no change was made on top of it, and a toast says why. One refused because nobody is
+ * signed in any more has who's signed in checked again.
  *
  * Returns a function that makes the change and resolves to the team after it, or to undefined
  * if it failed.
@@ -52,7 +54,12 @@ export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange
     },
     onError: (error, _variables, snapshot) => {
       if (snapshot && isLastChange()) queryClient.setQueryData(teamKey, snapshot.previous)
-      toast.error(m.team_problem({ problem: teamProblem(error) }))
+      const problem = teamProblem(error)
+      // Asks again who's signed in, so the page stops offering changes the API won't take.
+      if (problem === 'signed_out') {
+        void queryClient.invalidateQueries({ queryKey: currentUserOptions.queryKey })
+      }
+      toast.error(m.team_problem({ problem }))
     },
     onSettled: () => {
       if (!isLastChange()) return
