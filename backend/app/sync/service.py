@@ -30,7 +30,9 @@ async def run_sync(
     record the run and every change to a Pokémon it found.
 
     Doesn't commit: the caller owns the transaction, so the data, the changes and the run
-    record are saved together or not at all.
+    record are saved together or not at all. Before committing, the caller must also call
+    `teams.service.follow_species_families`, which puts team members in the families of the
+    species the sync moved their Pokémon to.
     """
     # Held until the caller's transaction ends, so a scheduled and a manual sync can't overlap.
     if not session.scalar(select(func.pg_try_advisory_xact_lock(SYNC_LOCK_KEY))):
