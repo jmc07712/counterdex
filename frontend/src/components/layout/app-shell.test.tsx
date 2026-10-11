@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { holdNextCurrentUser, serveSession } from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
-import { ASH } from '@/test/users'
+import { ASH, OAK } from '@/test/users'
 
 import { AppShell } from './app-shell'
 
@@ -82,6 +82,51 @@ describe('AppShell account', () => {
 
     expect(await screen.findAllByRole('button', { name: 'Account: ash' })).toHaveLength(2)
     expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
+  })
+
+  it('marks an admin with a badge by their name, in the header and the tab bar', async () => {
+    serveSession({ signedIn: OAK })
+
+    renderWithProviders(<AppShell />)
+
+    const accounts = await screen.findAllByRole('button', { name: 'Account: oak, admin' })
+    expect(accounts).toHaveLength(2)
+    for (const account of accounts) {
+      expect(within(account).getByText('Admin')).toBeInTheDocument()
+    }
+  })
+
+  it('marks no one else as an admin', async () => {
+    serveSession({ signedIn: ASH })
+
+    renderWithProviders(<AppShell />)
+
+    for (const account of await screen.findAllByRole('button', { name: 'Account: ash' })) {
+      expect(within(account).queryByText('Admin')).not.toBeInTheDocument()
+    }
+  })
+
+  it('links an admin to the admin page from the account menu', async () => {
+    serveSession({ signedIn: OAK })
+    const { user } = renderWithProviders(<AppShell />)
+
+    const [account] = await screen.findAllByRole('button', { name: 'Account: oak, admin' })
+    await user.click(account)
+
+    const menu = await screen.findByRole('menu')
+    expect(within(menu).getByRole('menuitem', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+  })
+
+  it('offers no admin page to anyone else', async () => {
+    serveSession({ signedIn: ASH })
+    const { user } = renderWithProviders(<AppShell />)
+
+    const [account] = await screen.findAllByRole('button', { name: 'Account: ash' })
+    await user.click(account)
+
+    const menu = await screen.findByRole('menu')
+    expect(within(menu).getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument()
+    expect(within(menu).queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
   it('signs out from the account menu, and keeps keyboard focus on the page', async () => {

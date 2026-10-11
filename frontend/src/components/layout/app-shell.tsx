@@ -10,6 +10,7 @@ import {
 import { type ReactNode, useEffect, useRef } from 'react'
 import { Link, matchPath, Outlet, useLocation } from 'react-router'
 
+import { Badge } from '@/components/ui/badge'
 import { paths } from '@/config/paths'
 import { useCurrentUser } from '@/lib/auth'
 import type { Message } from '@/lib/messages'
@@ -124,7 +125,9 @@ export function AppShell({ status }: AppShellProps) {
             <div className="hidden h-full items-stretch md:flex">
               {user ? (
                 <AccountMenu user={user} className={headerLinkClass(false)}>
-                  {user.username}
+                  {/* Cut short, so a long name and the badge fit the header from md. */}
+                  <span className="max-w-16 truncate lg:max-w-48">{user.username}</span>
+                  {user.is_admin && <AdminBadge className="ml-1" />}
                 </AccountMenu>
               ) : (
                 !isPending && <HeaderLink item={signInNav} />
@@ -163,7 +166,11 @@ export function AppShell({ status }: AppShellProps) {
             {user ? (
               <AccountMenu user={user} side="top" className={cn(tabLinkClass(false), 'w-full')}>
                 <CircleUserRound className="size-5" aria-hidden="true" />
-                <span className="max-w-full truncate px-1">{user.username}</span>
+                <span className="flex max-w-full items-center gap-1 px-1">
+                  <span className="truncate">{user.username}</span>
+                  {/* Small, so a username still shows beside it in a quarter of a phone. */}
+                  {user.is_admin && <AdminBadge className="h-4 px-1 text-[0.625rem]" />}
+                </span>
               </AccountMenu>
             ) : (
               !isPending && <TabLink item={signInNav} />
@@ -199,6 +206,14 @@ function tabLinkClass(isActive: boolean) {
     isActive
       ? 'text-foreground before:absolute before:top-0 before:h-0.5 before:w-10 before:rounded-full before:bg-brand'
       : 'text-muted-foreground',
+  )
+}
+
+function AdminBadge({ className }: { className?: string }) {
+  return (
+    <Badge variant="secondary" className={className}>
+      {m.account_admin()}
+    </Badge>
   )
 }
 

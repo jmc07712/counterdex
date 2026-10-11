@@ -14,6 +14,8 @@
   "theme_system": "System",
   "theme_dark": "Dark",
   "account_menu": "Account: {username}",
+  "account_menu_admin": "Account: {username}, admin",
+  "account_admin": "Admin",
   "account_signed_in_as": "Signed in as {username}",
   "account_sign_out": "Sign out",
   "account_signing_out": "Signing out…",
