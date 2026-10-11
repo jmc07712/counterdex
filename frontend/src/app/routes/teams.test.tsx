@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { holdNextCurrentUser, serveSession, serveTeams } from '@/test/handlers'
@@ -35,6 +35,16 @@ const DRAFT = makeTeam({
   name: 'Draft',
   created_at: '2026-10-11T10:00:00Z',
 })
+
+// A touch screen, whose pointer is coarse, as a phone's is.
+function onTouchScreen() {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(pointer: coarse)',
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
+}
 
 // Renders the Teams page at `path`, and waits for its filters, which show once it knows who's
 // signed in.
@@ -438,6 +448,26 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(queries).toEqual(['q=zzz&type=fire', ''])
     expect(router.state.location.search).toBe('')
     expect(screen.getByRole('searchbox', { name: /Search teams/ })).toHaveFocus()
+  })
+
+  it('waits in the results after clearing the filters on a touch screen', async () => {
+    onTouchScreen()
+    serveTeams({ teams: [RAIN] })
+    // Added last, so it answers first: nothing matches a search.
+    server.use(
+      http.get('/api/teams', ({ request }) => {
+        if (new URL(request.url).searchParams.has('q')) {
+          return HttpResponse.json({ items: [], next_cursor: null })
+        }
+      }),
+    )
+    const { user } = await renderTeams('/?q=zzz')
+
+    await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
+
+    // Not the search box, which would open the keyboard over the results.
+    expect(screen.getByRole('region', { name: 'Results' })).toHaveFocus()
+    expect(await screen.findByRole('link', { name: /Rain/ })).toBeInTheDocument()
   })
 
   it('says when no team has changed this week', async () => {

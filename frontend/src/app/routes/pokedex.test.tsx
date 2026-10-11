@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
@@ -27,6 +27,16 @@ function twoPages(query: URLSearchParams) {
   return query.has('cursor')
     ? makePage(['ivysaur'], { after: 1 })
     : makePage(['bulbasaur'], { more: true })
+}
+
+// A touch screen, whose pointer is coarse, as a phone's is.
+function onTouchScreen() {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(pointer: coarse)',
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
 }
 
 describe('PokedexPage', () => {
@@ -298,6 +308,18 @@ describe('PokedexPage', () => {
     expect(gridRequests(requests)).toEqual(['q=zzz&type=fire', ''])
     expect(router.state.location.search).toBe('')
     expect(screen.getByRole('combobox', { name: 'Search Pokémon' })).toHaveFocus()
+  })
+
+  it('waits in the results after clearing the filters on a touch screen', async () => {
+    onTouchScreen()
+    servePokemon((query) => makePage(query.has('q') ? [] : ['bulbasaur']))
+    const { user } = renderWithProviders(<PokedexPage />, { path: '/?q=zzz' })
+
+    await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
+
+    // Not the search box, which would open the keyboard over the results.
+    expect(screen.getByRole('region', { name: 'Results' })).toHaveFocus()
+    expect(await screen.findByRole('article', { name: 'Bulbasaur' })).toBeInTheDocument()
   })
 
   it('offers a retry when the Pokédex can’t load', async () => {

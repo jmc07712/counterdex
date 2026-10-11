@@ -2,6 +2,7 @@ import { UsersRound } from 'lucide-react'
 import { useRef } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
+import { ResultsRegion } from '@/components/lists/results-region'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
@@ -11,6 +12,7 @@ import { TeamsFilters } from '@/features/teams/components/teams-filters'
 import { TeamsGrid } from '@/features/teams/components/teams-grid'
 import { NO_FILTERS, useTeamsFilters } from '@/features/teams/hooks/use-teams-filters'
 import { useUserTeams } from '@/features/teams/hooks/use-user-teams'
+import { useFocusAfterClearing } from '@/hooks/use-focus-after-clearing'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
@@ -21,17 +23,19 @@ export function TeamsPage() {
   // How many teams you have, to name the next one.
   const teamCount = useUserTeams(user?.username).data?.length
   const search = useRef<HTMLInputElement>(null)
+  const results = useRef<HTMLElement>(null)
+  const focusAfterClearing = useFocusAfterClearing(search, results)
 
   function clearFilters() {
     setFilters({ ...filters, ...NO_FILTERS })
     // The button leaves with the empty state, so focus would fall to the page.
-    search.current?.focus()
+    focusAfterClearing()
   }
 
   function showEveryone() {
     setFilters({ ...filters, scope: 'everyone' })
     // The button leaves with the empty state, so focus would fall to the page.
-    search.current?.focus()
+    focusAfterClearing()
   }
 
   // With no teams yet, the empty state of your own teams has the button instead.
@@ -74,12 +78,14 @@ export function TeamsPage() {
             showScope={user !== null}
             searchRef={search}
           />
-          <TeamsGrid
-            filters={filters}
-            owner={filters.scope === 'mine' ? user?.username : undefined}
-            onClearFilters={clearFilters}
-            onShowEveryone={showEveryone}
-          />
+          <ResultsRegion ref={results}>
+            <TeamsGrid
+              filters={filters}
+              owner={filters.scope === 'mine' ? user?.username : undefined}
+              onClearFilters={clearFilters}
+              onShowEveryone={showEveryone}
+            />
+          </ResultsRegion>
         </>
       )}
     </>
