@@ -308,8 +308,9 @@ def reorder(session: Session, team: models.Team, pokemon_ids: Sequence[int]) -> 
 
 
 def follow_species_families(session: Session) -> None:
-    """Puts each member in its species' evolution family, for after a sync has moved Pokémon to
-    other species. Raises IntegrityError if that would put two Pokémon from one family on a team.
+    """Puts each member in its species' evolution family, for after a sync has moved a Pokémon to
+    another species or a species to another family. Raises IntegrityError if that would put two
+    Pokémon from one family on a team.
     """
     session.execute(
         update(models.TeamMember)

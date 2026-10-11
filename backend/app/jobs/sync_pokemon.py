@@ -26,8 +26,7 @@ async def sync_pokemon(client: PokeApiClient, sessions: Callable[[], Session]) -
     with sessions() as session:
         try:
             report = await run_sync(client, session)
-            # A team member whose Pokémon the sync moved to a species in another family moves
-            # to that family, in the same transaction.
+            # Each team member moves to its species' evolution family, in the same transaction.
             follow_species_families(session)
             session.commit()
         # The job's outermost boundary: whatever went wrong, keep nothing from the attempt,
