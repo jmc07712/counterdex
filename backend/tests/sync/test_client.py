@@ -4,7 +4,12 @@ import pytest
 from pydantic import ValidationError
 
 from app.pokemon.enums import PokemonType
-from app.sync.constants import MAX_PAGES, MAX_RETRY_AFTER_DIGITS, MAX_RETRY_AFTER_SECONDS
+from app.sync.constants import (
+    MAX_ATTEMPTS,
+    MAX_PAGES,
+    MAX_RETRY_AFTER_DIGITS,
+    MAX_RETRY_AFTER_SECONDS,
+)
 from app.sync.exceptions import PokeApiError
 from tests.support.pokeapi import (
     BASE_URL,
@@ -179,8 +184,8 @@ async def test_gives_up_when_a_429_keeps_coming(sleeps: list[float]) -> None:
     result = await client_for(handler).fetch_pokemon()
 
     assert result.failed == [f"{BASE_URL}pokemon/25/"]
-    # Three attempts, so two waits.
-    assert sleeps == [1, 1]
+    # One wait between each pair of attempts.
+    assert sleeps == [1] * (MAX_ATTEMPTS - 1)
 
 
 @pytest.mark.parametrize(
