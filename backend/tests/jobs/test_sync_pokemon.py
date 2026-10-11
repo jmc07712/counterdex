@@ -2,7 +2,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 import pytest
-from sqlalchemy import Connection, Row, func, select
+from sqlalchemy import Row, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
@@ -16,12 +16,6 @@ from tests.support.pokeapi import BASE_URL, fake_pokeapi
 from tests.support.teams import make_team
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def sessions(connection: Connection) -> Callable[[], Session]:
-    """Sessions whose commits stay inside the test's transaction, which is rolled back."""
-    return lambda: Session(bind=connection, join_transaction_mode="create_savepoint")
 
 
 def counts(sessions: Callable[[], Session]) -> tuple[int, list[SyncStatus]]:

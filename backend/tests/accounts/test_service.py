@@ -6,13 +6,13 @@ from sqlalchemy.orm import ORMExecuteState, Session
 
 from app.accounts import service
 from app.accounts.constants import SESSION_LIFETIME
-from app.accounts.exceptions import UsernameTakenError
+from app.accounts.exceptions import UsernameTakenError, UserNotFoundError
 from app.accounts.models import User, UserSession
 from app.accounts.passwords import verify_password
 from app.accounts.schemas import Credentials, NewAccount
 from app.accounts.tokens import hash_token
 from app.accounts.types import SignedIn
-from tests.support.accounts import ASH, expire_in
+from tests.support.accounts import ASH, BROCK, expire_in
 
 # --- Signing up ---
 
@@ -180,3 +180,53 @@ def test_signing_out_leaves_other_sessions(db_session: Session, ash: SignedIn) -
     service.sign_out(db_session, ash.token)
 
     assert service.find_signed_in(db_session, other.token) is not None
+
+
+# --- Making admins ---
+
+
+def test_makes_a_user_an_admin(db_session: Session, ash: SignedIn) -> None:
+    user = service.set_admin(db_session, "ash", True)
+
+    assert user == ash.user.model_copy(update={"is_admin": True})
+    assert db_session.get_one(User, ash.user.id).is_admin is True
+
+
+def test_takes_admin_away(db_session: Session, oak: SignedIn) -> None:
+    user = service.set_admin(db_session, "oak", False)
+
+    assert user == oak.user.model_copy(update={"is_admin": False})
+    assert db_session.get_one(User, oak.user.id).is_admin is False
+
+
+def test_finds_the_user_whatever_the_case(db_session: Session) -> None:
+    brock = service.sign_up(db_session, BROCK).user
+
+    user = service.set_admin(db_session, "bRoCk", True)
+
+    assert user == brock.model_copy(update={"is_admin": True})
+
+
+def test_making_an_admin_again_changes_nothing(db_session: Session, oak: SignedIn) -> None:
+    first = service.set_admin(db_session, "oak", True)
+    second = service.set_admin(db_session, "oak", True)
+
+    assert first == second == oak.user
+
+
+def test_taking_admin_away_again_changes_nothing(db_session: Session, ash: SignedIn) -> None:
+    first = service.set_admin(db_session, "ash", False)
+    second = service.set_admin(db_session, "ash", False)
+
+    assert first == second == ash.user
+
+
+def test_leaves_other_users_alone(db_session: Session, ash: SignedIn, misty: SignedIn) -> None:
+    service.set_admin(db_session, "ash", True)
+
+    assert db_session.get_one(User, misty.user.id).is_admin is False
+
+
+def test_refuses_a_username_no_one_has(db_session: Session, ash: SignedIn) -> None:
+    with pytest.raises(UserNotFoundError):
+        service.set_admin(db_session, "gary", True)

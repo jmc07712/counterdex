@@ -1,4 +1,4 @@
-"""Signing up, signing in and signing out.
+"""Signing up, signing in and signing out, and making users admins.
 
 Nothing here commits: the caller owns the transaction.
 """
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts import models
 from app.accounts.constants import RENEW_SESSIONS_WITHIN, SESSION_LIFETIME
-from app.accounts.exceptions import UsernameTakenError
+from app.accounts.exceptions import UsernameTakenError, UserNotFoundError
 from app.accounts.passwords import hash_password, verify_password
 from app.accounts.schemas import Credentials, NewAccount, User
 from app.accounts.tokens import hash_token, new_token
@@ -45,9 +45,7 @@ def sign_in(session: Session, credentials: Credentials) -> SignedIn | None:
     A wrong username and a wrong password return the same thing.
     """
     password = credentials.password.get_secret_value()
-    user = session.scalars(
-        select(models.User).where(func.lower(models.User.username) == credentials.username.lower())
-    ).one_or_none()
+    user = _find_user(session, credentials.username)
     if user is None:
         verify_password(password, None)
         return None
@@ -100,6 +98,26 @@ def sign_out(session: Session, token: str) -> None:
     session.execute(
         delete(models.UserSession).where(models.UserSession.token_hash == hash_token(token))
     )
+
+
+def set_admin(session: Session, username: str, is_admin: bool) -> User:
+    """Makes the user an admin, or takes that away, and returns them as they are now.
+
+    The username's case doesn't matter. Raises UserNotFoundError if no one has it.
+    """
+    user = _find_user(session, username)
+    if user is None:
+        raise UserNotFoundError(username)
+    user.is_admin = is_admin
+    session.flush()
+    return User.model_validate(user)
+
+
+def _find_user(session: Session, username: str) -> models.User | None:
+    """The user with this username, whatever its case."""
+    return session.scalars(
+        select(models.User).where(func.lower(models.User.username) == username.lower())
+    ).one_or_none()
 
 
 def _start_session(session: Session, user: models.User) -> SignedIn:
