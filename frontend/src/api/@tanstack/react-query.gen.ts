@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -587,4 +587,29 @@ export const findCounterTeamOptions = (options: Options<FindCounterTeamData>) =>
         return data;
     },
     queryKey: findCounterTeamQueryKey(options)
+});
+
+export const listTeamThreatsQueryKey = (options: Options<ListTeamThreatsData>) => createQueryKey('listTeamThreats', options);
+
+/**
+ * List the threats to a team
+ *
+ * Up to 12 Pokémon that beat the most of a team one-on-one, as a counter or a check (see
+ * Find a counter team), each with how it fares against each of the team's Pokémon. Those that
+ * beat the most come first, then those with the most HP left after winning.
+ *
+ * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
+ * with no Pokémon is a 422.
+ */
+export const listTeamThreatsOptions = (options: Options<ListTeamThreatsData>) => queryOptions<ListTeamThreatsResponse, ListTeamThreatsError, ListTeamThreatsResponse, ReturnType<typeof listTeamThreatsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listTeamThreats({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listTeamThreatsQueryKey(options)
 });

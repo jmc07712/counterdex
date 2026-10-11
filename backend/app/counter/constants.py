@@ -1,9 +1,11 @@
-"""The numbers behind counter teams: the battle model's and the search's."""
+"""The numbers behind counter teams and threats: the battle model's and the search's."""
 
 # --- Teams ---
 
 # A team holds up to six Pokémon, as in the games.
 MAX_TEAM_SIZE = 6
+# How many threats to a team are listed, at most.
+MAX_THREATS = 12
 
 # --- Battle model ---
 # Every Pokémon is taken at level 50, with the best individual values (31), no effort values and

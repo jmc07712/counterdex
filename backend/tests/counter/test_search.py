@@ -8,6 +8,7 @@ from app.counter.search import (
     counter_team,
     lead_score,
     team_score,
+    threats,
 )
 from app.counter.types import Candidate, Contender, Exchange, Hit
 from app.pokemon.enums import PokemonType
@@ -167,3 +168,25 @@ def test_returns_a_counter_team_in_battle_order() -> None:
     ]
 
     assert ids(counter_team(pool, size=2)) == [2, 1]
+
+
+# --- Threats ---
+
+
+def test_ranks_threats_by_how_many_they_beat_then_by_margin_then_by_id() -> None:
+    pool = [
+        contender(1, result(CHECK, 0.5), result(LOSES, 1)),
+        contender(2, result(CHECK, 0.2), result(CHECK, 0.2)),
+        contender(3, result(COUNTER, 0.9), result(LOSES, 1)),
+        contender(4, result(LOSES, 1), result(CHECK, 0.5)),
+    ]
+
+    assert ids(threats(pool, limit=10)) == [2, 3, 1, 4]
+
+
+def test_lists_threats_up_to_the_limit_and_only_those_that_beat_someone() -> None:
+    pool = [contender(pokemon_id, result(CHECK, 0.5)) for pokemon_id in range(1, 6)]
+    pool.append(contender(6, result(LOSES, 0.1)))
+
+    assert ids(threats(pool, limit=3)) == [1, 2, 3]
+    assert ids(threats(pool, limit=10)) == [1, 2, 3, 4, 5]

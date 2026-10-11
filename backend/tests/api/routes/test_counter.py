@@ -8,7 +8,7 @@ from app.api.constants import COUNTER_TEAM_CACHE_CONTROL
 from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart
 from tests.support.pokemon import make_pokemon
 
-PATHS = ["/api/counter-team"]
+PATHS = ["/api/counter-team", "/api/team-threats"]
 CHARIZARD, AERODACTYL = 6, 142
 
 
@@ -49,6 +49,15 @@ def test_finds_a_counter_team_as_big_as_theirs(client: TestClient) -> None:
 
     assert len(picks) == len(team)
     assert all([each["opponent_id"] for each in pick["matchups"]] == team for pick in picks)
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_lists_the_threats_to_a_team(client: TestClient) -> None:
+    threats = client.get("/api/team-threats", params={"pokemon_id": [CHARIZARD, 3, 9]}).json()
+
+    assert 0 < len(threats) <= 12
+    assert threats[0]["pokemon"]["name"] == "gyarados"
+    assert [each["verdict"] for each in threats[0]["matchups"]] == ["counter"] * 3
 
 
 @pytest.mark.parametrize("path", PATHS)

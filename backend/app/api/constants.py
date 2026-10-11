@@ -21,6 +21,6 @@ SCALAR_JS_URL = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1"
 POKEMON_CACHE_CONTROL = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
 # Sync status is small and read on every Pokédex visit: a minute in browsers, five at the CDN.
 SYNC_STATUS_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=3600"
-# A counter team is worked out from Pokédex data alone, so it changes only when a sync changes
-# that data: it's kept as long as Pokémon are.
+# Counter teams and threats are worked out from Pokédex data alone, so they change only when a
+# sync changes that data: they're kept as long as Pokémon are.
 COUNTER_TEAM_CACHE_CONTROL = POKEMON_CACHE_CONTROL

@@ -1,5 +1,5 @@
-"""Choosing a counter team and ordering it for battle, from the exchanges the battle model works
-out.
+"""Choosing a counter team, ordering it for battle, and ranking the threats to a team, from the
+exchanges the battle model works out.
 """
 
 from collections.abc import Sequence
@@ -195,6 +195,20 @@ def _best_answered(member: Contender) -> int:
     """The position, in their team, of the opponent the Pokémon answers best."""
     scores = [answer_score(each) for each in member.exchanges]
     return scores.index(max(scores))
+
+
+def threats(contenders: Sequence[Contender], limit: int) -> list[Contender]:
+    """Up to `limit` of the contenders that beat the most of the team, as a counter or check:
+    most first, then by the sum of the margins they beat them by, then by the lowest id.
+    Contenders that beat none of the team are left out.
+    """
+    ranked = []
+    for contender in contenders:
+        wins = [each.hp_left for each in contender.exchanges if each.verdict is not Verdict.LOSES]
+        if wins:
+            ranked.append(((-len(wins), -sum(wins), _id(contender)), contender))
+    ranked.sort(key=lambda entry: entry[0])
+    return [contender for _, contender in ranked[:limit]]
 
 
 def _id(contender: Contender) -> int:

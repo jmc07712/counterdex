@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, FindCounterTeamData, FindCounterTeamErrors, FindCounterTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListTeamThreatsData, ListTeamThreatsErrors, ListTeamThreatsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -300,3 +300,15 @@ export const reorderTeam = <ThrowOnError extends boolean = false>(options: Optio
  * Pokémon is a 422.
  */
 export const findCounterTeam = <ThrowOnError extends boolean = false>(options: Options<FindCounterTeamData, ThrowOnError>): RequestResult<FindCounterTeamResponses, FindCounterTeamErrors, ThrowOnError> => (options.client ?? client).get<FindCounterTeamResponses, FindCounterTeamErrors, ThrowOnError>({ url: '/api/counter-team', ...options });
+
+/**
+ * List the threats to a team
+ *
+ * Up to 12 Pokémon that beat the most of a team one-on-one, as a counter or a check (see
+ * Find a counter team), each with how it fares against each of the team's Pokémon. Those that
+ * beat the most come first, then those with the most HP left after winning.
+ *
+ * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
+ * with no Pokémon is a 422.
+ */
+export const listTeamThreats = <ThrowOnError extends boolean = false>(options: Options<ListTeamThreatsData, ThrowOnError>): RequestResult<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError> => (options.client ?? client).get<ListTeamThreatsResponses, ListTeamThreatsErrors, ThrowOnError>({ url: '/api/team-threats', ...options });

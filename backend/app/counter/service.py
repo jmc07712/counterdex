@@ -1,5 +1,5 @@
-"""Counter teams, worked out on request from the Pokédex and the type chart (see battle and
-search).
+"""Counter teams, and the threats to a team, worked out on request from the Pokédex and the
+type chart (see battle and search).
 
 Nothing here writes to the database.
 """
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.counter import queries, schemas, search
 from app.counter.battle import exchange
+from app.counter.constants import MAX_THREATS
 from app.counter.exceptions import (
     TooFewCandidatesError,
     TypeChartMissingError,
@@ -33,6 +34,18 @@ def find_counter_team(
     if len({contender.candidate.family_id for contender in contenders}) < size:
         raise TooFewCandidatesError
     return _challengers(session, search.counter_team(contenders, size), query.pokemon_ids)
+
+
+def list_team_threats(
+    session: Session, query: schemas.TeamMatchupQuery
+) -> list[schemas.Challenger]:
+    """Up to MAX_THREATS Pokémon that beat the most of the team (see search.threats), each with
+    how it fares against each of the team's Pokémon.
+
+    Raises UnknownPokemonError and TypeChartMissingError as find_counter_team does.
+    """
+    threats = search.threats(_contenders(session, query), MAX_THREATS)
+    return _challengers(session, threats, query.pokemon_ids)
 
 
 def _contenders(session: Session, query: schemas.TeamMatchupQuery) -> list[Contender]:

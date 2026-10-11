@@ -8,7 +8,7 @@ from app.counter.exceptions import (
     UnknownPokemonError,
 )
 from app.counter.schemas import Challenger, TeamMatchupQuery
-from app.counter.service import find_counter_team
+from app.counter.service import find_counter_team, list_team_threats
 from app.pokemon.enums import PokemonType
 from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart, remove_pokemon
 from tests.support.pokemon import add_species, make_pokemon
@@ -121,3 +121,42 @@ def test_refuses_a_team_bigger_than_the_families_to_choose_from(db_session: Sess
 
     with pytest.raises(TooFewCandidatesError):
         find_counter_team(db_session, query(CHARIZARD, BLASTOISE, 500))
+
+
+# --- Threats ---
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_lists_the_threats_to_a_team_with_how_each_fares_against_it(db_session: Session) -> None:
+    team = query(CHARIZARD, VENUSAUR, BLASTOISE)
+
+    threats = list_team_threats(db_session, team)
+
+    assert 0 < len(threats) <= 12
+    for threat in threats:
+        assert [matchup.opponent_id for matchup in threat.matchups] == [
+            CHARIZARD,
+            VENUSAUR,
+            BLASTOISE,
+        ]
+        assert any(matchup.verdict is not Verdict.LOSES for matchup in threat.matchups)
+    beaten = [
+        sum(matchup.verdict is not Verdict.LOSES for matchup in threat.matchups)
+        for threat in threats
+    ]
+    assert beaten == sorted(beaten, reverse=True)
+
+
+@pytest.mark.usefixtures("type_chart")
+def test_lists_twelve_threats_at_most(db_session: Session) -> None:
+    add_real_pokemon(db_session, SNORLAX)
+    fighters = range(301, 316)
+    db_session.add_all(
+        make_pokemon(id=pokemon_id, name=f"fighter-{pokemon_id}", types=["fighting"], attack=200)
+        for pokemon_id in fighters
+    )
+    db_session.flush()
+    for pokemon_id in fighters:
+        add_species(db_session, pokemon_id, family=pokemon_id, pokemon_ids=[pokemon_id])
+
+    assert ids(list_team_threats(db_session, query(SNORLAX))) == list(range(301, 313))

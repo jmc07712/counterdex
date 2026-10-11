@@ -1304,6 +1304,89 @@
           }
         }
       }
+    },
+    "/api/team-threats": {
+      "get": {
+        "tags": [
+          "Counter team"
+        ],
+        "summary": "List the threats to a team",
+        "description": "Up to 12 Pokémon that beat the most of a team one-on-one, as a counter or a check (see\nFind a counter team), each with how it fares against each of the team's Pokémon. Those that\nbeat the most come first, then those with the most HP left after winning.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`\nwith no Pokémon is a 422.",
+        "operationId": "list_team_threats",
+        "parameters": [
+          {
+            "name": "pokemon_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "maximum": 2147483647,
+                "minimum": 1
+              },
+              "minItems": 1,
+              "maxItems": 6,
+              "description": "A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.",
+              "title": "Pokemon Id"
+            },
+            "description": "A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six."
+          },
+          {
+            "name": "forms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also choose from alternate forms, such as Mega Evolutions and regional forms.",
+              "default": false,
+              "title": "Forms"
+            },
+            "description": "Also choose from alternate forms, such as Mega Evolutions and regional forms."
+          },
+          {
+            "name": "legendaries",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also choose from legendary and mythical Pokémon.",
+              "default": false,
+              "title": "Legendaries"
+            },
+            "description": "Also choose from legendary and mythical Pokémon."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Challenger"
+                  },
+                  "title": "Response List Team Threats"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Pokédex hasn't been synced enough to answer: run a sync first."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2660,7 +2743,7 @@
     },
     {
       "name": "Counter team",
-      "description": "Teams that beat a team, worked out from each Pokémon's types and base stats. No sign-in needed."
+      "description": "Teams that beat a team, and the Pokémon that threaten one, worked out from each Pokémon's types and base stats. No sign-in needed."
     },
     {
       "name": "Health",

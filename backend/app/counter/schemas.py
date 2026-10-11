@@ -1,4 +1,4 @@
-"""Counter teams as the API takes and shows them. Descriptions appear in the API
+"""Counter teams and threats as the API takes and shows them. Descriptions appear in the API
 docs.
 """
 

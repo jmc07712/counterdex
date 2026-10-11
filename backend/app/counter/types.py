@@ -27,7 +27,7 @@ class Fighter:
 
 @dataclass(frozen=True)
 class Candidate:
-    """A Pokémon a counter team can be made of, with its evolution family."""
+    """A Pokémon a counter team or a threat can be, with its evolution family."""
 
     fighter: Fighter
     family_id: int

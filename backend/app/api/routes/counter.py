@@ -68,3 +68,20 @@ def find_counter_team(
         team = service.find_counter_team(session, query)
     cache_publicly(response, COUNTER_TEAM_CACHE_CONTROL)
     return team
+
+
+@router.get("/team-threats", summary="List the threats to a team", responses=NOT_SYNCED)
+def list_team_threats(
+    session: SessionDep, response: Response, query: Annotated[TeamMatchupQuery, Query()]
+) -> list[Challenger]:
+    """Up to 12 Pokémon that beat the most of a team one-on-one, as a counter or a check (see
+    Find a counter team), each with how it fares against each of the team's Pokémon. Those that
+    beat the most come first, then those with the most HP left after winning.
+
+    Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
+    with no Pokémon is a 422.
+    """
+    with counter_errors():
+        threats = service.list_team_threats(session, query)
+    cache_publicly(response, COUNTER_TEAM_CACHE_CONTROL)
+    return threats

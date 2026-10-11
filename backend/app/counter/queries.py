@@ -1,5 +1,5 @@
-"""What counter teams are worked out from: the type chart, the team's Pokémon and the Pokémon
-to choose from.
+"""What counter teams and threats are worked out from: the type chart, the team's Pokémon and
+the Pokémon to choose from.
 """
 
 from collections.abc import Sequence
@@ -46,7 +46,7 @@ def fighters(session: Session, pokemon_ids: Sequence[int]) -> dict[int, Fighter]
 
 
 def candidates(session: Session, *, forms: bool, legendaries: bool) -> list[Candidate]:
-    """The Pokémon a counter team can be made of, by id: the ones PokéAPI lists whose
+    """The Pokémon a counter team or a threat can be, by id: the ones PokéAPI lists whose
     species is stored, only default forms unless `forms`, and no legendary or mythical species
     unless `legendaries`.
     """

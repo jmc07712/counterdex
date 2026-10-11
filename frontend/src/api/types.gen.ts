@@ -1860,3 +1860,53 @@ export type FindCounterTeamResponses = {
 };
 
 export type FindCounterTeamResponse = FindCounterTeamResponses[keyof FindCounterTeamResponses];
+
+export type ListTeamThreatsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Pokemon Id
+         *
+         * A Pokémon's `id`. Repeat it for each of the team's Pokémon, in slot order, from one to six.
+         */
+        pokemon_id: Array<number>;
+        /**
+         * Forms
+         *
+         * Also choose from alternate forms, such as Mega Evolutions and regional forms.
+         */
+        forms?: boolean;
+        /**
+         * Legendaries
+         *
+         * Also choose from legendary and mythical Pokémon.
+         */
+        legendaries?: boolean;
+    };
+    url: '/api/team-threats';
+};
+
+export type ListTeamThreatsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * The Pokédex hasn't been synced enough to answer: run a sync first.
+     */
+    503: unknown;
+};
+
+export type ListTeamThreatsError = ListTeamThreatsErrors[keyof ListTeamThreatsErrors];
+
+export type ListTeamThreatsResponses = {
+    /**
+     * Response List Team Threats
+     *
+     * Successful Response
+     */
+    200: Array<Challenger>;
+};
+
+export type ListTeamThreatsResponse = ListTeamThreatsResponses[keyof ListTeamThreatsResponses];
