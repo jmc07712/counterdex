@@ -39,7 +39,7 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
     <article
       aria-labelledby={nameId}
       // As tall as its grid cell, so the cards in a row are as tall as the tallest.
-      className="group/hop relative flex h-full flex-col gap-3 rounded-2xl border bg-card p-4 transition-colors hover:border-foreground/30"
+      className="group/hop @container relative flex h-full flex-col gap-3 rounded-2xl border bg-card p-4 transition-colors hover:border-foreground/30"
     >
       <div id={summaryId} className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
@@ -94,14 +94,18 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
         aria-labelledby={`${summaryId} ${powerId}`}
         className="absolute -inset-px rounded-[inherit] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       />
-      {/* At the card's bottom, level with the power bars of the other cards in its row. */}
-      <div className="mt-auto flex items-center gap-3">
+      {/* At the card's bottom, level with the power bars of the other cards in its row. An
+          action goes beside the power in a card at least 18rem wide inside, and across the card
+          under it in a narrower one. */}
+      <div className="mt-auto flex flex-col gap-3 @2xs:flex-row @2xs:items-center">
         <div id={powerId} className="min-w-0 flex-1">
           <TeamPower members={members} />
         </div>
-        {/* Over the link, so it can be pressed on its own. A button overhangs the power's row
-            rather than making the card taller than one without. */}
-        {action && <div className="relative z-10 -my-1.5 shrink-0">{action}</div>}
+        {/* Over the link, so it can be pressed on its own. Beside the power, a button overhangs
+            its row rather than making the card taller than one without. */}
+        {action && (
+          <div className="relative z-10 flex shrink-0 flex-col @2xs:-my-1.5">{action}</div>
+        )}
       </div>
     </article>
   )
