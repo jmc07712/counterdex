@@ -56,12 +56,12 @@ function serveAsh(teams: Team[] = []) {
   return serveTeams({ teams, catalog: CATALOG, signedIn: ASH })
 }
 
-// The Pokémon browser lists these, on one page.
+// The Pokédex lists these, on one page.
 function browse(pokemon: Pokemon[]) {
   return servePokemon({ items: pokemon, next_cursor: null })
 }
 
-// A screen as wide as Tailwind's lg breakpoint, where the builder has two panes.
+// A screen as wide as Tailwind's lg breakpoint, where the Pokédex is beside the team.
 function onWideScreen() {
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches: query === '(min-width: 64rem)',
@@ -225,33 +225,47 @@ describe('TeamPage, for the team’s owner', () => {
     expect(line.compareDocumentPosition(slots)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
-  it('adds a Pokémon from the browser beside the team, which stays open', async () => {
+  it('adds a Pokémon from the Pokédex beside the team, and says so', async () => {
     onWideScreen()
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu, snorlax])
     const { user } = renderTeam(EDIT)
 
-    const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    await user.click(await within(browser).findByRole('button', { name: 'Add Pikachu' }))
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    await user.click(await within(pokedex).findByRole('button', { name: 'Add Pikachu' }))
 
     await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([4, 25]))
-    expect(await screen.findByText('Added Pikachu to Team 1')).toBeInTheDocument()
-    // The team is already in view beside the browser.
-    expect(screen.queryByRole('button', { name: 'View' })).not.toBeInTheDocument()
-    expect(within(browser).getByText('Its family is on the team')).toBeInTheDocument()
-    expect(within(browser).getByRole('button', { name: 'Add Snorlax' })).toBeInTheDocument()
+    const toast = (await screen.findByText('Added Pikachu to Team 1')).closest('li')!
+    // The team is in view beside the Pokédex, so the toast has nothing to press.
+    expect(within(toast).queryByRole('button')).not.toBeInTheDocument()
+    expect(slotRows()[1]).toHaveTextContent('Pikachu')
+    expect(within(pokedex).getByRole('button', { name: 'Add Snorlax' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add Pokémon' })).not.toBeInTheDocument()
   })
 
-  it('adds from a sheet on phones, which stays open to add another', async () => {
+  it('opens the Pokédex in a sheet on phones, focused itself rather than its search', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([pikachu])
+    const { user } = renderTeam(EDIT)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Team 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Add Pokémon' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Add Pokémon' }))
+
+    const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
+    expect(sheet).toHaveAttribute('data-slot', 'sheet-content')
+    expect(sheet).toHaveFocus()
+    expect(within(sheet).getByRole('combobox', { name: 'Search Pokémon' })).not.toHaveFocus()
+    expect(await within(sheet).findByRole('article', { name: 'Pikachu' })).toBeInTheDocument()
+  })
+
+  it('adds from the sheet on phones, which stays open to add another', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu, snorlax])
     const { user } = renderTeam(EDIT)
 
-    expect(screen.queryByRole('complementary', { name: 'Add Pokémon' })).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
     const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
-    expect(sheet).toHaveAttribute('data-slot', 'sheet-content')
     await user.click(await within(sheet).findByRole('button', { name: 'Add Pikachu' }))
     await user.click(within(sheet).getByRole('button', { name: 'Add Snorlax' }))
 
@@ -259,7 +273,7 @@ describe('TeamPage, for the team’s owner', () => {
     expect(screen.getByRole('dialog', { name: 'Add Pokémon' })).toBeInTheDocument()
   })
 
-  it('closes the sheet to show the team from the toast’s View', async () => {
+  it('closes the sheet with Done, to show the team', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu])
     const { user } = renderTeam(EDIT)
@@ -267,7 +281,7 @@ describe('TeamPage, for the team’s owner', () => {
     await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
     const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
     await user.click(await within(sheet).findByRole('button', { name: 'Add Pikachu' }))
-    await user.click(await screen.findByRole('button', { name: 'View' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Done' }))
 
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Add Pokémon' })).not.toBeInTheDocument(),
@@ -286,11 +300,11 @@ describe('TeamPage, for the team’s owner', () => {
       browse([pokemon])
       renderTeam(EDIT)
 
-      const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-      const row = (await within(browser).findByText(displayName(pokemon.name))).closest('li')
+      const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+      const card = await within(pokedex).findByRole('article', { name: displayName(pokemon.name) })
 
-      expect(row).toHaveTextContent('Its family is on the team')
-      expect(within(row!).queryByRole('button')).not.toBeInTheDocument()
+      expect(card).toHaveTextContent('Its family is on the team')
+      expect(within(card).queryByRole('button', { name: /Add/ })).not.toBeInTheDocument()
     },
   )
 
@@ -300,27 +314,33 @@ describe('TeamPage, for the team’s owner', () => {
     browse([catalog.dragonite])
     renderTeam(EDIT)
 
-    const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    const row = (await within(browser).findByText('Dragonite')).closest('li')
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    const card = await within(pokedex).findByRole('article', { name: 'Dragonite' })
 
-    expect(row).toHaveTextContent('Team is full')
-    expect(within(row!).queryByRole('button')).not.toBeInTheDocument()
+    expect(card).toHaveTextContent('Team is full')
+    expect(within(card).queryByRole('button', { name: /Add/ })).not.toBeInTheDocument()
   })
 
-  it('searches and filters the browser by type', async () => {
+  it('searches and filters the Pokédex beside the team, keeping the filters in the URL', async () => {
     onWideScreen()
     serveAsh([makeTeam()])
     const requests = browse([pikachu])
-    const { user } = renderTeam(EDIT)
+    const { user, router } = renderTeam(EDIT)
 
-    const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    await user.type(within(browser).getByRole('searchbox', { name: 'Search Pokémon' }), 'pika')
-    await user.click(within(browser).getByRole('button', { name: 'Electric' }))
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    await user.type(within(pokedex).getByRole('combobox', { name: 'Search Pokémon' }), 'pika')
+    await user.click(within(pokedex).getByRole('button', { name: 'Electric' }))
 
-    await waitFor(() => expect(requests.at(-1)).toBe('q=pika&type=electric'))
+    // Leaving out the search suggestions' requests, which ask for a few.
+    await waitFor(() =>
+      expect(requests.filter((query) => !query.includes('limit=')).at(-1)).toBe(
+        'q=pika&type=electric',
+      ),
+    )
+    expect(router.state.location.search).toBe('?q=pika&type=electric')
   })
 
-  it('loads more Pokémon as the end of the browser’s list scrolls into view', async () => {
+  it('loads more Pokémon as the end of the Pokédex scrolls into view', async () => {
     onWideScreen()
     serveAsh([makeTeam()])
     servePokemon((query) =>
@@ -329,12 +349,41 @@ describe('TeamPage, for the team’s owner', () => {
         : { items: [pikachu], next_cursor: 25 },
     )
     renderTeam(EDIT)
-    const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    await within(browser).findByText('Pikachu')
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    await within(pokedex).findByRole('article', { name: 'Pikachu' })
 
     mockAllIsIntersecting(true)
 
-    expect(await within(browser).findByText('Snorlax')).toBeInTheDocument()
+    expect(await within(pokedex).findByRole('article', { name: 'Snorlax' })).toBeInTheDocument()
+  })
+
+  it('opens a Pokémon’s details from its card in the Pokédex', async () => {
+    onWideScreen()
+    serveAsh([makeTeam()])
+    browse([charizard])
+    servePokemonDetails()
+    servePokemonChanges()
+    const { user, router } = renderTeam(EDIT)
+
+    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
+    await user.click(await within(pokedex).findByRole('button', { name: 'Charizard' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?pokemon=6')
+  })
+
+  it('opens a member’s details from its slot', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander, charizard] })])
+    browse([])
+    servePokemonDetails()
+    servePokemonChanges()
+    const { user, router } = renderTeam(EDIT)
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    await user.click(within(slotRows()[1]).getByRole('button', { name: 'Charizard' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?pokemon=6')
   })
 
   it('removes a Pokémon at once, before the API answers', async () => {

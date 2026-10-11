@@ -2,7 +2,7 @@ import { type Pokemon, TeamConflictReason, type TeamMember } from '@/api'
 
 export const MAX_TEAM_SIZE = 6
 
-export type CantAdd =
+type CantAdd =
   | typeof TeamConflictReason.TEAM_FULL
   | typeof TeamConflictReason.FAMILY_ON_TEAM
 

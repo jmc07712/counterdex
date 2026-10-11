@@ -205,11 +205,8 @@
   "team_go_to_teams": "Go to the Teams page",
   "team_load_failed": "Couldn’t load this team",
   "team_add_pokemon": "Add Pokémon",
-  "team_browser_description": "Choose Pokémon for {team}.",
-  "team_browser_search": "Search Pokémon",
-  "team_browser_results": "Pokémon to add",
-  "team_browser_empty": "No Pokémon match. Try another name, or fewer types.",
-  "team_browser_load_failed": "Couldn’t load Pokémon",
+  "team_pokedex_description": "Choose Pokémon for {team}.",
+  "team_pokedex_done": "Done",
   "team_add": "Add",
   "team_add_named": "Add {name}",
   "team_build_your_own": "Build your own team",
@@ -222,7 +219,6 @@
   "team_counter_needs_sync": "Counter teams need a Pokédex sync first",
   "team_counter_failed": "Couldn’t build a counter team",
   "team_added": "Added {name} to {team}",
-  "team_view": "View",
   "team_cant_add": [
     {
       "declarations": [

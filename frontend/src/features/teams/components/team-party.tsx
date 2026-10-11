@@ -33,7 +33,7 @@ export function TeamParty({
   const [lead, ...others] = team.members
   return (
     <>
-      {back}
+      <div className="mb-4 flex">{back}</div>
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-4xl font-extrabold break-words sm:text-5xl">{team.name}</h1>

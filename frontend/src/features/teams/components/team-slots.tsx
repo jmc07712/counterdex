@@ -34,7 +34,7 @@ const ENTER_STAGGER_MS = 70
 // A sprite pops out of its Poké Ball this long after its slot starts to enter.
 const POP_OUT_AFTER_MS = 150
 const ENTER = 'animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both motion-reduce:animate-none'
-const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4'
+const ROW = 'flex min-h-16 items-center gap-3 py-2 pr-3 pl-4'
 
 // Whether the slots are on their first render, when they enter one after another.
 const Entering = createContext<RefObject<boolean>>({ current: false })
@@ -142,26 +142,36 @@ type TeamSlotProps = {
 }
 
 /**
- * A member's slot as a row: its number, sprite, Pokédex number, name, types and base stat total,
- * and its newest change on a line if a sync changed it recently; from lg up, where the row is wide
- * enough, its base stats too.
+ * A member's slot as a row: its number, sprite, name and types, and its newest change on a line if
+ * a sync changed it recently. In a row at least 34rem wide, its sprite is larger, with its Pokédex
+ * number above its name, its base stat total below its types, and its base stats beside them.
  */
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
   const headingId = useId()
   return (
-    <MemberPanel member={member} className={cn(ROW, 'rounded-2xl')}>
+    <MemberPanel member={member} className={cn(ROW, '@container rounded-2xl')}>
       <SlotNumber slot={member.position} />
-      <PanelSprite member={member} className="size-16" />
+      <PanelSprite member={member} className="size-12 @min-[34rem]:size-16" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-        <MemberNumber member={member} />
-        <MemberName id={headingId} member={member} className="truncate text-lg font-extrabold" />
+        <MemberNumber member={member} className="hidden @min-[34rem]:flex" />
+        <div className="flex max-w-full items-center gap-1">
+          <MemberName
+            id={headingId}
+            member={member}
+            className="min-w-0 truncate text-base leading-5 font-extrabold @min-[34rem]:text-lg @min-[34rem]:leading-7"
+          />
+          {/* In place of the Pokédex number's mark, while the number is left out. */}
+          {member.pokemon.changed_recently && (
+            <ChangedMark className="shrink-0 text-current @min-[34rem]:hidden" />
+          )}
+        </div>
         <MemberTypes member={member} />
-        <TotalBar stats={member.pokemon.stats} />
+        <TotalBar stats={member.pokemon.stats} className="hidden @min-[34rem]:flex" />
         <NewestChangeLine member={member} className="mt-0.5" />
       </div>
       <PanelStats
         stats={member.pokemon.stats}
-        className="hidden w-44 shrink-0 gap-0 text-[11px] leading-tight lg:flex"
+        className="hidden w-44 shrink-0 gap-0 text-[11px] leading-tight @min-[34rem]:flex"
       />
       {onOpen && <OpenButton labelledBy={headingId} onOpen={onOpen} />}
       {/* Over the open button, so it can be pressed on its own. */}
@@ -217,7 +227,10 @@ function EmptySlot({ slot, to }: { slot: number; to?: string }) {
   return (
     <li
       style={{ animationDelay: `${delay}ms` }}
-      className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
+      className={cn(
+        ENTER,
+        '@container rounded-2xl border-2 border-dashed text-sm text-muted-foreground',
+      )}
     >
       {to ? (
         <Link
@@ -271,10 +284,11 @@ function MemberPanel({ member, className, children }: MemberPanelProps) {
   )
 }
 
+// As large as a member's sprite in a row as wide.
 function EmptyBall() {
   return (
-    <span className="grid size-16 shrink-0 place-items-center">
-      <PokeBall className="size-9 opacity-50" />
+    <span className="grid size-12 shrink-0 place-items-center @min-[34rem]:size-16">
+      <PokeBall className="size-7 opacity-50 @min-[34rem]:size-9" />
     </span>
   )
 }
@@ -309,9 +323,9 @@ function MemberName({ member, id, className }: PartOfMemberProps & { id: string 
   )
 }
 
-function MemberNumber({ member }: PartOfMemberProps) {
+function MemberNumber({ member, className }: PartOfMemberProps) {
   return (
-    <p className="flex items-center gap-1 text-xs font-medium tabular-nums">
+    <p className={cn('flex items-center gap-1 text-xs font-medium tabular-nums', className)}>
       {dexNumber(member.pokemon.id)}
       {member.pokemon.changed_recently && <ChangedMark className="text-current" />}
     </p>
@@ -359,10 +373,10 @@ function PanelStats({ stats, className }: StatsProps) {
 }
 
 // The base stat total, with a bar against MAX_STAT_TOTAL that a total past it fills.
-function TotalBar({ stats }: StatsProps) {
+function TotalBar({ stats, className }: StatsProps) {
   const total = statTotal(stats)
   return (
-    <dl className="flex items-center gap-1.5 text-xs">
+    <dl className={cn('flex items-center gap-1.5 text-xs', className)}>
       <dt>{m.pokemon_stat_total()}</dt>
       <dd className="flex items-center gap-2">
         <span className="w-7 font-bold tabular-nums">{total}</span>
