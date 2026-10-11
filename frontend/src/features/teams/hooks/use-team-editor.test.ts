@@ -2,7 +2,9 @@ import { act, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { Team } from '@/api'
 import { holdTeamFetches, serveTeams } from '@/test/handlers'
+import { makePokemon } from '@/test/pokemon'
 import { renderHookWithProviders } from '@/test/render'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
@@ -15,10 +17,10 @@ const CATALOG = Object.values(catalog)
 const TEAM = makeTeam({ pokemon: [charmander, pikachu] })
 
 // The team as fetched, and an editor for it.
-async function renderEditor() {
+async function renderEditor(team: Team = TEAM) {
   const { result } = renderHookWithProviders(() => ({
     shown: useTeam(TEAM_ID),
-    editor: useTeamEditor(TEAM),
+    editor: useTeamEditor(team),
   }))
   await waitFor(() => expect(result.current.shown.data).toBeTruthy())
   return result
@@ -51,6 +53,30 @@ describe('useTeamEditor', () => {
     expect(api.requests).toEqual([
       { method: 'PUT', path: `/api/teams/${TEAM_ID}/members/4`, body: { pokemon_id: 6 } },
     ])
+  })
+
+  it('moves a member already on the team into the slot it replaces, as the API does', async () => {
+    const api = serveTeams({ teams: [TEAM], catalog: CATALOG, signedIn: ASH })
+    const result = await renderEditor()
+
+    const changed = await act(() => result.current.editor.replace(4, pikachu))
+
+    expect(memberIds(changed)).toEqual([25])
+    expect(memberIds(api.teams()[0])).toEqual([25])
+  })
+
+  it('adds a Pokémon whose evolution family isn’t known yet', async () => {
+    // Before a sync has stored their species, Pokémon have no family.
+    const bulbasaur = makePokemon({ id: 1, name: 'bulbasaur', family_id: null })
+    const ivysaur = makePokemon({ id: 2, name: 'ivysaur', family_id: null })
+    const team = makeTeam({ pokemon: [bulbasaur] })
+    const api = serveTeams({ teams: [team], catalog: [bulbasaur, ivysaur], signedIn: ASH })
+    const result = await renderEditor(team)
+
+    const changed = await act(() => result.current.editor.add(ivysaur))
+
+    expect(memberIds(changed)).toEqual([1, 2])
+    expect(memberIds(api.teams()[0])).toEqual([1, 2])
   })
 
   it('undoes a change someone else’s team refuses, and says why', async () => {

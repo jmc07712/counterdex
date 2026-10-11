@@ -144,6 +144,11 @@ function conflict(reason: TeamConflictReason) {
   return HttpResponse.json({ detail: 'Refused.', reason }, { status: 409 })
 }
 
+// Whether two Pokémon are from one evolution family. One whose family isn't known yet is from none.
+function sameFamily(one: Pokemon, other: Pokemon) {
+  return one.family_id != null && one.family_id === other.family_id
+}
+
 // These Pokémon as a team's members, in this order.
 function asMembers(pokemon: Pokemon[]): TeamMember[] {
   return pokemon.map((each, position) => ({ position, pokemon: each, removed_at: null }))
@@ -273,7 +278,7 @@ export function serveTeams({
       const added = pokemon(Number(body?.pokemon_id))
       if (!added) return refusal(422)
       const members = found.members.map((member) => member.pokemon)
-      if (members.some((member) => member.family_id === added.family_id)) {
+      if (members.some((member) => member.id === added.id || sameFamily(member, added))) {
         return conflict(TeamConflictReason.FAMILY_ON_TEAM)
       }
       if (members.length >= 6) return conflict(TeamConflictReason.TEAM_FULL)
@@ -288,11 +293,16 @@ export function serveTeams({
       const members = found.members.map((member) => member.pokemon)
       if (!members.some((member) => member.id === replacedId)) return refusal(404)
       if (!added) return refusal(422)
-      const others = members.filter((member) => member.id !== replacedId)
-      if (others.some((member) => member.family_id === added.family_id)) {
+      if (added.id === replacedId) return HttpResponse.json(found)
+      // As the API does: the new Pokémon may be from the replaced one's family, and if it's on the
+      // team already, it moves into the slot and the gap it leaves closes.
+      const others = members.filter((member) => member.id !== replacedId && member.id !== added.id)
+      if (others.some((member) => sameFamily(member, added))) {
         return conflict(TeamConflictReason.FAMILY_ON_TEAM)
       }
-      const replaced = members.map((member) => (member.id === replacedId ? added : member))
+      const replaced = members
+        .filter((member) => member.id !== added.id)
+        .map((member) => (member.id === replacedId ? added : member))
       return HttpResponse.json(save(found, replaced))
     }),
     http.delete('/api/teams/:teamId/members/:pokemonId', async ({ request, params }) => {
