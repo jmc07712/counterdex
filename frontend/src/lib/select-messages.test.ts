@@ -7,7 +7,9 @@ import {
   Gender,
   PokemonForm,
   PokemonType,
+  Rating,
   RelativePhysicalStats,
+  RelativeSpeed,
   SyncStatus,
   TeamConflictReason,
   TimeOfDay,
@@ -45,6 +47,17 @@ describe.each<[string, string[], (value: string) => string]>([
     (problem) => m.team_problem({ problem }),
   ],
   ['admin_run_status', Object.values(SyncStatus), (status) => m.admin_run_status({ status })],
+  ['team_matchup_rating', Object.values(Rating), (rating) => m.team_matchup_rating({ rating })],
+  [
+    'team_matchup_reason',
+    Object.values(Rating),
+    (rating) => m.team_matchup_reason({ rating, names: 'Charizard' }),
+  ],
+  [
+    'team_matchup_speed',
+    Object.values(RelativeSpeed),
+    (speed) => m.team_matchup_speed({ speed, pokemon: 'Golem', opponent: 'Charizard' }),
+  ],
 ])('%s', (_, values, word) => {
   it.each(values)('words %s', (value) => {
     expect(word(value)).not.toBe(value)

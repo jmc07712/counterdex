@@ -27,6 +27,7 @@
   "common_clear_filters": "Clear filters",
   "common_results": "Results",
   "common_cancel": "Cancel",
+  "common_list_and": "{items} and {last}",
   "filters_label": "Filters",
   "filters_types_info_label": "About types",
   "not_found_title": "Page not found",
@@ -251,6 +252,112 @@
   "team_counter_name": "Counter to {team}",
   "team_counter_needs_sync": "Counter teams need a Pokédex sync first",
   "team_counter_failed": "Couldn’t build a counter team",
+  "team_matchup_multiplier": [
+    {
+      "declarations": [
+        "input multiplier"
+      ],
+      "selectors": [
+        "multiplier"
+      ],
+      "match": {
+        "multiplier=4": "4×",
+        "multiplier=2": "2×",
+        "multiplier=1": "neutral",
+        "multiplier=0.5": "½×",
+        "multiplier=0.25": "¼×",
+        "multiplier=0": "no effect",
+        "multiplier=*": "{multiplier}×"
+      }
+    }
+  ],
+  "team_matchup_attack": [
+    {
+      "declarations": [
+        "input multiplier",
+        "input attacker",
+        "input type",
+        "input amount",
+        "input defender"
+      ],
+      "selectors": [
+        "multiplier"
+      ],
+      "match": {
+        "multiplier=0": "{attacker}’s {type} moves have no effect on {defender}",
+        "multiplier=0.25": "{attacker}’s {type} moves are only {amount} against {defender}",
+        "multiplier=0.5": "{attacker}’s {type} moves are only {amount} against {defender}",
+        "multiplier=*": "{attacker}’s {type} moves are {amount} against {defender}"
+      }
+    }
+  ],
+  "team_matchup_attacks": "{attack}, and {counterattack}.",
+  "team_matchup_speed": [
+    {
+      "declarations": [
+        "input speed",
+        "input pokemon",
+        "input opponent"
+      ],
+      "selectors": [
+        "speed"
+      ],
+      "match": {
+        "speed=faster": "{pokemon} is faster.",
+        "speed=slower": "{opponent} is faster.",
+        "speed=tied": "They’re equally fast.",
+        "speed=*": "{speed}"
+      }
+    }
+  ],
+  "team_matchup_stats": [
+    {
+      "declarations": [
+        "input name",
+        "input difference",
+        "local amount = difference: number"
+      ],
+      "selectors": [],
+      "match": {
+        "": "{name}’s base stats total {amount} more."
+      }
+    }
+  ],
+  "team_matchup_rating": [
+    {
+      "declarations": [
+        "input rating"
+      ],
+      "selectors": [
+        "rating"
+      ],
+      "match": {
+        "rating=good": "Good",
+        "rating=even": "Even",
+        "rating=bad": "Bad",
+        "rating=*": "{rating}"
+      }
+    }
+  ],
+  "team_matchup_reason": [
+    {
+      "declarations": [
+        "input rating",
+        "input names"
+      ],
+      "selectors": [
+        "rating"
+      ],
+      "match": {
+        "rating=good": "Strong against {names}",
+        "rating=even": "Holds its own against {names}",
+        "rating=bad": "Struggles against {names}",
+        "rating=*": "{rating}"
+      }
+    }
+  ],
+  "team_matchup_covered": "Every Pokémon on their team has a good answer",
+  "team_matchup_uncovered": "Nothing here clearly beats {names}",
   "team_added": "Added {name} to {team}",
   "team_problem": [
     {
