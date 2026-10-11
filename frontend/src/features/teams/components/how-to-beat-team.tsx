@@ -12,6 +12,7 @@ import { MatchupList } from './matchup-list'
 import {
   MatchupLoadFailed,
   MatchupNeedsSync,
+  MatchupResults,
   MatchupSection,
   MatchupSkeleton,
 } from './matchup-section'
@@ -69,7 +70,9 @@ function CounterPlan({ team, pool }: { team: Team; pool: MatchupPool }) {
     return (
       <>
         {status}
-        <MatchupNeedsSync>{m.team_counter_needs_sync()}</MatchupNeedsSync>
+        <MatchupResults busy={counter.isPlaceholderData}>
+          <MatchupNeedsSync>{m.team_counter_needs_sync()}</MatchupNeedsSync>
+        </MatchupResults>
       </>
     )
   }
@@ -78,11 +81,7 @@ function CounterPlan({ team, pool }: { team: Team; pool: MatchupPool }) {
   return (
     <>
       {status}
-      {/* The last counter stays, dimmed, while a toggle's loads. */}
-      <div
-        aria-busy={counter.isPlaceholderData}
-        className="flex flex-col gap-4 transition-opacity duration-200 aria-busy:opacity-60"
-      >
+      <MatchupResults busy={counter.isPlaceholderData} className="flex flex-col gap-4">
         <p className="rounded-xl border bg-card px-4 py-3 font-medium">
           {coverage(picks, opponents)}
         </p>
@@ -93,7 +92,7 @@ function CounterPlan({ team, pool }: { team: Team; pool: MatchupPool }) {
         {/* The table where it fits, and on narrower screens the list. */}
         <MatchupTable picks={picks} members={team.members} className="mt-4 hidden @2xl:table" />
         <MatchupList picks={picks} members={team.members} className="mt-4 @2xl:hidden" />
-      </div>
+      </MatchupResults>
     </>
   )
 }

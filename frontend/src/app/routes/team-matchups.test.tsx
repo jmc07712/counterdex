@@ -469,6 +469,36 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(within(section).queryByRole('table')).not.toBeInTheDocument()
   })
 
+  it('dims its needs-sync message while a toggle’s counter loads, then reads it out', async () => {
+    serveTheirs()
+    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    // Added last, so it answers the first request; the stand-in answers the next.
+    server.use(
+      http.get(
+        '/api/counter-team',
+        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
+        { once: true },
+      ),
+    )
+    const { user } = renderTeam()
+    const section = await findSection()
+    const message = await within(section).findByText('Counter teams need a Pokédex sync first')
+    const status = within(section).getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+    const held = holdCounterTeams()
+
+    await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
+
+    await waitFor(() => expect(held.arrived()).toBe(1))
+    expect(message.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
+
+    held.release()
+
+    expect(await within(section).findByRole('table')).toBeInTheDocument()
+    await waitFor(() => expect(status).toHaveTextContent('Nothing here clearly beats Gengar'))
+    expect(within(section).getByRole('status')).toBe(status)
+  })
+
   it('asks again when building, once the Pokédex may have synced since it said it hadn’t', async () => {
     const api = serveTheirs()
     const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })

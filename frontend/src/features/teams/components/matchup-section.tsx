@@ -3,6 +3,7 @@ import { type ReactNode, useId } from 'react'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import type { MatchupPool } from '../types'
@@ -41,6 +42,28 @@ export function MatchupSection({
       </div>
       {children}
     </section>
+  )
+}
+
+type MatchupResultsProps = {
+  // While a toggle's answer loads, and the last answer is still shown.
+  busy: boolean
+  className?: string
+  children: ReactNode
+}
+
+/**
+ * A section's answer, such as its picks or that it needs a sync. Dimmed and busy while a toggle's
+ * answer loads.
+ */
+export function MatchupResults({ busy, className, children }: MatchupResultsProps) {
+  return (
+    <div
+      aria-busy={busy}
+      className={cn('transition-opacity duration-200 aria-busy:opacity-60', className)}
+    >
+      {children}
+    </div>
   )
 }
 

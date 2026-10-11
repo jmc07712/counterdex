@@ -13,6 +13,7 @@ import { threatReason, threatsSummary } from '../utils/matchup-summary'
 import {
   MatchupLoadFailed,
   MatchupNeedsSync,
+  MatchupResults,
   MatchupSection,
   MatchupSkeleton,
 } from './matchup-section'
@@ -76,7 +77,9 @@ function Threats({ team, pool, onOpenPokemon }: TeamThreatsProps & { pool: Match
     return (
       <>
         {status}
-        <MatchupNeedsSync>{m.team_threats_needs_sync()}</MatchupNeedsSync>
+        <MatchupResults busy={threats.isPlaceholderData}>
+          <MatchupNeedsSync>{m.team_threats_needs_sync()}</MatchupNeedsSync>
+        </MatchupResults>
       </>
     )
   }
@@ -84,22 +87,22 @@ function Threats({ team, pool, onOpenPokemon }: TeamThreatsProps & { pool: Match
   return (
     <>
       {status}
-      {/* The last threats stay, dimmed, while a toggle's load. */}
-      <ol
-        aria-label={m.team_threats_list()}
-        aria-busy={threats.isPlaceholderData}
-        className="grid grid-cols-1 gap-2 transition-opacity duration-200 aria-busy:opacity-60 @xl:grid-cols-2 @4xl:grid-cols-3"
-      >
-        {threats.data.map((threat, position) => (
-          <ThreatTile
-            key={threat.pokemon.id}
-            threat={threat}
-            position={position}
-            members={members}
-            onOpen={() => onOpenPokemon(threat.pokemon.id)}
-          />
-        ))}
-      </ol>
+      <MatchupResults busy={threats.isPlaceholderData}>
+        <ol
+          aria-label={m.team_threats_list()}
+          className="grid grid-cols-1 gap-2 @xl:grid-cols-2 @4xl:grid-cols-3"
+        >
+          {threats.data.map((threat, position) => (
+            <ThreatTile
+              key={threat.pokemon.id}
+              threat={threat}
+              position={position}
+              members={members}
+              onOpen={() => onOpenPokemon(threat.pokemon.id)}
+            />
+          ))}
+        </ol>
+      </MatchupResults>
     </>
   )
 }
