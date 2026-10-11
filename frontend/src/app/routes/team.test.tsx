@@ -260,6 +260,17 @@ describe('TeamPage, for the team’s owner', () => {
     expect(await within(sheet).findByRole('article', { name: 'Pikachu' })).toBeInTheDocument()
   })
 
+  it('marks its floating button on phones, so toasts keep clear of it', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([])
+
+    renderTeam(EDIT)
+
+    expect(await screen.findByRole('button', { name: 'Add Pokémon' })).toHaveAttribute(
+      'data-floating-button',
+    )
+  })
+
   it('adds from the sheet on phones, which stays open to add another', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu, snorlax])

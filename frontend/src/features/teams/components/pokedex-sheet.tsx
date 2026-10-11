@@ -46,6 +46,8 @@ export function PokedexSheet({
       <SheetTrigger asChild>
         <Button
           size="lg"
+          // Toasts sit above it.
+          data-floating-button
           // Above the phone tab bar and the home indicator below it; in the corner from md up,
           // where the tab bar is gone.
           className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 h-11 rounded-full px-4 shadow-lg md:right-6 md:bottom-6"
