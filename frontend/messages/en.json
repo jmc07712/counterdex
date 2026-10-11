@@ -482,8 +482,6 @@
   ],
   "pokedex_load_failed": "Couldn’t load the Pokédex",
   "pokedex_clear_filters": "Clear filters",
-  "pokedex_load_more": "Load more",
-  "pokedex_loading_more": "Loading…",
   "pokedex_loading": "Loading Pokémon",
   "sync_last_failed": "Last sync failed",
   "sync_synced_ago": "Synced {ago}",

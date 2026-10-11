@@ -1,7 +1,8 @@
 import { SearchX } from 'lucide-react'
-import { useInView } from 'react-intersection-observer'
 
 import { ListingStatus } from '@/api'
+import { DealtInItem } from '@/components/lists/dealt-in-item'
+import { LoadMore } from '@/components/lists/load-more'
 import { PokemonCard } from '@/components/pokemon/pokemon-card'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,6 @@ import { m } from '@/paraglide/messages.js'
 import type { PokedexFilters } from '../hooks/use-pokedex-filters'
 import { usePokemonList } from '../hooks/use-pokemon-list'
 
-const PRELOAD_MARGIN = '800px'
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
 
 type PokemonGridProps = {
@@ -32,12 +32,6 @@ type PokemonGridProps = {
 export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProps) {
   const search = useDebouncedSearch(filters.search)
   const query = usePokemonList({ ...filters, search })
-  const { ref: endOfList } = useInView({
-    rootMargin: PRELOAD_MARGIN,
-    onChange: (inView) => {
-      if (inView && query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage()
-    },
-  })
 
   if (query.isPending) return <GridSkeleton />
 
@@ -55,10 +49,10 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
     )
   }
 
-  const pokemon = query.data.pages.flatMap((page) => page.items)
+  const { pages } = query.data
   const { view } = filters
 
-  if (pokemon.length === 0) {
+  if (pages.every((page) => page.items.length === 0)) {
     return (
       <Empty>
         <EmptyHeader>
@@ -83,33 +77,24 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
         aria-busy={query.isPlaceholderData}
         className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
       >
-        {pokemon.map((each, index) => (
-          <li
-            key={each.id}
-            // Each page's cards are dealt in one after another.
-            style={{ animationDelay: `${(index % 50) * 20}ms` }}
-            className="animate-in duration-300 fill-mode-both fade-in-0 slide-in-from-bottom-2 motion-reduce:animate-none"
-          >
-            <PokemonCard
-              pokemon={each}
-              removed={view === ListingStatus.REMOVED}
-              onOpen={() => onOpen(each.id)}
-            />
-          </li>
-        ))}
+        {pages.flatMap((page) =>
+          page.items.map((each, index) => (
+            <DealtInItem key={each.id} index={index}>
+              <PokemonCard
+                pokemon={each}
+                removed={view === ListingStatus.REMOVED}
+                onOpen={() => onOpen(each.id)}
+              />
+            </DealtInItem>
+          )),
+        )}
       </ul>
 
       {query.hasNextPage && (
-        <div ref={endOfList} className="mt-8 flex justify-center">
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            disabled={query.isFetchingNextPage}
-            onClick={() => void query.fetchNextPage()}
-          >
-            {query.isFetchingNextPage ? m.pokedex_loading_more() : m.pokedex_load_more()}
-          </Button>
-        </div>
+        <LoadMore
+          loading={query.isFetchingNextPage}
+          onLoadMore={() => void query.fetchNextPage()}
+        />
       )}
     </>
   )
