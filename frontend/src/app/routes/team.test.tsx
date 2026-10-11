@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
+import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import {
   holdTeamChanges,
   holdTeamFetches,
@@ -16,7 +17,7 @@ import {
 } from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
-import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
+import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
 import { TeamPage } from './team'
@@ -85,6 +86,34 @@ describe('TeamPage, for the team’s owner', () => {
     expect(rows.slice(1).map((row) => row.textContent)).toEqual(
       ['2', '3', '4', '5', '6'].map((number) => `${number}Empty slot`),
     )
+  })
+
+  it('paints each member’s slot in its main type, and one no longer in the Pokédex in neither', async () => {
+    serveAsh([
+      makeTeam({
+        members: [
+          asMember(charizard, 0),
+          { ...asMember(pikachu, 1), removed_at: '2026-10-11T09:00:00Z' },
+        ],
+      }),
+    ])
+    browse([])
+
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    const [charizardSlot, pikachuSlot] = slotRows()
+    expect(charizardSlot).toHaveStyle({
+      backgroundColor: TYPE_STYLES.fire.background,
+      color: TYPE_STYLES.fire.foreground,
+    })
+    expect(within(charizardSlot).getByRole('list', { name: 'Types' })).toHaveTextContent(
+      'FireFlying',
+    )
+    expect(pikachuSlot).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
+    expect(pikachuSlot).toHaveTextContent('No longer in the Pokédex')
+    expect(within(pikachuSlot).queryByRole('list', { name: 'Types' })).not.toBeInTheDocument()
+    expect(within(pikachuSlot).getByRole('button', { name: 'Remove Pikachu' })).toBeInTheDocument()
   })
 
   it('adds a Pokémon from the browser beside the team, which stays open', async () => {

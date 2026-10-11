@@ -5,7 +5,6 @@ import { useMediaQuery } from 'usehooks-ts'
 
 import type { Pokemon } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
@@ -14,7 +13,7 @@ import { addToTeam } from '../utils/add-to-team'
 import { AddPokemonSheet } from './add-pokemon-sheet'
 import { PokemonBrowser } from './pokemon-browser'
 import { TeamNameField } from './team-name-field'
-import { EmptySlots, TeamSlot, TeamSlots } from './team-slots'
+import { EmptySlots, SlotButton, TeamSlot, TeamSlots } from './team-slots'
 
 // Tailwind's lg breakpoint: the browser sits beside the team from here up, and opens in a sheet
 // from the bottom below it.
@@ -58,14 +57,12 @@ export function TeamBuilder({ editor, actions }: TeamBuilderProps) {
         <TeamSlots>
           {team.members.map((member) => (
             <TeamSlot key={member.pokemon.id} member={member}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+              <SlotButton
                 aria-label={m.team_remove({ name: displayName(member.pokemon.name) })}
                 onClick={() => void editor.remove(member.pokemon.id)}
               >
                 <X />
-              </Button>
+              </SlotButton>
             </TeamSlot>
           ))}
           <EmptySlots filled={team.members.length} />

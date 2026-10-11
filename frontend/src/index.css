@@ -54,6 +54,17 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@theme {
+    /* A sprite's hop: up a little and back down. */
+    --animate-hop: hop 0.4s ease-out;
+
+    @keyframes hop {
+        40% {
+            translate: 0 -10%;
+        }
+    }
+}
+
 :root {
     /* Neutral "dex ink on paper" base; saturated color is reserved for Pokémon types. */
     --background: #f5f7fa;
