@@ -448,6 +448,17 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
   })
 
+  it('tells screen readers about the first teams to load as well', async () => {
+    serveTeams({ teams: [RAIN] })
+    await renderTeams()
+
+    // There, empty, while the first teams load, so that filling it is read out.
+    const status = screen.getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+
+    await waitFor(() => expect(status).toHaveTextContent('1 team shown'))
+  })
+
   it('tells screen readers how many teams it shows, and when more can load', async () => {
     serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
     const { user } = await renderTeams()

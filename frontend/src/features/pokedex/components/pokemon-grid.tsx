@@ -34,7 +34,16 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
   const search = useDebouncedSearch(filters.search)
   const query = usePokemonList({ ...filters, search })
 
-  if (query.isPending) return <GridSkeleton />
+  // The status comes first in each case below, from the first load on, so it stays the same
+  // element as they change: a status that appears with words in it often isn't read out.
+  if (query.isPending) {
+    return (
+      <>
+        <ResultsStatus settled={false} />
+        <GridSkeleton />
+      </>
+    )
+  }
 
   if (query.isError) {
     return (
@@ -53,7 +62,6 @@ export function PokemonGrid({ filters, onClearFilters, onOpen }: PokemonGridProp
   const { pages } = query.data
   const { view } = filters
   const shown = pages.reduce((count, page) => count + page.items.length, 0)
-  // The status comes first in both cases below, so it stays the same element as they change.
   const settled = !query.isPlaceholderData
 
   if (shown === 0) {

@@ -38,16 +38,21 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
   const search = useDebouncedSearch(filters.search)
   const teams = useTeamsList({ ...filters, search }, owner)
 
+  // The status comes first in each case below, from the first load on, so it stays the same
+  // element as they change: a status that appears with words in it often isn't read out.
   if (teams.isPending) {
     return (
-      <ul aria-label={m.teams_loading()} className={GRID}>
-        {[0, 1, 2].map((each) => (
-          <li key={each}>
-            {/* As tall as a card with one row of types. */}
-            <Skeleton className="h-57 rounded-2xl" />
-          </li>
-        ))}
-      </ul>
+      <>
+        <ResultsStatus settled={false} />
+        <ul aria-label={m.teams_loading()} className={GRID}>
+          {[0, 1, 2].map((each) => (
+            <li key={each}>
+              {/* As tall as a card with one row of types. */}
+              <Skeleton className="h-57 rounded-2xl" />
+            </li>
+          ))}
+        </ul>
+      </>
     )
   }
 
@@ -67,7 +72,6 @@ export function TeamsGrid({ filters, owner, onClearFilters, onShowEveryone }: Te
 
   const { pages } = teams.data
   const shown = pages.reduce((count, page) => count + page.items.length, 0)
-  // The status comes first in each case below, so it stays the same element as they change.
   const settled = !teams.isPlaceholderData
 
   if (shown === 0) {

@@ -255,6 +255,17 @@ describe('PokedexPage', () => {
     expect(await screen.findByRole('article', { name: 'Ivysaur' })).toBeInTheDocument()
   })
 
+  it('tells screen readers about the first Pokémon to load as well', async () => {
+    servePokemon(makePage(['bulbasaur']))
+    renderWithProviders(<PokedexPage />)
+
+    // There, empty, while the first Pokémon load, so that filling it is read out.
+    const status = screen.getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+
+    await waitFor(() => expect(status).toHaveTextContent('1 Pokémon shown'))
+  })
+
   it('tells screen readers how many Pokémon it shows, and when more can load', async () => {
     servePokemon(twoPages)
     const { user } = renderWithProviders(<PokedexPage />)

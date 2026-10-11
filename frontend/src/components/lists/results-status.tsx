@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 type ResultsStatusProps = {
   // False while the last results stay on screen as new ones load.
   settled: boolean
-  children: ReactNode
+  // What to say once settled. Nothing while the first results load.
+  children?: ReactNode
 }
 
 /**
