@@ -65,7 +65,7 @@ def conflict_detail(reason: TeamConflictReason) -> str:
         case TeamConflictReason.FAMILY_ON_TEAM:
             return (
                 "A team can have one Pokémon from each evolution family. Choose one from another "
-                "family, or replace the one from this family that's on the team."
+                "family, or take out the one from this family."
             )
         case TeamConflictReason.ORDER_OUT_OF_DATE:
             return (

@@ -29,7 +29,7 @@ TEAM = f"/api/teams/{TEAM_ID}"
 FAMILY_ON_TEAM = {
     "detail": (
         "A team can have one Pokémon from each evolution family. Choose one from another family, "
-        "or replace the one from this family that's on the team."
+        "or take out the one from this family."
     ),
     "reason": "family_on_team",
 }
