@@ -60,11 +60,17 @@ function BuildCounterButton({ team }: { team: Team }) {
   return (
     <Button
       variant="outline"
-      aria-label={m.team_counter_named({ team: team.name })}
+      aria-label={
+        build.isPending
+          ? m.team_counter_building_named({ team: team.name })
+          : m.team_counter_named({ team: team.name })
+      }
       aria-busy={build.isPending}
-      disabled={build.isPending}
+      // Not disabled, which would drop its focus to the page and let taps through to the card's
+      // link; handleClick ignores clicks while it builds.
+      aria-disabled={build.isPending}
       onClick={handleClick}
-      className={TAP_AREA}
+      className={cn(TAP_AREA, 'aria-disabled:opacity-50')}
     >
       {build.isPending ? (
         <LoaderCircle aria-hidden="true" className="animate-spin" />

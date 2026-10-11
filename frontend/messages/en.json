@@ -232,6 +232,7 @@
   "team_counter": "Counter",
   "team_counter_named": "Build a counter to {team}",
   "team_counter_building": "Building…",
+  "team_counter_building_named": "Building a counter to {team}",
   "team_counter_name": "Counter to {team}",
   "team_counter_needs_sync": "Counter teams need a Pokédex sync first",
   "team_counter_failed": "Couldn’t build a counter team",

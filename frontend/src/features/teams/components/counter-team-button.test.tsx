@@ -105,12 +105,18 @@ describe('CounterTeamButton, signed in', () => {
 
     const button = await screen.findByRole('button', { name: 'Build a counter to Rain' })
     expect(button).toHaveAttribute('aria-busy', 'false')
+    button.focus()
     // Both before it renders again, as a quick double-click can be.
     fireEvent.click(button)
     fireEvent.click(button)
 
     await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'true'))
-    expect(button).toBeDisabled()
+    expect(button).toHaveAccessibleName('Building a counter to Rain')
+    // Disabled only for assistive technology, so it keeps focus and takes stray taps itself.
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toBeEnabled()
+    expect(button).toHaveFocus()
+    fireEvent.click(button)
     await waitFor(() => expect(held.arrived()).toBe(1))
     held.release()
 
@@ -131,7 +137,9 @@ describe('CounterTeamButton, signed in', () => {
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(creations(api)).toEqual([])
     expect(router.state.location.pathname).toBe('/')
-    expect(button).toBeEnabled()
+    expect(button).toHaveAttribute('aria-disabled', 'false')
+    expect(button).toHaveAccessibleName('Build a counter to Rain')
+    expect(button).toHaveFocus()
   })
 
   it('says when it couldn’t find a counter, makes no team, and tries again', async () => {
