@@ -73,7 +73,7 @@ function BuildCounterButton({ team }: { team: Team }) {
       className={cn(TAP_AREA, 'aria-disabled:opacity-50')}
     >
       {build.isPending ? (
-        <LoaderCircle aria-hidden="true" className="animate-spin" />
+        <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />
       ) : (
         <Swords aria-hidden="true" />
       )}
