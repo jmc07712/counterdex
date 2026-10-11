@@ -1,6 +1,7 @@
 import type { Pokemon, Team, TeamMember } from '@/api'
 
 import { makePokemon } from './pokemon'
+import { ASH } from './users'
 
 export const TEAM_ID = '00000000-0000-4000-8000-000000000001'
 
@@ -42,6 +43,7 @@ export function makeTeam({
   return {
     id: TEAM_ID,
     name: 'Team 1',
+    owner: { username: ASH.username },
     created_at: '2026-10-11T10:00:00Z',
     updated_at: '2026-10-11T10:00:00Z',
     members: pokemon.map(asMember),

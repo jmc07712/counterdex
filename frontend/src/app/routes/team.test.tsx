@@ -3,9 +3,15 @@ import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
-import type { Team } from '@/api'
+import { type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
-import { holdTeamChanges, servePokemon, serveSession, serveTeams } from '@/test/handlers'
+import {
+  holdTeamChanges,
+  holdTeamFetches,
+  servePokemon,
+  serveSession,
+  serveTeams,
+} from '@/test/handlers'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -29,14 +35,19 @@ function renderTeam(teamId = TEAM_ID) {
   )
 }
 
+// Ash, signed in, with these teams.
+function serveAsh(teams: Team[] = []) {
+  serveSession({ signedIn: ASH })
+  return serveTeams({ teams, catalog: CATALOG, signedIn: ASH })
+}
+
 function memberIds(team: Team) {
   return team.members.map((member) => member.pokemon.id)
 }
 
 describe('TeamPage', () => {
   it('adds a Pokémon through the slot picker', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({ teams: [makeTeam({ pokemon: [charmander] })], catalog: CATALOG })
+    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     servePokemon({ items: [pikachu, charizard], next_cursor: null })
     const { user } = renderTeam()
 
@@ -48,8 +59,7 @@ describe('TeamPage', () => {
   })
 
   it('offers to replace an earlier stage of the evolution line', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({ teams: [makeTeam({ pokemon: [charmander] })], catalog: CATALOG })
+    const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     servePokemon({ items: [charizard], next_cursor: null })
     const { user } = renderTeam()
 
@@ -61,8 +71,7 @@ describe('TeamPage', () => {
   })
 
   it('shows a species already on the team as such in the picker', async () => {
-    serveSession({ signedIn: ASH })
-    serveTeams({ teams: [makeTeam({ pokemon: [charizard] })], catalog: CATALOG })
+    serveAsh([makeTeam({ pokemon: [charizard] })])
     servePokemon({ items: [catalog.charizardMegaX], next_cursor: null })
     const { user } = renderTeam()
 
@@ -72,11 +81,7 @@ describe('TeamPage', () => {
   })
 
   it('removes a Pokémon at once, before the API answers', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({
-      teams: [makeTeam({ pokemon: [charmander, pikachu] })],
-      catalog: CATALOG,
-    })
+    const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     const hold = holdTeamChanges()
     const { user } = renderTeam()
 
@@ -88,11 +93,7 @@ describe('TeamPage', () => {
   })
 
   it('sends changes to a team one at a time, in order', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({
-      teams: [makeTeam({ pokemon: [charmander, pikachu] })],
-      catalog: CATALOG,
-    })
+    const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     const hold = holdTeamChanges()
     const { user } = renderTeam()
 
@@ -113,26 +114,31 @@ describe('TeamPage', () => {
   })
 
   it('undoes a change the API refuses, and says why', async () => {
-    serveSession({ signedIn: ASH })
-    serveTeams({ teams: [makeTeam({ pokemon: [charmander] })], catalog: CATALOG })
+    serveAsh([makeTeam({ pokemon: [charmander] })])
     server.use(
       http.delete('/api/teams/:teamId/members/:pokemonId', () =>
-        HttpResponse.json({ detail: 'Refused.', reason: 'order_out_of_date' }, { status: 409 }),
+        HttpResponse.json(
+          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
+          { status: 409 },
+        ),
       ),
     )
     const { user } = renderTeam()
+    const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
+    // Held, so what shows is the change undone rather than the team fetched again.
+    const fetches = holdTeamFetches()
 
-    await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
+    await user.click(remove)
 
     expect(
       await screen.findByText('This team changed somewhere else, so it’s been reloaded.'),
     ).toBeInTheDocument()
     expect(await screen.findByText('Charmander')).toBeInTheDocument()
+    fetches.release()
   })
 
   it('renames on Enter, and puts back a blank name', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({ teams: [makeTeam()], catalog: CATALOG })
+    const api = serveAsh([makeTeam()])
     const { user } = renderTeam()
 
     const name = await screen.findByRole('textbox', { name: 'Team name' })
@@ -150,8 +156,7 @@ describe('TeamPage', () => {
   })
 
   it('stops a name at 40 characters', async () => {
-    serveSession({ signedIn: ASH })
-    serveTeams({ teams: [makeTeam()], catalog: CATALOG })
+    serveAsh([makeTeam()])
     renderTeam()
 
     expect(await screen.findByRole('textbox', { name: 'Team name' })).toHaveAttribute(
@@ -161,8 +166,7 @@ describe('TeamPage', () => {
   })
 
   it('deletes after you confirm, then goes home', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({ teams: [makeTeam()], catalog: CATALOG })
+    const api = serveAsh([makeTeam()])
     const { user, router } = renderTeam()
 
     await user.click(await screen.findByRole('button', { name: 'Team actions' }))
@@ -174,8 +178,7 @@ describe('TeamPage', () => {
   })
 
   it('keeps the team if you don’t confirm, with focus back on its menu', async () => {
-    serveSession({ signedIn: ASH })
-    const api = serveTeams({ teams: [makeTeam()], catalog: CATALOG })
+    const api = serveAsh([makeTeam()])
     const { user } = renderTeam()
 
     const menu = await screen.findByRole('button', { name: 'Team actions' })
@@ -188,8 +191,7 @@ describe('TeamPage', () => {
   })
 
   it('says when a team doesn’t exist', async () => {
-    serveSession({ signedIn: ASH })
-    serveTeams()
+    serveAsh()
 
     renderTeam()
 

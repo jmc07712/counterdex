@@ -40,12 +40,12 @@ describe.each<[string, string[], (value: string) => string]>([
   ],
   [
     'team_problem',
-    [...Object.values(TeamConflictReason), 'not_found', 'failed'],
+    [...Object.values(TeamConflictReason), 'signed_out', 'not_owner', 'not_found', 'failed'],
     (problem) => m.team_problem({ problem }),
   ],
   [
     'team_cant_add',
-    ['team_full', 'species_on_team'],
+    [TeamConflictReason.TEAM_FULL, TeamConflictReason.SPECIES_ON_TEAM],
     (reason) => m.team_cant_add({ reason }),
   ],
 ])('%s', (_, values, word) => {

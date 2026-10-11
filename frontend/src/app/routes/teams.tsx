@@ -7,16 +7,16 @@ import { paths } from '@/config/paths'
 import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
 import { NewTeamButton } from '@/features/teams/components/new-team-button'
 import { TeamList } from '@/features/teams/components/team-list'
-import { useTeams } from '@/features/teams/hooks/use-teams'
+import { useUserTeams } from '@/features/teams/hooks/use-user-teams'
 import { useCurrentUser } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 export function TeamsPage() {
   const currentUser = useCurrentUser()
-  const signedIn = Boolean(currentUser.data)
-  const teams = useTeams({ enabled: signedIn })
+  const username = currentUser.data?.username
+  const teams = useUserTeams(username)
   // With no teams yet, the list's own empty state has the button.
-  const hasTeams = signedIn && teams.data !== undefined && teams.data.length > 0
+  const hasTeams = teams.data !== undefined && teams.data.length > 0
 
   return (
     <>
@@ -36,7 +36,7 @@ export function TeamsPage() {
           </AlertAction>
         </Alert>
       )}
-      {signedIn && <TeamList />}
+      {username && <TeamList username={username} />}
       {currentUser.data === null && (
         <SignInPrompt
           icon={<UsersRound />}

@@ -1,24 +1,32 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { deleteTeam } from '@/api'
+import { deleteTeam, type Team } from '@/api'
+import {
+  listTeamsInfiniteQueryKey,
+  listUserTeamsQueryKey,
+} from '@/api/@tanstack/react-query.gen'
 
 import { TeamChangeError } from '../utils/team-change-error'
 import { teamQueryOptions } from './use-team'
-import { teamsQueryKey } from './use-teams'
+import { teamChangeScope } from './use-team-change'
 
-export function useDeleteTeam() {
+/** Deletes the team, after any changes to it that are still on their way. */
+export function useDeleteTeam(team: Team) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (teamId: string) => {
-      const { error, response } = await deleteTeam({ path: { team_id: teamId } })
+    scope: teamChangeScope(team.id),
+    mutationFn: async () => {
+      const { error, response } = await deleteTeam({ path: { team_id: team.id } })
       // Already gone is as good as deleted.
       if (error !== undefined && response?.status !== 404) {
         throw new TeamChangeError(response, error)
       }
     },
-    onSuccess: (_, teamId) => {
-      queryClient.removeQueries({ queryKey: teamQueryOptions(teamId).queryKey })
-      return queryClient.invalidateQueries({ queryKey: teamsQueryKey })
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: teamQueryOptions(team.id).queryKey })
+      const path = { username: team.owner.username }
+      void queryClient.invalidateQueries({ queryKey: listTeamsInfiniteQueryKey() })
+      return queryClient.invalidateQueries({ queryKey: listUserTeamsQueryKey({ path }) })
     },
   })
 }

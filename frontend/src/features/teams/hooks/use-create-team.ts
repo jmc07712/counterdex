@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { createTeam } from '@/api'
+import { listUserTeamsQueryKey } from '@/api/@tanstack/react-query.gen'
 
-import { TeamChangeError } from '../utils/team-change-error'
+import { teamAfter } from '../utils/team-change-error'
 import { teamQueryOptions } from './use-team'
-import { teamsQueryKey } from './use-teams'
 
 type NewTeam = { id: string; name: string; pokemonIds?: number[] }
 
@@ -15,17 +15,12 @@ type NewTeam = { id: string; name: string; pokemonIds?: number[] }
 export function useCreateTeam() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, name, pokemonIds = [] }: NewTeam) => {
-      const { data, error, response } = await createTeam({
-        path: { team_id: id },
-        body: { name, pokemon_ids: pokemonIds },
-      })
-      if (data === undefined) throw new TeamChangeError(response, error)
-      return data
-    },
+    mutationFn: ({ id, name, pokemonIds = [] }: NewTeam) =>
+      teamAfter(createTeam({ path: { team_id: id }, body: { name, pokemon_ids: pokemonIds } })),
     onSuccess: (team) => {
       queryClient.setQueryData(teamQueryOptions(team.id).queryKey, team)
-      return queryClient.invalidateQueries({ queryKey: teamsQueryKey })
+      const path = { username: team.owner.username }
+      return queryClient.invalidateQueries({ queryKey: listUserTeamsQueryKey({ path }) })
     },
   })
 }

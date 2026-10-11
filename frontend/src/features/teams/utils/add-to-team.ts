@@ -16,7 +16,7 @@ export async function addToTeam(
   pokemon: Pokemon,
   { teamName, view }: { teamName: string; view?: () => void },
 ) {
-  const team = await editor.change({ kind: 'add', pokemon })
+  const team = await editor.add(pokemon)
   if (!team) return
   const added = team.members.find((member) => member.pokemon.id === pokemon.id)
   const related = team.members.find(
@@ -27,8 +27,7 @@ export async function addToTeam(
     toast(m.team_related_notice({ related: relatedName, team: teamName }), {
       action: {
         label: m.team_replace({ name: relatedName }),
-        onClick: () =>
-          void editor.change({ kind: 'replace', pokemonId: related.pokemon.id, pokemon }),
+        onClick: () => void editor.replace(related.pokemon.id, pokemon),
       },
     })
     return

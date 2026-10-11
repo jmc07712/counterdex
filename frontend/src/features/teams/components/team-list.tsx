@@ -14,15 +14,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
-import { useTeams } from '../hooks/use-teams'
+import { useUserTeams } from '../hooks/use-user-teams'
 import { NewTeamButton } from './new-team-button'
 import { TeamCard } from './team-card'
 
 const GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
-/** The signed-in user's teams. */
-export function TeamList() {
-  const teams = useTeams()
+/** A user's teams. */
+export function TeamList({ username }: { username: string }) {
+  const teams = useUserTeams(username)
 
   if (teams.isPending) {
     return (

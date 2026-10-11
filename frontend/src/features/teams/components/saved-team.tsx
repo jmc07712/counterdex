@@ -17,11 +17,11 @@ import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import { useTeam } from '../hooks/use-team'
-import { useTeamChanges } from '../hooks/use-team-changes'
+import { useTeamEditor } from '../hooks/use-team-editor'
 import { TeamBuilder } from './team-builder'
 import { TeamMenu } from './team-menu'
 
-/** One of the signed-in user's teams, by id, in the builder. */
+/** A team, by id, in the builder. */
 export function SavedTeam({ teamId }: { teamId: string }) {
   const team = useTeam(teamId)
 
@@ -64,6 +64,6 @@ export function SavedTeam({ teamId }: { teamId: string }) {
 }
 
 function SavedTeamBuilder({ team }: { team: Team }) {
-  const change = useTeamChanges(team.id)
-  return <TeamBuilder editor={{ team, change }} actions={<TeamMenu team={team} />} />
+  const editor = useTeamEditor(team)
+  return <TeamBuilder editor={editor} actions={<TeamMenu team={team} />} />
 }

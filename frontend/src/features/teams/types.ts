@@ -1,15 +1,18 @@
-import type { Team } from '@/api'
+import type { Pokemon, Team } from '@/api'
 
-import type { TeamChange } from './utils/apply-change'
-
-/** What the builder shows of a team: a saved team, or a guest's draft. */
+/** What the builder shows of a team. */
 export type TeamShape = Pick<Team, 'name' | 'members'>
 
 /**
- * A team and how to change it. `change` resolves to the team after the change, or undefined if
- * it failed (and said so).
+ * A team and how to change it. Each change resolves to the team after it, or undefined if it
+ * failed (and said why).
  */
 export type TeamEditor = {
   team: TeamShape
-  change: (change: TeamChange) => Promise<TeamShape | undefined>
+  add: (pokemon: Pokemon) => Promise<TeamShape | undefined>
+  // Puts `pokemon` in the slot of the member `pokemonId`.
+  replace: (pokemonId: number, pokemon: Pokemon) => Promise<TeamShape | undefined>
+  remove: (pokemonId: number) => Promise<TeamShape | undefined>
+  reorder: (pokemonIds: number[]) => Promise<TeamShape | undefined>
+  rename: (name: string) => Promise<TeamShape | undefined>
 }

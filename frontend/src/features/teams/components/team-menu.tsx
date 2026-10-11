@@ -29,12 +29,12 @@ import { teamProblem } from '../utils/team-change-error'
 
 export function TeamMenu({ team }: { team: Team }) {
   const [confirming, setConfirming] = useState(false)
-  const remove = useDeleteTeam()
+  const remove = useDeleteTeam(team)
   const navigate = useNavigate()
   const menuButton = useRef<HTMLButtonElement>(null)
 
   function handleDelete() {
-    remove.mutate(team.id, {
+    remove.mutate(undefined, {
       onSuccess: () => {
         toast.success(m.team_deleted({ name: team.name }))
         void navigate(paths.home.getHref())

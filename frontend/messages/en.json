@@ -89,6 +89,8 @@
         "problem=order_out_of_date": "This team changed somewhere else, so it’s been reloaded.",
         "problem=pokemon_removed": "That Pokémon is no longer in the Pokédex.",
         "problem=team_id_taken": "That team couldn’t be created. Try again.",
+        "problem=signed_out": "You’re signed out. Sign in again to change this team.",
+        "problem=not_owner": "Only the team’s owner can change it.",
         "problem=not_found": "This team changed somewhere else, so it’s been reloaded.",
         "problem=failed": "Couldn’t save that change. Check your connection and try again.",
         "problem=*": "{problem}"

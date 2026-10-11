@@ -61,7 +61,7 @@ describe('TeamsPage', () => {
 
   it('creates one team however often New team is clicked while it’s creating', async () => {
     serveSession({ signedIn: ASH })
-    const api = serveTeams()
+    const api = serveTeams({ signedIn: ASH })
     const { user, router } = renderWithProviders(<TeamsPage />)
 
     const button = await screen.findByRole('button', { name: 'New team' })

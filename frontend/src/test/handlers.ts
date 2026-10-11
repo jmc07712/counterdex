@@ -1,15 +1,16 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 
-import type {
-  CredentialsWritable,
-  Pokemon,
-  PokemonChange,
-  PokemonDetails,
-  PokemonPage,
-  SyncOverview,
-  Team,
-  TeamMember,
-  User,
+import {
+  type CredentialsWritable,
+  type Pokemon,
+  type PokemonChange,
+  type PokemonDetails,
+  type PokemonPage,
+  type SyncOverview,
+  type Team,
+  TeamConflictReason,
+  type TeamMember,
+  type User,
 } from '@/api'
 
 import { makeDetails, makePage } from './pokemon'
@@ -140,7 +141,7 @@ export function holdNextCurrentUser(user: User | null) {
 /** A request the teams stand-in received: method, path and JSON body. */
 export type TeamRequest = { method: string; path: string; body: unknown }
 
-function conflict(reason: string) {
+function conflict(reason: TeamConflictReason) {
   return HttpResponse.json({ detail: 'Refused.', reason }, { status: 409 })
 }
 
@@ -164,16 +165,25 @@ function asMembers(pokemon: Pokemon[]): TeamMember[] {
   }))
 }
 
+// Newest first, as the API lists everyone's teams.
+function newestFirst(one: Team, other: Team) {
+  return Date.parse(other.created_at) - Date.parse(one.created_at) || other.id.localeCompare(one.id)
+}
+
 /**
  * Stands in for the API's teams and remembers them: `teams` to begin with, then each change.
- * `catalog` is every Pokémon it knows. Like the API, it refuses a seventh member, a second of a
- * species and an out-of-date order. Returns what it was asked, in order, and its teams as they
- * now are, most recently changed first.
+ * `catalog` is every Pokémon it knows, and `signedIn` whoever sends the changes. Like the API,
+ * it lists everyone's teams that have a Pokémon, `pageSize` at a time; lets only a team's owner
+ * change it; and refuses a seventh member, a second of a species and an out-of-date order.
+ * Returns the changes it was asked for, in order, and its teams as they now are, most recently
+ * changed first.
  */
 export function serveTeams({
   teams: initial = [],
   catalog = [],
-}: { teams?: Team[]; catalog?: Pokemon[] } = {}) {
+  signedIn = null,
+  pageSize = 24,
+}: { teams?: Team[]; catalog?: Pokemon[]; signedIn?: User | null; pageSize?: number } = {}) {
   let teams = structuredClone(initial)
   const requests: TeamRequest[] = []
   const pokemon = (id: number) => catalog.find((each) => each.id === id)
@@ -196,8 +206,33 @@ export function serveTeams({
     return body as Record<string, unknown> | null
   }
 
+  // The team, if whoever's signed in may change it; otherwise the API's answer.
+  function owned(teamId: unknown): Team | Response {
+    if (!signedIn) return refusal(401)
+    const found = team(teamId)
+    if (!found) return refusal(404)
+    if (found.owner.username !== signedIn.username) return refusal(403)
+    return found
+  }
+
   server.use(
-    http.get('/api/teams', () => HttpResponse.json(teams)),
+    http.get('/api/teams', ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const limit = Number(query.get('limit') ?? pageSize)
+      const cursor = query.get('cursor')
+      const listed = teams.filter((each) => each.members.length > 0).sort(newestFirst)
+      const after = cursor === null ? -1 : listed.findIndex((each) => each.id === cursor)
+      // A cursor that no team has gives an empty page.
+      const start = cursor !== null && after === -1 ? listed.length : after + 1
+      const items = listed.slice(start, start + limit)
+      const more = start + limit < listed.length
+      return HttpResponse.json({ items, next_cursor: more ? items[items.length - 1].id : null })
+    }),
+    http.get('/api/users/:username/teams', ({ params }) => {
+      const username = String(params.username).toLowerCase()
+      const theirs = teams.filter((each) => each.owner.username.toLowerCase() === username)
+      return HttpResponse.json(theirs)
+    }),
     http.get('/api/teams/preview', ({ request }) => {
       const ids = new URL(request.url).searchParams.getAll('pokemon_id').map(Number)
       return HttpResponse.json(asMembers(ids.flatMap((id) => pokemon(id) ?? [])))
@@ -208,14 +243,20 @@ export function serveTeams({
     }),
     http.put('/api/teams/:teamId', async ({ request, params }) => {
       const body = await record(request, `/api/teams/${params.teamId}`)
+      if (!signedIn) return refusal(401)
       const existing = team(params.teamId)
-      if (existing) return HttpResponse.json(existing)
+      if (existing) {
+        return existing.owner.username === signedIn.username
+          ? HttpResponse.json(existing)
+          : conflict(TeamConflictReason.TEAM_ID_TAKEN)
+      }
       const now = new Date().toISOString()
       const ids = (body?.pokemon_ids as number[] | undefined) ?? []
       const created = save(
         {
           id: String(params.teamId),
           name: String(body?.name),
+          owner: { username: signedIn.username },
           created_at: now,
           updated_at: now,
           members: [],
@@ -226,39 +267,40 @@ export function serveTeams({
     }),
     http.patch('/api/teams/:teamId', async ({ request, params }) => {
       const body = await record(request, `/api/teams/${params.teamId}`)
-      const found = team(params.teamId)
-      if (!found) return refusal(404)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
       const renamed = { ...found, name: String(body?.name).trim() }
       return HttpResponse.json(save(renamed, found.members.map((member) => member.pokemon)))
     }),
     http.delete('/api/teams/:teamId', async ({ request, params }) => {
       await record(request, `/api/teams/${params.teamId}`)
-      if (!team(params.teamId)) return refusal(404)
-      teams = teams.filter((each) => each.id !== params.teamId)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
+      teams = teams.filter((each) => each.id !== found.id)
       return new HttpResponse(null, { status: 204 })
     }),
     http.post('/api/teams/:teamId/members', async ({ request, params }) => {
       const body = await record(request, `/api/teams/${params.teamId}/members`)
-      const found = team(params.teamId)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
       const added = pokemon(Number(body?.pokemon_id))
-      if (!found) return refusal(404)
       if (!added) return refusal(422)
       const members = found.members.map((member) => member.pokemon)
       if (members.some((member) => member.species_id === added.species_id)) {
-        return conflict('species_on_team')
+        return conflict(TeamConflictReason.SPECIES_ON_TEAM)
       }
-      if (members.length >= 6) return conflict('team_full')
+      if (members.length >= 6) return conflict(TeamConflictReason.TEAM_FULL)
       return HttpResponse.json(save(found, [...members, added]))
     }),
     http.put('/api/teams/:teamId/members/:pokemonId', async ({ request, params }) => {
       const body = await record(request, `/api/teams/${params.teamId}/members/${params.pokemonId}`)
-      const found = team(params.teamId)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
       const added = pokemon(Number(body?.pokemon_id))
       const replacedId = Number(params.pokemonId)
-      const members = found?.members.map((member) => member.pokemon) ?? []
-      if (!found || !added || !members.some((member) => member.id === replacedId)) {
-        return refusal(404)
-      }
+      const members = found.members.map((member) => member.pokemon)
+      if (!members.some((member) => member.id === replacedId)) return refusal(404)
+      if (!added) return refusal(422)
       const replaced = members
         .filter((member) => member.id !== added.id)
         .map((member) => (member.id === replacedId ? added : member))
@@ -266,21 +308,22 @@ export function serveTeams({
     }),
     http.delete('/api/teams/:teamId/members/:pokemonId', async ({ request, params }) => {
       await record(request, `/api/teams/${params.teamId}/members/${params.pokemonId}`)
-      const found = team(params.teamId)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
       const removedId = Number(params.pokemonId)
-      const members = found?.members.map((member) => member.pokemon) ?? []
-      if (!found || !members.some((member) => member.id === removedId)) return refusal(404)
+      const members = found.members.map((member) => member.pokemon)
+      if (!members.some((member) => member.id === removedId)) return refusal(404)
       return HttpResponse.json(save(found, members.filter((member) => member.id !== removedId)))
     }),
     http.put('/api/teams/:teamId/order', async ({ request, params }) => {
       const body = await record(request, `/api/teams/${params.teamId}/order`)
-      const found = team(params.teamId)
-      if (!found) return refusal(404)
+      const found = owned(params.teamId)
+      if (found instanceof Response) return found
       const ids = (body?.pokemon_ids as number[] | undefined) ?? []
       const members = found.members.map((member) => member.pokemon)
       const same =
         ids.length === members.length && members.every((member) => ids.includes(member.id))
-      if (!same) return conflict('order_out_of_date')
+      if (!same) return conflict(TeamConflictReason.ORDER_OUT_OF_DATE)
       const ordered = ids.flatMap((id) => members.find((member) => member.id === id) ?? [])
       return HttpResponse.json(save(found, ordered))
     }),
@@ -310,4 +353,22 @@ export function holdTeamChanges() {
     http.delete('/api/teams/:teamId/*', hold),
   )
   return { release, arrived: () => arrived }
+}
+
+/**
+ * Holds every fetch of one team until `release` is called, then lets the stand-in from
+ * serveTeams answer them, so a test can see what shows before a refetch lands. Call it after
+ * serveTeams, so it comes first.
+ */
+export function holdTeamFetches() {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  server.use(
+    http.get('/api/teams/:teamId', async () => {
+      await released
+    }),
+  )
+  return { release }
 }

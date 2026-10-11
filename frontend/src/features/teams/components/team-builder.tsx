@@ -37,14 +37,14 @@ export function TeamBuilder({ editor, actions, notice }: TeamBuilderProps) {
         <h1 className="sr-only">{team.name}</h1>
         <TeamNameField
           name={team.name}
-          onRename={(name) => void editor.change({ kind: 'rename', name })}
+          onRename={(name) => void editor.rename(name)}
         />
         {actions}
       </div>
       {notice}
       <TeamSlots
         members={team.members}
-        onRemove={(pokemonId) => void editor.change({ kind: 'remove', pokemonId })}
+        onRemove={(pokemonId) => void editor.remove(pokemonId)}
         onAdd={() => setPicking(true)}
       />
       <SlotPicker

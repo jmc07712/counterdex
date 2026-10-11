@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { TeamConflictReason } from '@/api'
 import { asMember, catalog } from '@/test/teams'
 
 import { cantAdd } from './can-add'
@@ -12,11 +13,11 @@ describe('cantAdd', () => {
   })
 
   it('refuses a second of one species, in any form', () => {
-    expect(cantAdd([asMember(charizard, 0)], charizardMegaX)).toBe('species_on_team')
+    expect(cantAdd([asMember(charizard, 0)], charizardMegaX)).toBe(TeamConflictReason.SPECIES_ON_TEAM)
   })
 
   it('refuses a seventh member', () => {
     const six = [pikachu, snorlax, gengar, eevee, charmander, charizardMegaX].map(asMember)
-    expect(cantAdd(six, catalog.vaporeon)).toBe('team_full')
+    expect(cantAdd(six, catalog.vaporeon)).toBe(TeamConflictReason.TEAM_FULL)
   })
 })
