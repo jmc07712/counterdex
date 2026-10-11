@@ -23,7 +23,10 @@ import { m } from '@/paraglide/messages.js'
 import type { PokedexFilters } from '../hooks/use-pokedex-filters'
 import { usePokemonList } from '../hooks/use-pokemon-list'
 
-const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+// Columns follow the width of the grid's container rather than the screen's, so the grid also fits
+// beside something else, such as a team.
+const GRID =
+  'grid grid-cols-2 gap-3 sm:gap-4 @min-[36rem]:grid-cols-3 @min-[44rem]:grid-cols-4 @min-[60rem]:grid-cols-5 @min-[68rem]:grid-cols-6'
 
 type PokemonGridProps = {
   filters: PokedexFilters
@@ -97,23 +100,25 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
           ? m.pokedex_shown_more({ count: shown })
           : m.pokedex_shown({ count: shown })}
       </ResultsStatus>
-      <ul
-        aria-busy={query.isPlaceholderData}
-        className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
-      >
-        {pages.flatMap((page) =>
-          page.items.map((each, index) => (
-            <DealtInItem key={each.id} index={index}>
-              <PokemonCard
-                pokemon={each}
-                removed={removed}
-                onOpen={() => onOpen(each.id)}
-                action={removed ? undefined : cardAction?.(each)}
-              />
-            </DealtInItem>
-          )),
-        )}
-      </ul>
+      <div className="@container">
+        <ul
+          aria-busy={query.isPlaceholderData}
+          className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
+        >
+          {pages.flatMap((page) =>
+            page.items.map((each, index) => (
+              <DealtInItem key={each.id} index={index}>
+                <PokemonCard
+                  pokemon={each}
+                  removed={removed}
+                  onOpen={() => onOpen(each.id)}
+                  action={removed ? undefined : cardAction?.(each)}
+                />
+              </DealtInItem>
+            )),
+          )}
+        </ul>
+      </div>
 
       {query.hasNextPage && (
         <LoadMore
@@ -127,12 +132,14 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
 
 function GridSkeleton() {
   return (
-    <ul aria-label={m.pokedex_loading()} className={GRID}>
-      {Array.from({ length: 12 }, (_, index) => (
-        <li key={index}>
-          <Skeleton className="aspect-[5/7] rounded-2xl" />
-        </li>
-      ))}
-    </ul>
+    <div className="@container">
+      <ul aria-label={m.pokedex_loading()} className={GRID}>
+        {Array.from({ length: 12 }, (_, index) => (
+          <li key={index}>
+            <Skeleton className="aspect-[5/7] rounded-2xl" />
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
