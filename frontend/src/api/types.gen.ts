@@ -1076,7 +1076,7 @@ export type TeamPage = {
     /**
      * Items
      *
-     * This page's teams, newest first.
+     * This page's teams, in the order `sort` asked for.
      */
     items: Array<Team>;
     /**
@@ -1100,6 +1100,20 @@ export type TeamRename = {
      */
     name: string;
 };
+
+/**
+ * TeamSort
+ *
+ * How a list of teams is ordered.
+ */
+export const TeamSort = { NEWEST: 'newest', POWER: 'power' } as const;
+
+/**
+ * TeamSort
+ *
+ * How a list of teams is ordered.
+ */
+export type TeamSort = typeof TeamSort[keyof typeof TeamSort];
 
 /**
  * TimeOfDay
@@ -1548,6 +1562,10 @@ export type ListTeamsData = {
          * Only this user's teams, including any with no Pokémon yet, unless a type or recent-changes filter needs a Pokémon. Case doesn't matter. A username no one has gives an empty page, not an error.
          */
         owner?: string | null;
+        /**
+         * How to order the teams: `newest` first, or by `power`, highest first, with the newest first among equals. A team's power is the sum of its Pokémon's base stats, counting Pokémon PokéAPI no longer lists, and is 0 for a team with none. It's worked out from the stats as they are now, so a sync that changes stats can move a team, and a team that moves between two pages can be skipped or listed twice.
+         */
+        sort?: TeamSort;
         /**
          * Limit
          *

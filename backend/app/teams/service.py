@@ -18,6 +18,8 @@ from sqlalchemy import (
     Insert,
     Row,
     Select,
+    SQLColumnExpression,
+    Subquery,
     Update,
     delete,
     exists,
@@ -31,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm.util import AliasedClass
 
 from app.accounts import models as accounts_models
 from app.pokemon import models as pokemon_models
@@ -38,7 +41,7 @@ from app.pokemon.constants import MAX_TEAM_SIZE
 from app.pokemon.queries import changed_recently, pokemon_from_columns
 from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
-from app.teams.enums import TeamConflictReason
+from app.teams.enums import TeamConflictReason, TeamSort
 from app.teams.exceptions import (
     MemberNotFoundError,
     NotTeamOwnerError,
@@ -59,7 +62,10 @@ TeamWithOwner = Row[models.Team, str]
 
 
 def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
-    """One page of everyone's teams that have a Pokémon, newest first, after the cursor's team.
+    """One page of everyone's teams that have a Pokémon, after the cursor's team. They are newest
+    first, or by power, highest first, with the newest first among equals. A team's power is the
+    sum of its members' base stats as they are when the page is read, and is 0 for a team with no
+    members.
 
     With an owner, only the teams of the user with that username, whatever the case, including
     teams with no Pokémon unless types or `changed` need one; a username no one has gives an
@@ -69,7 +75,13 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     of each type, and with `changed`, only those with a Pokémon a sync changed in the last week. A
     cursor that no team has gives an empty page.
     """
-    statement = _with_owners().order_by(models.Team.created_at.desc(), models.Team.id.desc())
+    powers = _team_powers()
+    statement = (
+        _with_owners()
+        # Postgres leaves this join out when the sort doesn't use powers.
+        .outerjoin(powers, powers.c.team_id == models.Team.id)
+        .order_by(*(key.desc() for key in _sort_keys(query.sort, models.Team, powers)))
+    )
     if query.owner is None:
         statement = statement.where(exists().where(models.TeamMember.team_id == models.Team.id))
     else:
@@ -97,15 +109,19 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     if query.changed:
         statement = statement.where(_has_a_pokemon(changed_recently()))
     if query.cursor is not None:
-        # A row subquery, so Postgres can start scanning the (created_at, id) index at the
-        # cursor's team. A cursor that no team has makes it null, which no row is less than.
+        # A row subquery of the cursor team's sort columns. Newest first, Postgres can start
+        # scanning the (created_at, id) index at the cursor's team. A cursor that no team has
+        # makes it null, which no row is less than.
         cursor_team = aliased(models.Team)
+        cursor_powers = _team_powers()
         cursor = (
-            select(cursor_team.created_at, cursor_team.id)
+            select(*_sort_keys(query.sort, cursor_team, cursor_powers))
+            .select_from(cursor_team)
+            .outerjoin(cursor_powers, cursor_powers.c.team_id == cursor_team.id)
             .where(cursor_team.id == query.cursor)
             .scalar_subquery()
         )
-        statement = statement.where(tuple_(models.Team.created_at, models.Team.id) < cursor)
+        statement = statement.where(tuple_(*_sort_keys(query.sort, models.Team, powers)) < cursor)
     # One extra row shows whether another page follows, without counting the rest.
     teams = session.execute(statement.limit(query.limit + 1)).all()
 
@@ -436,6 +452,41 @@ def _changed(session: Session, team: models.Team) -> schemas.Team:
     team.updated_at = func.clock_timestamp()
     session.flush()
     return get_team(session, team.id)
+
+
+def _sort_keys(
+    sort: TeamSort, team: type[models.Team] | AliasedClass[models.Team], powers: Subquery
+) -> tuple[SQLColumnExpression[Any], ...]:
+    """The columns the teams are ordered by, most significant first, each descending. The last is
+    the team's id, so no two teams tie. `powers` is _team_powers joined to the team.
+    """
+    match sort:
+        case TeamSort.NEWEST:
+            return (team.created_at, team.id)
+        case TeamSort.POWER:
+            return (func.coalesce(powers.c.power, 0), team.created_at, team.id)
+
+
+def _team_powers() -> Subquery:
+    """Each team that has members, as (team_id, power): the sum of its members' base stats,
+    removed Pokémon included, worked out from the stats as they are now.
+    """
+    pokemon = pokemon_models.Pokemon
+    stats = (
+        pokemon.hp
+        + pokemon.attack
+        + pokemon.defense
+        + pokemon.sp_attack
+        + pokemon.sp_defense
+        + pokemon.speed
+    )
+    return (
+        select(models.TeamMember.team_id, func.sum(stats).label("power"))
+        .select_from(models.TeamMember)
+        .join(pokemon, pokemon.id == models.TeamMember.pokemon_id)
+        .group_by(models.TeamMember.team_id)
+        .subquery()
+    )
 
 
 def _has_a_pokemon(condition: ColumnElement[bool]) -> Exists:

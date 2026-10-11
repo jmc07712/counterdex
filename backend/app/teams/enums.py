@@ -9,3 +9,10 @@ class TeamConflictReason(StrEnum):
     ORDER_OUT_OF_DATE = "order_out_of_date"
     POKEMON_REMOVED = "pokemon_removed"
     TEAM_ID_TAKEN = "team_id_taken"
+
+
+class TeamSort(StrEnum):
+    """How a list of teams is ordered."""
+
+    NEWEST = "newest"
+    POWER = "power"

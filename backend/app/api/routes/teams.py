@@ -111,13 +111,13 @@ def team_errors() -> Iterator[None]:
 
 @router.get("/teams", summary="List everyone's teams")
 def list_teams(session: SessionDep, query: Annotated[TeamsQuery, Query()]) -> TeamPage:
-    """Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
-    with its owner and its Pokémon in slot order. The list can be filtered by search, type,
-    recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a
-    type or recent-changes filter needs a Pokémon.
+    """Everyone's teams that have at least one Pokémon, one page at a time, newest first or by
+    power, each with its owner and its Pokémon in slot order. The list can be filtered by search,
+    type, recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless
+    a type or recent-changes filter needs a Pokémon.
 
     To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
-    filters; it's `null` on the last page.
+    filters and `sort`; it's `null` on the last page.
     """
     return service.list_teams(session, query)
 

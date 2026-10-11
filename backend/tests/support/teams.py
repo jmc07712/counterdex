@@ -7,6 +7,8 @@ from datetime import timedelta
 from sqlalchemy import Engine, func, text, update
 from sqlalchemy.orm import Session
 
+from app.pokemon.models import Pokemon
+from app.pokemon.schemas import STAT_NAMES
 from app.teams import models, service
 from app.teams.schemas import NewTeam, Team
 from tests.support.pokemon import add_species, make_pokemon
@@ -58,6 +60,16 @@ def backdate(session: Session, team_id: uuid.UUID, age: timedelta) -> None:
     session.execute(
         update(models.Team).where(models.Team.id == team_id).values(created_at=func.now() - age)
     )
+
+
+def set_stats(session: Session, pokemon_id: int, **stats: int) -> None:
+    """Changes some of the Pokémon's base stats, e.g. speed=1, and leaves the others as they are."""
+    session.execute(update(Pokemon).where(Pokemon.id == pokemon_id).values(**stats))
+
+
+def set_every_stat(session: Session, pokemon_id: int, value: int) -> None:
+    """Gives the Pokémon this value for each base stat, so its stats total six times it."""
+    set_stats(session, pokemon_id, **dict.fromkeys(STAT_NAMES, value))
 
 
 def member_ids(team: Team) -> list[int]:

@@ -134,13 +134,13 @@ export const signIn = <ThrowOnError extends boolean = false>(options: Options<Si
 /**
  * List everyone's teams
  *
- * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
- * with its owner and its Pokémon in slot order. The list can be filtered by search, type,
- * recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a
- * type or recent-changes filter needs a Pokémon.
+ * Everyone's teams that have at least one Pokémon, one page at a time, newest first or by
+ * power, each with its owner and its Pokémon in slot order. The list can be filtered by search,
+ * type, recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless
+ * a type or recent-changes filter needs a Pokémon.
  *
  * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
- * filters; it's `null` on the last page.
+ * filters and `sort`; it's `null` on the last page.
  */
 export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({ url: '/api/teams', ...options });
 

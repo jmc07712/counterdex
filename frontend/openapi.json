@@ -504,7 +504,7 @@
           "Teams"
         ],
         "summary": "List everyone's teams",
-        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order. The list can be filtered by search, type,\nrecent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a\ntype or recent-changes filter needs a Pokémon.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page.",
+        "description": "Everyone's teams that have at least one Pokémon, one page at a time, newest first or by\npower, each with its owner and its Pokémon in slot order. The list can be filtered by search,\ntype, recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless\na type or recent-changes filter needs a Pokémon.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters and `sort`; it's `null` on the last page.",
         "operationId": "list_teams",
         "parameters": [
           {
@@ -573,6 +573,17 @@
               "title": "Owner"
             },
             "description": "Only this user's teams, including any with no Pokémon yet, unless a type or recent-changes filter needs a Pokémon. Case doesn't matter. A username no one has gives an empty page, not an error."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/TeamSort",
+              "description": "How to order the teams: `newest` first, or by `power`, highest first, with the newest first among equals. A team's power is the sum of its Pokémon's base stats, counting Pokémon PokéAPI no longer lists, and is 0 for a team with none. It's worked out from the stats as they are now, so a sync that changes stats can move a team, and a team that moves between two pages can be skipped or listed twice.",
+              "default": "newest"
+            },
+            "description": "How to order the teams: `newest` first, or by `power`, highest first, with the newest first among equals. A team's power is the sum of its Pokémon's base stats, counting Pokémon PokéAPI no longer lists, and is 0 for a team with none. It's worked out from the stats as they are now, so a sync that changes stats can move a team, and a team that moves between two pages can be skipped or listed twice."
           },
           {
             "name": "limit",
@@ -2945,7 +2956,7 @@
             },
             "type": "array",
             "title": "Items",
-            "description": "This page's teams, newest first."
+            "description": "This page's teams, in the order `sort` asked for."
           },
           "next_cursor": {
             "anyOf": [
@@ -2985,6 +2996,15 @@
         ],
         "title": "TeamRename",
         "description": "A team's new name."
+      },
+      "TeamSort": {
+        "type": "string",
+        "enum": [
+          "newest",
+          "power"
+        ],
+        "title": "TeamSort",
+        "description": "How a list of teams is ordered."
       },
       "TimeOfDay": {
         "type": "string",

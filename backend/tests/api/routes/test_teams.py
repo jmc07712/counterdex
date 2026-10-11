@@ -21,6 +21,7 @@ from tests.support.teams import (
     add_species_pokemon,
     backdate,
     make_team,
+    set_every_stat,
     wait_until_a_session_waits_for_a_lock,
 )
 
@@ -544,6 +545,52 @@ def test_pages_through_one_users_teams(
     assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
 
 
+@pytest.mark.usefixtures("charmander_family")
+def test_sorts_everyones_teams_by_power(
+    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    set_every_stat(db_session, 4, 20)
+    set_every_stat(db_session, 5, 100)
+    make_team(db_session, ash.user.id, 4, name="Weak and new")
+    strong = make_team(db_session, misty.user.id, 5, name="Strong and old")
+    backdate(db_session, strong.id, timedelta(days=1))
+
+    by_power = client.get("/api/teams", params={"sort": "power"}).json()
+    newest = client.get("/api/teams", params={"sort": "newest"}).json()
+    by_default = client.get("/api/teams").json()
+
+    assert [team["name"] for team in by_power["items"]] == ["Strong and old", "Weak and new"]
+    assert [team["name"] for team in by_default["items"]] == ["Weak and new", "Strong and old"]
+    assert newest == by_default
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_pages_through_everyones_teams_by_power(
+    client: TestClient, db_session: Session, ash: SignedIn
+) -> None:
+    for hours, (pokemon_id, name) in enumerate([(4, "Weak"), (5, "Mid"), (6, "Strong")]):
+        set_every_stat(db_session, pokemon_id, 20 + 40 * hours)
+        team = make_team(db_session, ash.user.id, pokemon_id, name=name)
+        backdate(db_session, team.id, timedelta(hours=hours))
+    params: dict[str, Any] = {"sort": "power", "limit": 2}
+
+    first = client.get("/api/teams", params=params).json()
+    second = client.get("/api/teams", params=params | {"cursor": first["next_cursor"]}).json()
+
+    assert [team["name"] for team in first["items"] + second["items"]] == ["Strong", "Mid", "Weak"]
+    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
+
+
+def test_documents_how_teams_are_sorted(openapi: dict[str, Any]) -> None:
+    operation = openapi["paths"]["/api/teams"]["get"]
+    sort = next(param for param in operation["parameters"] if param["name"] == "sort")
+
+    assert "sum of" in sort["description"]
+    assert "base stats" in sort["description"]
+    assert "sync" in sort["description"]
+    assert openapi["components"]["schemas"]["TeamSort"]["enum"] == ["newest", "power"]
+
+
 def test_an_owner_no_one_has_gives_an_empty_page(client: TestClient) -> None:
     response = client.get("/api/teams", params={"owner": "brock"})
 
@@ -581,6 +628,7 @@ def test_rejects_owners_that_cant_exist(client: TestClient, owner: str) -> None:
         pytest.param({"type": "shadow"}, id="unknown-type"),
         pytest.param({"type": ["fire"] * 19}, id="more-types-than-there-are"),
         pytest.param({"changed": "maybe"}, id="changed-not-a-bool"),
+        pytest.param({"sort": "strongest"}, id="unknown-sort"),
     ],
 )
 def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:
