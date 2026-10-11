@@ -17,7 +17,8 @@ from app.counter.exceptions import (
     UnknownPokemonError,
 )
 from app.counter.scoring import matchup, weak_to
-from app.counter.types import Attack, Contender, Matchup, TypeChart
+from app.counter.types import Attack, Contender, Matchup, Profile, TypeChart
+from app.pokemon.schemas import Pokemon
 
 
 def find_counter_team(
@@ -57,12 +58,9 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     Raises UnknownPokemonError if no Pokémon has one of the ids, and TypeChartMissingError if no
     sync has stored the type chart.
     """
-    found = queries.profiles(session, [*query.pokemon_ids, *query.opponent_ids])
-    if any(pokemon_id not in found for pokemon_id in [*query.pokemon_ids, *query.opponent_ids]):
-        raise UnknownPokemonError
+    ours = _profiles(session, query.pokemon_ids)
+    theirs = _profiles(session, query.opponent_ids)
     chart = _type_chart(session)
-    ours = [found[pokemon_id] for pokemon_id in query.pokemon_ids]
-    theirs = [found[pokemon_id] for pokemon_id in query.opponent_ids]
     team = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
     pokemon = queries.pokemon(session, query.pokemon_ids)
     answers = [
@@ -76,18 +74,22 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     ]
     return schemas.TeamMatchups(
         members=[
-            schemas.Challenger(
-                pokemon=pokemon[pokemon_id],
-                matchups=[
-                    _matchup(opponent_id, scored)
-                    for opponent_id, scored in zip(query.opponent_ids, row, strict=True)
-                ],
-            )
+            _challenger(pokemon[pokemon_id], query.opponent_ids, row)
             for pokemon_id, row in zip(query.pokemon_ids, team, strict=True)
         ],
         answers=answers,
         every_opponent_answered=all(answer.matchup.rating is Rating.GOOD for answer in answers),
     )
+
+
+def _profiles(session: Session, pokemon_ids: Sequence[int]) -> list[Profile]:
+    """These Pokémon as scoring sees them, listed or not, in the order given. Raises
+    UnknownPokemonError if no Pokémon has one of the ids.
+    """
+    found = queries.profiles(session, pokemon_ids)
+    if any(pokemon_id not in found for pokemon_id in pokemon_ids):
+        raise UnknownPokemonError
+    return [found[pokemon_id] for pokemon_id in pokemon_ids]
 
 
 def _type_chart(session: Session) -> TypeChart:
@@ -102,11 +104,8 @@ def _contenders(session: Session, query: schemas.TeamMatchupQuery) -> list[Conte
     """Every Pokémon the query lets us choose from, scored against each of the team's Pokémon.
     The team's Pokémon are scored as stored, even if PokéAPI no longer lists them.
     """
-    found = queries.profiles(session, query.pokemon_ids)
-    if any(pokemon_id not in found for pokemon_id in query.pokemon_ids):
-        raise UnknownPokemonError
+    team = _profiles(session, query.pokemon_ids)
     chart = _type_chart(session)
-    team = [found[pokemon_id] for pokemon_id in query.pokemon_ids]
     attacking = {type_ for member in team for type_ in member.types}
     return [
         Contender(
@@ -126,15 +125,24 @@ def _challengers(
     """The contenders as the API shows them, in the order given."""
     pokemon = queries.pokemon(session, [each.candidate.profile.id for each in contenders])
     return [
-        schemas.Challenger(
-            pokemon=pokemon[contender.candidate.profile.id],
-            matchups=[
-                _matchup(opponent_id, each)
-                for opponent_id, each in zip(team_ids, contender.matchups, strict=True)
-            ],
-        )
+        _challenger(pokemon[contender.candidate.profile.id], team_ids, contender.matchups)
         for contender in contenders
     ]
+
+
+def _challenger(
+    pokemon: Pokemon, opponent_ids: Sequence[int], matchups: Sequence[Matchup]
+) -> schemas.Challenger:
+    """A Pokémon and its matchups, as the API shows them, against the opponents with these ids
+    in the same order.
+    """
+    return schemas.Challenger(
+        pokemon=pokemon,
+        matchups=[
+            _matchup(opponent_id, scored)
+            for opponent_id, scored in zip(opponent_ids, matchups, strict=True)
+        ],
+    )
 
 
 def _matchup(opponent_id: int, scored: Matchup) -> schemas.Matchup:
