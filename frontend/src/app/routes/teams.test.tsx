@@ -87,7 +87,9 @@ describe('TeamsPage', () => {
       '1,080',
     )
     // Decoration: the link names the team, so its tiles are hidden from assistive technology.
-    const tiles = within(card).getAllByRole('listitem', { hidden: true })
+    // They're the card's first list, before its types.
+    const [tileList] = within(card).getAllByRole('list', { hidden: true })
+    const tiles = within(tileList).getAllByRole('listitem', { hidden: true })
     expect(tiles).toHaveLength(6)
     expect(tiles[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
     expect(tiles[0].querySelector('img')).toBeInTheDocument()

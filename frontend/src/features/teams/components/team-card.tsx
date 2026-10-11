@@ -4,10 +4,12 @@ import type { TeamMember } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
+import { TypeBadges } from '@/components/pokemon/type-badges'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
+import { teamTypes } from '../utils/team-types'
 import { MemberBall, MemberSprite } from './member-sprite'
 import { TeamPower } from './team-power'
 
@@ -24,6 +26,7 @@ type TeamCardProps = {
 
 export function TeamCard({ to, name, members, note }: TeamCardProps) {
   const changed = members.some((member) => member.pokemon.changed_recently)
+  const types = teamTypes(members)
   return (
     <Link
       to={to}
@@ -53,7 +56,9 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
           </li>
         ))}
       </ol>
-      <TeamPower members={members} />
+      {types.length > 0 && <TypeBadges types={types} />}
+      {/* At the bottom, so it lines up across cards with more or fewer rows of types. */}
+      <TeamPower members={members} className="mt-auto" />
     </Link>
   )
 }
