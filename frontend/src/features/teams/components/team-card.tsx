@@ -12,7 +12,7 @@ import { m } from '@/paraglide/messages.js'
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { memberColors, MUTED } from '../utils/member-colors'
 import { teamTypes } from '../utils/team-types'
-import { ChangedThisWeek } from './changed-this-week'
+import { ChangedThisWeekNote } from './changed-this-week'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
 import { TeamPower } from './team-power'
@@ -65,7 +65,7 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
             </li>
           ))}
         </ol>
-        <ChangedThisWeek members={members} compact />
+        <ChangedThisWeekNote members={members} />
         {members.filter(isRemoved).map((member) => (
           <p key={member.pokemon.id} className="text-xs text-muted-foreground">
             {m.team_member_removed_on({

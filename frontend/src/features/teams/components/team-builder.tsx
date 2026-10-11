@@ -9,7 +9,7 @@ import { m } from '@/paraglide/messages.js'
 import type { TeamEditor } from '../types'
 import { addToTeam } from '../utils/add-to-team'
 import { AddPokemonSheet } from './add-pokemon-sheet'
-import { ChangedThisWeek } from './changed-this-week'
+import { ChangedThisWeekAlert } from './changed-this-week'
 import { PokemonBrowser } from './pokemon-browser'
 import { TeamNameField } from './team-name-field'
 import { EmptySlots, SlotButton, TeamSlot, TeamSlots } from './team-slots'
@@ -50,7 +50,7 @@ export function TeamBuilder({ editor, back, actions }: TeamBuilderProps) {
           <TeamNameField name={team.name} onRename={(name) => void editor.rename(name)} />
           {actions}
         </div>
-        <ChangedThisWeek members={team.members} className="mb-3" />
+        <ChangedThisWeekAlert members={team.members} className="mb-3" />
         <TeamSlots>
           {team.members.map((member) => (
             <TeamSlot key={member.pokemon.id} member={member}>

@@ -4,7 +4,7 @@ import type { Team } from '@/api'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
-import { ChangedThisWeek } from './changed-this-week'
+import { ChangedThisWeekAlert } from './changed-this-week'
 import { TeamPower } from './team-power'
 import { EmptySlots, LeadSlot, PartySlots, ReplaceLink, TeamSlot } from './team-slots'
 
@@ -50,7 +50,7 @@ export function TeamParty({
         </div>
         {actions}
       </div>
-      <ChangedThisWeek members={team.members} className="mb-3" />
+      <ChangedThisWeekAlert members={team.members} className="mb-3" />
       <PartySlots>
         {lead && (
           <LeadSlot member={lead} onOpen={() => onOpenPokemon(lead.pokemon.id)}>
