@@ -62,12 +62,12 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     """One page of everyone's teams that have a Pokémon, newest first, after the cursor's team.
 
     With an owner, only the teams of the user with that username, whatever the case, including
-    teams with no Pokémon; a username no one has gives an empty page. With a search, only the
-    teams whose name, owner's username or a Pokémon's name contains it, whatever the case. As in
-    the Pokédex, a Pokémon's name is searched for the words joined by hyphens: "mega x" finds
-    charizard-mega-x. With types, only the teams with a Pokémon of each type, and with `changed`,
-    only those with a Pokémon a sync changed in the last week. A cursor that no team has gives an
-    empty page.
+    teams with no Pokémon unless types or `changed` need one; a username no one has gives an
+    empty page. With a search, only the teams whose name, owner's username or a Pokémon's name
+    contains it, whatever the case. As in the Pokédex, a Pokémon's name is searched for the words
+    joined by hyphens: "mega x" finds charizard-mega-x. With types, only the teams with a Pokémon
+    of each type, and with `changed`, only those with a Pokémon a sync changed in the last week. A
+    cursor that no team has gives an empty page.
     """
     statement = _with_owners().order_by(models.Team.created_at.desc(), models.Team.id.desc())
     if query.owner is None:

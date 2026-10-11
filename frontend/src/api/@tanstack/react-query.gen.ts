@@ -298,7 +298,8 @@ export const listTeamsQueryKey = (options?: Options<ListTeamsData>) => createQue
  *
  * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
  * with its owner and its Pokémon in slot order. The list can be filtered by search, type,
- * recent changes and owner; with an `owner`, teams with no Pokémon are listed too.
+ * recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a
+ * type or recent-changes filter needs a Pokémon.
  *
  * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
  * filters; it's `null` on the last page.
@@ -323,7 +324,8 @@ export const listTeamsInfiniteQueryKey = (options?: Options<ListTeamsData>): Que
  *
  * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
  * with its owner and its Pokémon in slot order. The list can be filtered by search, type,
- * recent changes and owner; with an `owner`, teams with no Pokémon are listed too.
+ * recent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a
+ * type or recent-changes filter needs a Pokémon.
  *
  * To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
  * filters; it's `null` on the last page.

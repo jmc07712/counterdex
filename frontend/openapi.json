@@ -431,7 +431,7 @@
           "Teams"
         ],
         "summary": "List everyone's teams",
-        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order. The list can be filtered by search, type,\nrecent changes and owner; with an `owner`, teams with no Pokémon are listed too.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page.",
+        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order. The list can be filtered by search, type,\nrecent changes and owner; with an `owner`, teams with no Pokémon are listed too, unless a\ntype or recent-changes filter needs a Pokémon.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`, keeping the same\nfilters; it's `null` on the last page.",
         "operationId": "list_teams",
         "parameters": [
           {
@@ -496,10 +496,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Only this user's teams, including any with no Pokémon yet. Case doesn't matter. A username no one has gives an empty page, not an error.",
+              "description": "Only this user's teams, including any with no Pokémon yet, unless a type or recent-changes filter needs a Pokémon. Case doesn't matter. A username no one has gives an empty page, not an error.",
               "title": "Owner"
             },
-            "description": "Only this user's teams, including any with no Pokémon yet. Case doesn't matter. A username no one has gives an empty page, not an error."
+            "description": "Only this user's teams, including any with no Pokémon yet, unless a type or recent-changes filter needs a Pokémon. Case doesn't matter. A username no one has gives an empty page, not an error."
           },
           {
             "name": "limit",

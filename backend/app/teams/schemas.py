@@ -108,8 +108,9 @@ class TeamsQuery(BaseModel):
         str | None,
         Field(
             pattern=USERNAME_PATTERN,
-            description="Only this user's teams, including any with no Pokémon yet. Case doesn't "
-            "matter. A username no one has gives an empty page, not an error.",
+            description="Only this user's teams, including any with no Pokémon yet, unless a type "
+            "or recent-changes filter needs a Pokémon. Case doesn't matter. A username no one has "
+            "gives an empty page, not an error.",
         ),
     ] = None
     limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
