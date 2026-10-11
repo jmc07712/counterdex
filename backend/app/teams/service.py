@@ -1,7 +1,8 @@
 """Teams and the Pokémon on them.
 
-Every change locks the team's row first, so changes to one team happen one at a time and each
-sees the result of the one before. Nothing here commits: the caller owns the transaction.
+Anyone can see a team; only its owner can change it. Every change locks the team's row first, so
+changes to one team happen one at a time and each sees the result of the one before. Nothing here
+commits: the caller owns the transaction.
 """
 
 import uuid
@@ -10,10 +11,23 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 
 from psycopg.errors import UniqueViolation
-from sqlalchemy import Insert, Row, Update, delete, func, insert, select, text, update
+from sqlalchemy import (
+    Insert,
+    Row,
+    Update,
+    delete,
+    exists,
+    func,
+    insert,
+    select,
+    text,
+    tuple_,
+    update,
+)
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
+from app.accounts import models as accounts_models
 from app.pokemon import models as pokemon_models
 from app.pokemon.queries import pokemon_from_columns
 from app.teams import models, schemas
@@ -21,9 +35,11 @@ from app.teams.constants import MAX_TEAM_SIZE
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
+    NotTeamOwnerError,
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
+    UserNotFoundError,
 )
 
 SPECIES_ON_TEAM = "uq_team_members_team_id_species_id"
@@ -34,8 +50,43 @@ SLOT = "uq_team_members_team_id_position"
 Member = Row[int, int, int, int]
 
 
-def list_teams(session: Session, user_id: int) -> list[schemas.Team]:
-    """The user's teams, most recently changed first."""
+def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
+    """One page of everyone's teams that have a Pokémon, newest first, after the cursor's team.
+
+    A cursor that no team has gives an empty page.
+    """
+    statement = (
+        select(models.Team)
+        .where(exists().where(models.TeamMember.team_id == models.Team.id))
+        .order_by(models.Team.created_at.desc(), models.Team.id.desc())
+    )
+    if query.cursor is not None:
+        # Joined, so a cursor that no team has leaves no rows.
+        cursor_team = aliased(models.Team)
+        statement = statement.join(cursor_team, cursor_team.id == query.cursor).where(
+            tuple_(models.Team.created_at, models.Team.id)
+            < tuple_(cursor_team.created_at, cursor_team.id)
+        )
+    # One extra row shows whether another page follows, without counting the rest.
+    teams = session.scalars(statement.limit(query.limit + 1)).all()
+
+    items = _shown(session, teams[: query.limit])
+    next_cursor = items[-1].id if len(teams) > query.limit else None
+    return schemas.TeamPage(items=items, next_cursor=next_cursor)
+
+
+def list_user_teams(session: Session, username: str) -> list[schemas.Team]:
+    """The user's teams, most recently changed first, including teams with no Pokémon.
+
+    Raises UserNotFoundError if no user has the username, whatever its case.
+    """
+    user_id = session.scalar(
+        select(accounts_models.User.id).where(
+            func.lower(accounts_models.User.username) == username.lower()
+        )
+    )
+    if user_id is None:
+        raise UserNotFoundError(username)
     teams = session.scalars(
         select(models.Team)
         .where(models.Team.user_id == user_id)
@@ -44,11 +95,9 @@ def list_teams(session: Session, user_id: int) -> list[schemas.Team]:
     return _shown(session, teams)
 
 
-def get_team(session: Session, user_id: int, team_id: uuid.UUID) -> schemas.Team:
-    """One of the user's teams. Raises TeamNotFoundError if they have none with this id."""
-    team = session.scalars(
-        select(models.Team).where(models.Team.id == team_id, models.Team.user_id == user_id)
-    ).one_or_none()
+def get_team(session: Session, team_id: uuid.UUID) -> schemas.Team:
+    """A team, whoever owns it. Raises TeamNotFoundError if no team has this id."""
+    team = session.scalars(select(models.Team).where(models.Team.id == team_id)).one_or_none()
     if team is None:
         raise TeamNotFoundError(team_id)
     return _shown_one(session, team)
@@ -99,23 +148,21 @@ def create_team(
         owner = session.scalar(select(models.Team.user_id).where(models.Team.id == team_id))
         if owner != user_id:
             raise TeamConflictError(TeamConflictReason.TEAM_ID_TAKEN) from error
-        return get_team(session, user_id, team_id), False
+        return get_team(session, team_id), False
     for pokemon_id in new.pokemon_ids:
         _append(session, team_id, pokemon_id)
     return _shown_one(session, team), True
 
 
 def rename_team(session: Session, user_id: int, team_id: uuid.UUID, name: str) -> schemas.Team:
-    """Renames one of the user's teams. Raises TeamNotFoundError if they have none with this id."""
+    """Renames the user's team. Raises as _locked does."""
     team = _locked(session, user_id, team_id)
     team.name = name
     return _changed(session, team)
 
 
 def delete_team(session: Session, user_id: int, team_id: uuid.UUID) -> None:
-    """Deletes one of the user's teams and its members. Raises TeamNotFoundError if they have
-    none with this id.
-    """
+    """Deletes the user's team and its members. Raises as _locked does."""
     team = _locked(session, user_id, team_id)
     session.delete(team)
     session.flush()
@@ -124,7 +171,7 @@ def delete_team(session: Session, user_id: int, team_id: uuid.UUID) -> None:
 def add_member(session: Session, user_id: int, team_id: uuid.UUID, pokemon_id: int) -> schemas.Team:
     """Puts a Pokémon in the team's next free slot.
 
-    Raises TeamNotFoundError, UnknownPokemonError, or TeamConflictError: SPECIES_ON_TEAM if the
+    Raises as _locked does, UnknownPokemonError, or TeamConflictError: SPECIES_ON_TEAM if the
     species is on the team already, TEAM_FULL if the team has six members, or POKEMON_REMOVED if
     PokéAPI no longer lists the Pokémon.
     """
@@ -170,7 +217,7 @@ def remove_member(
 ) -> schemas.Team:
     """Takes a Pokémon off the team; the members after it move up a slot.
 
-    Raises TeamNotFoundError, or MemberNotFoundError if the Pokémon isn't on the team.
+    Raises as _locked does, or MemberNotFoundError if the Pokémon isn't on the team.
     """
     team = _locked(session, user_id, team_id)
     removed = _find(_members(session, team.id), pokemon_id)
@@ -186,7 +233,7 @@ def reorder(
 ) -> schemas.Team:
     """Puts the team's members in this order, given as every member's Pokémon id, each once.
 
-    Raises TeamNotFoundError, or TeamConflictError (ORDER_OUT_OF_DATE) if the ids aren't exactly
+    Raises as _locked does, or TeamConflictError (ORDER_OUT_OF_DATE) if the ids aren't exactly
     the members, e.g. because a change made elsewhere came first.
     """
     team = _locked(session, user_id, team_id)
@@ -205,17 +252,20 @@ def reorder(
 
 def _locked(session: Session, user_id: int, team_id: uuid.UUID) -> models.Team:
     """The user's team, its row locked until the transaction ends: other changes to the team
-    wait for this one. Raises TeamNotFoundError if they have none with this id.
+    wait for this one. Raises TeamNotFoundError if no team has this id, or NotTeamOwnerError if
+    the team is someone else's.
     """
     team = session.scalars(
         select(models.Team)
-        .where(models.Team.id == team_id, models.Team.user_id == user_id)
+        .where(models.Team.id == team_id)
         .with_for_update()
         # Reloaded, so the lock's read replaces anything the session read before it.
         .execution_options(populate_existing=True)
     ).one_or_none()
     if team is None:
         raise TeamNotFoundError(team_id)
+    if team.user_id != user_id:
+        raise NotTeamOwnerError(team_id)
     return team
 
 
@@ -328,7 +378,14 @@ def _shown_one(session: Session, team: models.Team) -> schemas.Team:
 
 
 def _shown(session: Session, teams: Sequence[models.Team]) -> list[schemas.Team]:
-    """The teams as the API shows them, each with its members in slot order."""
+    """The teams as the API shows them, each with its owner and its members in slot order."""
+    usernames: dict[int, str] = dict(
+        session.execute(
+            select(accounts_models.User.id, accounts_models.User.username).where(
+                accounts_models.User.id.in_({team.user_id for team in teams})
+            )
+        ).all()
+    )
     rows = (
         session.execute(
             select(
@@ -352,6 +409,7 @@ def _shown(session: Session, teams: Sequence[models.Team]) -> list[schemas.Team]
         schemas.Team(
             id=team.id,
             name=team.name,
+            owner=schemas.TeamOwner(username=usernames[team.user_id]),
             created_at=team.created_at,
             updated_at=team.updated_at,
             members=_members_shown(by_team[team.id], earlier),

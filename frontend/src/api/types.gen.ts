@@ -674,6 +674,10 @@ export type Team = {
      */
     name: string;
     /**
+     * The user who made it, and the only one who can change it.
+     */
+    owner: TeamOwner;
+    /**
      * Created At
      */
     created_at: string;
@@ -769,6 +773,40 @@ export type TeamOrder = {
      * Every member's Pokémon `id`, each once, in the new slot order.
      */
     pokemon_ids: Array<number>;
+};
+
+/**
+ * TeamOwner
+ *
+ * Who a team belongs to.
+ */
+export type TeamOwner = {
+    /**
+     * Username
+     *
+     * In the case they signed up with.
+     */
+    username: string;
+};
+
+/**
+ * TeamPage
+ *
+ * One page of teams.
+ */
+export type TeamPage = {
+    /**
+     * Items
+     *
+     * This page's teams, newest first.
+     */
+    items: Array<Team>;
+    /**
+     * Next Cursor
+     *
+     * Pass as `cursor` to get the next page; `null` on the last page.
+     */
+    next_cursor: string | null;
 };
 
 /**
@@ -1161,27 +1199,78 @@ export type SignInResponse = SignInResponses[keyof SignInResponses];
 export type ListTeamsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * How many teams per page.
+         */
+        limit?: number;
+        /**
+         * Cursor
+         *
+         * Where to continue from: the previous page's `next_cursor`. Leave it out for the first page.
+         */
+        cursor?: string | null;
+    };
     url: '/api/teams';
 };
 
 export type ListTeamsErrors = {
     /**
-     * Sign in first: POST /api/session with your username and password sets the session cookie.
+     * Validation Error
      */
-    401: unknown;
+    422: HttpValidationError;
 };
+
+export type ListTeamsError = ListTeamsErrors[keyof ListTeamsErrors];
 
 export type ListTeamsResponses = {
     /**
-     * Response List Teams
+     * Successful Response
+     */
+    200: TeamPage;
+};
+
+export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
+
+export type ListUserTeamsData = {
+    body?: never;
+    path: {
+        /**
+         * Username
+         *
+         * The user's `username`. Case doesn't matter.
+         */
+        username: string;
+    };
+    query?: never;
+    url: '/api/users/{username}/teams';
+};
+
+export type ListUserTeamsErrors = {
+    /**
+     * No user has this username.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListUserTeamsError = ListUserTeamsErrors[keyof ListUserTeamsErrors];
+
+export type ListUserTeamsResponses = {
+    /**
+     * Response List User Teams
      *
      * Successful Response
      */
     200: Array<Team>;
 };
 
-export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
+export type ListUserTeamsResponse = ListUserTeamsResponses[keyof ListUserTeamsResponses];
 
 export type DeleteTeamData = {
     body?: never;
@@ -1203,7 +1292,11 @@ export type DeleteTeamErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id.
      */
     404: unknown;
     /**
@@ -1239,11 +1332,7 @@ export type GetTeamData = {
 
 export type GetTeamErrors = {
     /**
-     * Sign in first: POST /api/session with your username and password sets the session cookie.
-     */
-    401: unknown;
-    /**
-     * You have no team with this id.
+     * No team has this id.
      */
     404: unknown;
     /**
@@ -1283,7 +1372,11 @@ export type RenameTeamErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id.
      */
     404: unknown;
     /**
@@ -1401,7 +1494,11 @@ export type AddTeamMemberErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id.
      */
     404: unknown;
     /**
@@ -1451,7 +1548,11 @@ export type RemoveTeamMemberErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id. Or: That Pokémon isn't on the team.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id. Or: That Pokémon isn't on the team.
      */
     404: unknown;
     /**
@@ -1497,7 +1598,11 @@ export type ReplaceTeamMemberErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id. Or: That Pokémon isn't on the team.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id. Or: That Pokémon isn't on the team.
      */
     404: unknown;
     /**
@@ -1541,7 +1646,11 @@ export type ReorderTeamErrors = {
      */
     401: unknown;
     /**
-     * You have no team with this id.
+     * Only the team's owner can change it.
+     */
+    403: unknown;
+    /**
+     * No team has this id.
      */
     404: unknown;
     /**

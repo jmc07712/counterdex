@@ -1,10 +1,12 @@
 """Pokémon, species and teams for the teams tests."""
 
 import uuid
+from datetime import timedelta
 
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
-from app.teams import service
+from app.teams import models, service
 from app.teams.schemas import NewTeam, Team
 from tests.support.pokemon import add_species, make_pokemon
 
@@ -41,6 +43,13 @@ def make_team(session: Session, user_id: int, *pokemon_ids: int, name: str = "Te
         session, user_id, uuid.uuid4(), NewTeam(name=name, pokemon_ids=list(pokemon_ids))
     )
     return team
+
+
+def backdate(session: Session, team_id: uuid.UUID, age: timedelta) -> None:
+    """Makes the team's created_at `age` before now, as if it had been made then."""
+    session.execute(
+        update(models.Team).where(models.Team.id == team_id).values(created_at=func.now() - age)
+    )
 
 
 def member_ids(team: Team) -> list[int]:

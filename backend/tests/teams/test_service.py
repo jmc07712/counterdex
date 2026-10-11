@@ -10,11 +10,13 @@ from app.teams import service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
+    NotTeamOwnerError,
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
+    UserNotFoundError,
 )
-from app.teams.schemas import NewTeam
+from app.teams.schemas import NewTeam, TeamOwner
 from tests.support.teams import add_eevee_family, add_species_pokemon, make_team, member_ids
 
 TEAM_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
@@ -48,7 +50,7 @@ def test_creating_with_an_id_you_already_have_returns_that_team_unchanged(
 
     assert created is False
     assert again == first
-    assert len(service.list_teams(db_session, ash.user.id)) == 1
+    assert len(service.list_user_teams(db_session, "ash")) == 1
 
 
 def test_an_id_another_user_has_is_taken(
@@ -92,7 +94,7 @@ def test_creating_with_a_removed_pokemon_fails(db_session: Session, ash: SignedI
 # --- Reading ---
 
 
-def test_lists_your_teams_most_recently_changed_first(
+def test_lists_a_users_teams_most_recently_changed_first(
     db_session: Session, ash: SignedIn, misty: SignedIn
 ) -> None:
     older = make_team(db_session, ash.user.id, name="Older")
@@ -101,17 +103,38 @@ def test_lists_your_teams_most_recently_changed_first(
 
     service.rename_team(db_session, ash.user.id, older.id, "Renamed")
 
-    assert [team.name for team in service.list_teams(db_session, ash.user.id)] == [
+    assert [team.name for team in service.list_user_teams(db_session, "ash")] == [
         "Renamed",
         newer.name,
     ]
 
 
-def test_another_users_team_isnt_found(db_session: Session, ash: SignedIn, misty: SignedIn) -> None:
+def test_finds_a_users_teams_whatever_the_usernames_case(
+    db_session: Session, ash: SignedIn
+) -> None:
+    team = make_team(db_session, ash.user.id)
+
+    assert service.list_user_teams(db_session, "ASH") == [team]
+
+
+def test_listing_the_teams_of_a_username_no_one_has_fails(db_session: Session) -> None:
+    with pytest.raises(UserNotFoundError):
+        service.list_user_teams(db_session, "brock")
+
+
+def test_anyone_can_get_a_team(db_session: Session, misty: SignedIn) -> None:
     team = make_team(db_session, misty.user.id)
 
+    assert service.get_team(db_session, team.id) == team
+
+
+def test_a_team_no_one_has_isnt_found(db_session: Session) -> None:
     with pytest.raises(TeamNotFoundError):
-        service.get_team(db_session, ash.user.id, team.id)
+        service.get_team(db_session, TEAM_ID)
+
+
+def test_a_team_shows_its_owners_username(db_session: Session, ash: SignedIn) -> None:
+    assert make_team(db_session, ash.user.id).owner == TeamOwner(username="ash")
 
 
 # --- Relatives ---
@@ -152,7 +175,12 @@ def test_deleting_removes_the_team(db_session: Session, ash: SignedIn) -> None:
 
     service.delete_team(db_session, ash.user.id, team.id)
 
-    assert service.list_teams(db_session, ash.user.id) == []
+    assert service.list_user_teams(db_session, "ash") == []
+
+
+def test_changing_a_team_no_one_has_fails(db_session: Session, ash: SignedIn) -> None:
+    with pytest.raises(TeamNotFoundError):
+        service.rename_team(db_session, ash.user.id, TEAM_ID, "Rain")
 
 
 def test_you_cant_rename_or_delete_another_users_team(
@@ -160,10 +188,28 @@ def test_you_cant_rename_or_delete_another_users_team(
 ) -> None:
     team = make_team(db_session, misty.user.id)
 
-    with pytest.raises(TeamNotFoundError):
+    with pytest.raises(NotTeamOwnerError):
         service.rename_team(db_session, ash.user.id, team.id, "Mine now")
-    with pytest.raises(TeamNotFoundError):
+    with pytest.raises(NotTeamOwnerError):
         service.delete_team(db_session, ash.user.id, team.id)
+    assert service.get_team(db_session, team.id) == team
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_you_cant_change_the_pokemon_on_another_users_team(
+    db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    team = make_team(db_session, misty.user.id, 4, 5)
+
+    with pytest.raises(NotTeamOwnerError):
+        service.add_member(db_session, ash.user.id, team.id, 6)
+    with pytest.raises(NotTeamOwnerError):
+        service.replace_member(db_session, ash.user.id, team.id, 4, 6)
+    with pytest.raises(NotTeamOwnerError):
+        service.remove_member(db_session, ash.user.id, team.id, 4)
+    with pytest.raises(NotTeamOwnerError):
+        service.reorder(db_session, ash.user.id, team.id, [5, 4])
+    assert service.get_team(db_session, team.id) == team
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -210,16 +256,6 @@ def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None
         service.add_member(db_session, ash.user.id, team.id, 207)
 
     assert conflict.value.reason is TeamConflictReason.TEAM_FULL
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_adding_to_another_users_team_fails(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    team = make_team(db_session, misty.user.id)
-
-    with pytest.raises(TeamNotFoundError):
-        service.add_member(db_session, ash.user.id, team.id, 4)
 
 
 # --- Replacing ---

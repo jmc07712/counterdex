@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
+import type { AddTeamMemberData, AddTeamMemberErrors, AddTeamMemberResponses, CreateTeamData, CreateTeamErrors, CreateTeamResponses, DeleteTeamData, DeleteTeamErrors, DeleteTeamResponses, GetCurrentUserData, GetCurrentUserErrors, GetCurrentUserResponses, GetPokemonData, GetPokemonErrors, GetPokemonResponses, GetTeamData, GetTeamErrors, GetTeamResponses, HealthData, HealthResponses, ListPokemonChangesData, ListPokemonChangesErrors, ListPokemonChangesResponses, ListPokemonData, ListPokemonErrors, ListPokemonResponses, ListTeamsData, ListTeamsErrors, ListTeamsResponses, ListUserTeamsData, ListUserTeamsErrors, ListUserTeamsResponses, PreviewTeamData, PreviewTeamErrors, PreviewTeamResponses, RemoveTeamMemberData, RemoveTeamMemberErrors, RemoveTeamMemberResponses, RenameTeamData, RenameTeamErrors, RenameTeamResponses, ReorderTeamData, ReorderTeamErrors, ReorderTeamResponses, ReplaceTeamMemberData, ReplaceTeamMemberErrors, ReplaceTeamMemberResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutResponses, SignUpData, SignUpErrors, SignUpResponses, SyncStatusData, SyncStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -113,19 +113,23 @@ export const signIn = <ThrowOnError extends boolean = false>(options: Options<Si
 });
 
 /**
- * List your teams
+ * List everyone's teams
  *
- * Your teams, most recently changed first, each with its Pokémon in slot order.
+ * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
+ * with its owner and its Pokémon in slot order.
+ *
+ * To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
+ * page.
  */
-export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: '__Host-session',
-            type: 'apiKey'
-        }],
-    url: '/api/teams',
-    ...options
-});
+export const listTeams = <ThrowOnError extends boolean = false>(options?: Options<ListTeamsData, ThrowOnError>): RequestResult<ListTeamsResponses, ListTeamsErrors, ThrowOnError> => (options?.client ?? client).get<ListTeamsResponses, ListTeamsErrors, ThrowOnError>({ url: '/api/teams', ...options });
+
+/**
+ * List a user's teams
+ *
+ * The user's teams, most recently changed first, each with its Pokémon in slot order.
+ * Teams with no Pokémon yet are listed too.
+ */
+export const listUserTeams = <ThrowOnError extends boolean = false>(options: Options<ListUserTeamsData, ThrowOnError>): RequestResult<ListUserTeamsResponses, ListUserTeamsErrors, ThrowOnError> => (options.client ?? client).get<ListUserTeamsResponses, ListUserTeamsErrors, ThrowOnError>({ url: '/api/users/{username}/teams', ...options });
 
 /**
  * Delete a team
@@ -145,17 +149,9 @@ export const deleteTeam = <ThrowOnError extends boolean = false>(options: Option
 /**
  * Get a team
  *
- * One of your teams, with its Pokémon in slot order.
+ * A team, with its owner and its Pokémon in slot order.
  */
-export const getTeam = <ThrowOnError extends boolean = false>(options: Options<GetTeamData, ThrowOnError>): RequestResult<GetTeamResponses, GetTeamErrors, ThrowOnError> => (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: '__Host-session',
-            type: 'apiKey'
-        }],
-    url: '/api/teams/{team_id}',
-    ...options
-});
+export const getTeam = <ThrowOnError extends boolean = false>(options: Options<GetTeamData, ThrowOnError>): RequestResult<GetTeamResponses, GetTeamErrors, ThrowOnError> => (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>({ url: '/api/teams/{team_id}', ...options });
 
 /**
  * Rename a team

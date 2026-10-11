@@ -430,33 +430,118 @@
         "tags": [
           "Teams"
         ],
-        "summary": "List your teams",
-        "description": "Your teams, most recently changed first, each with its Pokémon in slot order.",
+        "summary": "List everyone's teams",
+        "description": "Everyone's teams that have at least one Pokémon, newest first, one page at a time, each\nwith its owner and its Pokémon in slot order.\n\nTo get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last\npage.",
         "operationId": "list_teams",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 60,
+              "minimum": 1,
+              "description": "How many teams per page.",
+              "default": 24,
+              "title": "Limit"
+            },
+            "description": "How many teams per page."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Where to continue from: the previous page's `next_cursor`. Leave it out for the first page.",
+              "title": "Cursor"
+            },
+            "description": "Where to continue from: the previous page's `next_cursor`. Leave it out for the first page."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Team"
-                  },
-                  "type": "array",
-                  "title": "Response List Teams"
+                  "$ref": "#/components/schemas/TeamPage"
                 }
               }
             }
           },
-          "401": {
-            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
+        }
+      }
+    },
+    "/api/users/{username}/teams": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List a user's teams",
+        "description": "The user's teams, most recently changed first, each with its Pokémon in slot order.\nTeams with no Pokémon yet are listed too.",
+        "operationId": "list_user_teams",
+        "parameters": [
           {
-            "SessionCookie": []
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The user's `username`. Case doesn't matter.",
+              "title": "Username"
+            },
+            "description": "The user's `username`. Case doesn't matter."
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Team"
+                  },
+                  "title": "Response List User Teams"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No user has this username."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/teams/{team_id}": {
@@ -547,13 +632,8 @@
           "Teams"
         ],
         "summary": "Get a team",
-        "description": "One of your teams, with its Pokémon in slot order.",
+        "description": "A team, with its owner and its Pokémon in slot order.",
         "operationId": "get_team",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
         "parameters": [
           {
             "name": "team_id",
@@ -579,11 +659,8 @@
               }
             }
           },
-          "401": {
-            "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
-          },
           "404": {
-            "description": "You have no team with this id."
+            "description": "No team has this id."
           },
           "422": {
             "description": "Validation Error",
@@ -647,8 +724,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id."
+            "description": "No team has this id."
           },
           "422": {
             "description": "Validation Error",
@@ -695,8 +775,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id."
+            "description": "No team has this id."
           },
           "422": {
             "description": "Validation Error",
@@ -817,8 +900,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id."
+            "description": "No team has this id."
           },
           "409": {
             "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
@@ -907,8 +993,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id. Or: That Pokémon isn't on the team."
+            "description": "No team has this id. Or: That Pokémon isn't on the team."
           },
           "409": {
             "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
@@ -985,8 +1074,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id. Or: That Pokémon isn't on the team."
+            "description": "No team has this id. Or: That Pokémon isn't on the team."
           },
           "422": {
             "description": "Validation Error",
@@ -1052,8 +1144,11 @@
           "401": {
             "description": "Sign in first: POST /api/session with your username and password sets the session cookie."
           },
+          "403": {
+            "description": "Only the team's owner can change it."
+          },
           "404": {
-            "description": "You have no team with this id."
+            "description": "No team has this id."
           },
           "409": {
             "description": "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it as a code.",
@@ -2011,6 +2106,10 @@
             "type": "string",
             "title": "Name"
           },
+          "owner": {
+            "$ref": "#/components/schemas/TeamOwner",
+            "description": "The user who made it, and the only one who can change it."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -2035,6 +2134,7 @@
         "required": [
           "id",
           "name",
+          "owner",
           "created_at",
           "updated_at",
           "members"
@@ -2136,6 +2236,53 @@
         ],
         "title": "TeamOrder",
         "description": "A team's members in a new order."
+      },
+      "TeamOwner": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "In the case they signed up with."
+          }
+        },
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "title": "TeamOwner",
+        "description": "Who a team belongs to."
+      },
+      "TeamPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Team"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "This page's teams, newest first."
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor",
+            "description": "Pass as `cursor` to get the next page; `null` on the last page."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "TeamPage",
+        "description": "One page of teams."
       },
       "TeamRename": {
         "properties": {
@@ -2250,11 +2397,11 @@
     },
     {
       "name": "Session",
-      "description": "Signing up, in and out. Signing in sets the session cookie that the Teams routes need."
+      "description": "Signing up, in and out. Signing in sets the session cookie needed to create or change a team."
     },
     {
       "name": "Teams",
-      "description": "Your teams of up to six Pokémon. Every route needs signing in, except Preview."
+      "description": "Teams of up to six Pokémon. Anyone can see them; creating one needs signing in, and changing one needs signing in as its owner."
     },
     {
       "name": "Team members",

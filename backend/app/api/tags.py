@@ -25,13 +25,15 @@ TAGS: list[dict[str, Any]] = [
     {
         "name": SESSION,
         "description": (
-            "Signing up, in and out. Signing in sets the session cookie that the Teams routes need."
+            "Signing up, in and out. Signing in sets the session cookie needed to create or "
+            "change a team."
         ),
     },
     {
         "name": TEAMS,
         "description": (
-            "Your teams of up to six Pokémon. Every route needs signing in, except Preview."
+            "Teams of up to six Pokémon. Anyone can see them; creating one needs signing in, "
+            "and changing one needs signing in as its owner."
         ),
     },
     {

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listTeams, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -294,11 +294,15 @@ export const signInMutation = (options?: Partial<Options<SignInData>>): UseMutat
 export const listTeamsQueryKey = (options?: Options<ListTeamsData>) => createQueryKey('listTeams', options);
 
 /**
- * List your teams
+ * List everyone's teams
  *
- * Your teams, most recently changed first, each with its Pokémon in slot order.
+ * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
+ * with its owner and its Pokémon in slot order.
+ *
+ * To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
+ * page.
  */
-export const listTeamsOptions = (options?: Options<ListTeamsData>) => queryOptions<ListTeamsResponse, DefaultError, ListTeamsResponse, ReturnType<typeof listTeamsQueryKey>>({
+export const listTeamsOptions = (options?: Options<ListTeamsData>) => queryOptions<ListTeamsResponse, ListTeamsError, ListTeamsResponse, ReturnType<typeof listTeamsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await listTeams({
             ...options,
@@ -309,6 +313,63 @@ export const listTeamsOptions = (options?: Options<ListTeamsData>) => queryOptio
         return data;
     },
     queryKey: listTeamsQueryKey(options)
+});
+
+export const listTeamsInfiniteQueryKey = (options?: Options<ListTeamsData>): QueryKey<Options<ListTeamsData>> => createQueryKey('listTeams', options, true);
+
+/**
+ * List everyone's teams
+ *
+ * Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
+ * with its owner and its Pokémon in slot order.
+ *
+ * To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
+ * page.
+ */
+export const listTeamsInfiniteOptions = (options?: Options<ListTeamsData>) => {
+    const opts = infiniteQueryOptions<ListTeamsResponse, ListTeamsError, InfiniteData<ListTeamsResponse>, QueryKey<Options<ListTeamsData>>, string | null | Pick<QueryKey<Options<ListTeamsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListTeamsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listTeams({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listTeamsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const listUserTeamsQueryKey = (options: Options<ListUserTeamsData>) => createQueryKey('listUserTeams', options);
+
+/**
+ * List a user's teams
+ *
+ * The user's teams, most recently changed first, each with its Pokémon in slot order.
+ * Teams with no Pokémon yet are listed too.
+ */
+export const listUserTeamsOptions = (options: Options<ListUserTeamsData>) => queryOptions<ListUserTeamsResponse, ListUserTeamsError, ListUserTeamsResponse, ReturnType<typeof listUserTeamsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listUserTeams({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listUserTeamsQueryKey(options)
 });
 
 /**
@@ -335,7 +396,7 @@ export const getTeamQueryKey = (options: Options<GetTeamData>) => createQueryKey
 /**
  * Get a team
  *
- * One of your teams, with its Pokémon in slot order.
+ * A team, with its owner and its Pokémon in slot order.
  */
 export const getTeamOptions = (options: Options<GetTeamData>) => queryOptions<GetTeamResponse, GetTeamError, GetTeamResponse, ReturnType<typeof getTeamQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

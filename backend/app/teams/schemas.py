@@ -9,7 +9,12 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstra
 
 from app.pokemon.constants import MAX_POKEMON_ID
 from app.pokemon.schemas import Pokemon
-from app.teams.constants import MAX_TEAM_NAME_LENGTH, MAX_TEAM_SIZE
+from app.teams.constants import (
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    MAX_TEAM_NAME_LENGTH,
+    MAX_TEAM_SIZE,
+)
 from app.teams.enums import TeamConflictReason
 
 TeamName = Annotated[
@@ -80,6 +85,32 @@ class TeamPreviewQuery(BaseModel):
     ] = Field(default_factory=list)
 
 
+class TeamsQuery(BaseModel):
+    """Which page of everyone's teams to list."""
+
+    model_config = ConfigDict(frozen=True)
+
+    limit: Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE, description="How many teams per page.")] = (
+        DEFAULT_PAGE_SIZE
+    )
+    cursor: Annotated[
+        uuid.UUID | None,
+        Field(
+            description="Where to continue from: the previous page's `next_cursor`. Leave it out "
+            "for the first page."
+        ),
+    ] = None
+
+
+class TeamOwner(BaseModel):
+    """Who a team belongs to."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    username: str
+    """In the case they signed up with."""
+
+
 class TeamMember(BaseModel):
     """A Pokémon on a team."""
 
@@ -102,11 +133,24 @@ class Team(BaseModel):
 
     id: uuid.UUID
     name: str
+    owner: TeamOwner
+    """The user who made it, and the only one who can change it."""
     created_at: datetime
     updated_at: datetime
     """When the team or its members last changed."""
     members: list[TeamMember]
     """In slot order."""
+
+
+class TeamPage(BaseModel):
+    """One page of teams."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    items: list[Team]
+    """This page's teams, newest first."""
+    next_cursor: uuid.UUID | None
+    """Pass as `cursor` to get the next page; `null` on the last page."""
 
 
 class TeamConflict(BaseModel):

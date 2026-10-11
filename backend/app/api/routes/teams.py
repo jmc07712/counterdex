@@ -14,9 +14,11 @@ from app.teams import service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
+    NotTeamOwnerError,
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
+    UserNotFoundError,
 )
 from app.teams.schemas import (
     NewMember,
@@ -25,15 +27,19 @@ from app.teams.schemas import (
     TeamConflict,
     TeamMember,
     TeamOrder,
+    TeamPage,
     TeamPreviewQuery,
     TeamRename,
+    TeamsQuery,
 )
 
 router = APIRouter(tags=[TEAMS], dependencies=[Depends(never_cache)])
 # The member routes get their own router: a route's tags add to its router's, not replace them.
 members_router = APIRouter(tags=[TEAM_MEMBERS], dependencies=[Depends(never_cache)])
 
-TEAM_NOT_FOUND = "You have no team with this id."
+TEAM_NOT_FOUND = "No team has this id."
+NOT_TEAM_OWNER = "Only the team's owner can change it."
+USER_NOT_FOUND = "No user has this username."
 MEMBER_NOT_FOUND = "That Pokémon isn't on the team."
 UNKNOWN_POKEMON = "No Pokémon has this id, or a sync hasn't stored its species yet."
 TEAM_CONFLICT = (
@@ -45,6 +51,7 @@ TeamId = Annotated[uuid.UUID, Path(description="The team's `id`: a UUID its crea
 MemberId = Annotated[
     int, Path(ge=1, le=MAX_POKEMON_ID, description="The member's Pokémon `id`, e.g. 6.")
 ]
+Username = Annotated[str, Path(description="The user's `username`. Case doesn't matter.")]
 
 
 def conflict_detail(reason: TeamConflictReason) -> str:
@@ -72,6 +79,10 @@ def team_errors() -> Iterator[None]:
         yield
     except TeamNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, TEAM_NOT_FOUND) from None
+    except NotTeamOwnerError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_TEAM_OWNER) from None
+    except UserNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, USER_NOT_FOUND) from None
     except MemberNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, MEMBER_NOT_FOUND) from None
     except UnknownPokemonError:
@@ -80,14 +91,28 @@ def team_errors() -> Iterator[None]:
         raise ConflictError(conflict_detail(conflict.reason), conflict.reason) from None
 
 
+@router.get("/teams", summary="List everyone's teams")
+def list_teams(session: SessionDep, query: Annotated[TeamsQuery, Query()]) -> TeamPage:
+    """Everyone's teams that have at least one Pokémon, newest first, one page at a time, each
+    with its owner and its Pokémon in slot order.
+
+    To get the next page, pass the response's `next_cursor` as `cursor`; it's `null` on the last
+    page.
+    """
+    return service.list_teams(session, query)
+
+
 @router.get(
-    "/teams",
-    summary="List your teams",
-    responses={status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN}},
+    "/users/{username}/teams",
+    summary="List a user's teams",
+    responses={status.HTTP_404_NOT_FOUND: {"description": USER_NOT_FOUND}},
 )
-def list_teams(session: SessionDep, user: CurrentUser) -> list[Team]:
-    """Your teams, most recently changed first, each with its Pokémon in slot order."""
-    return service.list_teams(session, user.id)
+def list_user_teams(session: SessionDep, username: Username) -> list[Team]:
+    """The user's teams, most recently changed first, each with its Pokémon in slot order.
+    Teams with no Pokémon yet are listed too.
+    """
+    with team_errors():
+        return service.list_user_teams(session, username)
 
 
 @router.put(
@@ -133,15 +158,12 @@ def preview_team(
 @router.get(
     "/teams/{team_id}",
     summary="Get a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
-    },
+    responses={status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND}},
 )
-def get_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> Team:
-    """One of your teams, with its Pokémon in slot order."""
+def get_team(session: SessionDep, team_id: TeamId) -> Team:
+    """A team, with its owner and its Pokémon in slot order."""
     with team_errors():
-        return service.get_team(session, user.id, team_id)
+        return service.get_team(session, team_id)
 
 
 @router.patch(
@@ -149,6 +171,7 @@ def get_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> Team:
     summary="Rename a team",
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
     },
 )
@@ -168,6 +191,7 @@ def rename_team(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
     },
 )
@@ -183,6 +207,7 @@ def delete_team(session: SessionDep, user: CurrentUser, team_id: TeamId) -> None
     summary="Add a Pokémon to a team",
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
@@ -207,6 +232,7 @@ def add_team_member(
     summary="Replace a Pokémon on a team",
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,
@@ -236,6 +262,7 @@ def replace_team_member(
     summary="Remove a Pokémon from a team",
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"},
     },
 )
@@ -254,6 +281,7 @@ def remove_team_member(
     summary="Reorder a team",
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
         status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
         status.HTTP_409_CONFLICT: {
             "model": TeamConflict,

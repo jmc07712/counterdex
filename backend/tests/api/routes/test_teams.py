@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -7,9 +8,10 @@ from sqlalchemy.orm import Session
 from app.accounts.types import SignedIn
 from app.api.routes.teams import conflict_detail
 from app.teams.enums import TeamConflictReason
-from tests.support.teams import add_species_pokemon, make_team
+from tests.support.teams import add_species_pokemon, backdate, make_team
 
-TEAM = "/api/teams/00000000-0000-4000-8000-000000000001"
+TEAM_ID = "00000000-0000-4000-8000-000000000001"
+TEAM = f"/api/teams/{TEAM_ID}"
 SPECIES_ON_TEAM = {
     "detail": "The team already has this Pokémon's species, in this or another form.",
     "reason": "species_on_team",
@@ -20,9 +22,22 @@ def member_ids(team: dict[str, Any]) -> list[int]:
     return [member["pokemon"]["id"] for member in team["members"]]
 
 
-def test_teams_need_signing_in(client: TestClient) -> None:
-    assert client.get("/api/teams").status_code == 401
+def test_creating_or_changing_a_team_needs_signing_in(client: TestClient) -> None:
     assert client.put(TEAM, json={"name": "Fire"}).status_code == 401
+    assert client.patch(TEAM, json={"name": "Rain"}).status_code == 401
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_anyone_can_see_teams_without_signing_in(
+    client: TestClient, db_session: Session, misty: SignedIn
+) -> None:
+    team = make_team(db_session, misty.user.id, 4)
+
+    shown = client.get(f"/api/teams/{team.id}")
+
+    assert (shown.status_code, shown.json()["owner"]) == (200, {"username": "misty"})
+    assert client.get("/api/users/misty/teams").json() == [shown.json()]
+    assert client.get("/api/teams").json() == {"items": [shown.json()], "next_cursor": None}
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -33,7 +48,15 @@ def test_creating_a_team_twice_makes_one(ash_client: TestClient) -> None:
     assert (first.status_code, again.status_code) == (201, 200)
     assert again.json() == first.json()
     assert member_ids(first.json()) == [4, 6]
-    assert [team["id"] for team in ash_client.get("/api/teams").json()] == [first.json()["id"]]
+    assert [team["id"] for team in ash_client.get("/api/users/ash/teams").json()] == [
+        first.json()["id"]
+    ]
+
+
+def test_a_team_shows_its_owner_by_username_only(ash_client: TestClient) -> None:
+    team = ash_client.put(TEAM, json={"name": "Fire"}).json()
+
+    assert team["owner"] == {"username": "ash"}
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -49,16 +72,52 @@ def test_a_team_shows_its_members_and_their_relatives(ash_client: TestClient) ->
     assert ash_client.get(TEAM).json() == team
 
 
-def test_another_users_team_is_not_found(
+def test_a_team_no_one_has_is_not_found(ash_client: TestClient) -> None:
+    response = ash_client.get(TEAM)
+
+    assert (response.status_code, response.json()) == (404, {"detail": "No team has this id."})
+    assert ash_client.patch(TEAM, json={"name": "Rain"}).status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        pytest.param("PATCH", "", {"name": "Mine"}, id="rename"),
+        pytest.param("DELETE", "", None, id="delete"),
+        pytest.param("POST", "/members", {"pokemon_id": 6}, id="add"),
+        pytest.param("PUT", "/members/4", {"pokemon_id": 6}, id="replace"),
+        pytest.param("DELETE", "/members/4", None, id="remove"),
+        pytest.param("PUT", "/order", {"pokemon_ids": [5, 4]}, id="reorder"),
+    ],
+)
+@pytest.mark.usefixtures("charmander_family")
+def test_only_a_teams_owner_can_change_it(
+    ash_client: TestClient,
+    db_session: Session,
+    misty: SignedIn,
+    method: str,
+    path: str,
+    body: dict[str, Any] | None,
+) -> None:
+    url = f"/api/teams/{make_team(db_session, misty.user.id, 4, 5).id}"
+    before = ash_client.get(url).json()
+
+    response = ash_client.request(method, f"{url}{path}", json=body)
+
+    assert (response.status_code, response.json()) == (
+        403,
+        {"detail": "Only the team's owner can change it."},
+    )
+    assert ash_client.get(url).json() == before
+
+
+def test_an_id_another_user_has_is_taken(
     ash_client: TestClient, db_session: Session, misty: SignedIn
 ) -> None:
     team = make_team(db_session, misty.user.id)
-    url = f"/api/teams/{team.id}"
 
-    assert ash_client.get(url).status_code == 404
-    assert ash_client.patch(url, json={"name": "Mine"}).status_code == 404
-    assert ash_client.delete(url).status_code == 404
-    taken = ash_client.put(url, json={"name": "Mine"})
+    taken = ash_client.put(f"/api/teams/{team.id}", json={"name": "Mine"})
+
     assert (taken.status_code, taken.json()) == (
         409,
         {
@@ -73,7 +132,7 @@ def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
     response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [6, 10034]})
 
     assert (response.status_code, response.json()) == (409, SPECIES_ON_TEAM)
-    assert ash_client.get("/api/teams").json() == []
+    assert ash_client.get("/api/users/ash/teams").json() == []
 
 
 @pytest.mark.parametrize(
@@ -191,6 +250,99 @@ def test_an_out_of_date_order_is_a_conflict(ash_client: TestClient) -> None:
             "reason": "order_out_of_date",
         },
     )
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_lists_a_users_teams_most_recently_changed_first(
+    ash_client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    older = make_team(db_session, ash.user.id, name="Older")
+    make_team(db_session, ash.user.id, 4, name="Newer")
+    make_team(db_session, misty.user.id, 5, name="Misty's")
+    ash_client.patch(f"/api/teams/{older.id}", json={"name": "Renamed"})
+
+    response = ash_client.get("/api/users/ASH/teams")
+
+    assert response.status_code == 200
+    assert [team["name"] for team in response.json()] == ["Renamed", "Newer"]
+    assert response.json()[0]["members"] == []
+
+
+def test_a_username_no_one_has_is_not_found(client: TestClient) -> None:
+    response = client.get("/api/users/brock/teams")
+
+    assert (response.status_code, response.json()) == (
+        404,
+        {"detail": "No user has this username."},
+    )
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_lists_everyones_teams_with_pokemon_newest_first(
+    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
+) -> None:
+    yesterday = make_team(db_session, misty.user.id, 4, name="Yesterday")
+    last_week = make_team(db_session, ash.user.id, 5, name="Last week")
+    make_team(db_session, ash.user.id, 6, name="Today")
+    make_team(db_session, ash.user.id, name="Empty")
+    backdate(db_session, yesterday.id, timedelta(days=1))
+    backdate(db_session, last_week.id, timedelta(days=7))
+
+    page = client.get("/api/teams").json()
+
+    assert [(team["name"], team["owner"]["username"]) for team in page["items"]] == [
+        ("Today", "ash"),
+        ("Yesterday", "misty"),
+        ("Last week", "ash"),
+    ]
+    assert page["next_cursor"] is None
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_pages_through_everyones_teams(
+    client: TestClient, db_session: Session, ash: SignedIn
+) -> None:
+    # Teams made in one transaction share a created_at, so their ids decide their order.
+    teams = [make_team(db_session, ash.user.id, 4) for _ in range(4)]
+    backdate(db_session, teams[0].id, timedelta(days=1))
+    everyone = client.get("/api/teams").json()["items"]
+
+    first = client.get("/api/teams", params={"limit": 2}).json()
+    second = client.get("/api/teams", params={"limit": 2, "cursor": first["next_cursor"]}).json()
+
+    tied = [team["id"] for team in everyone[:3]]
+    assert (tied, everyone[3]["id"]) == (sorted(tied, reverse=True), str(teams[0].id))
+    assert first["next_cursor"] == first["items"][-1]["id"]
+    assert second["next_cursor"] is None
+    assert first["items"] + second["items"] == everyone
+
+
+@pytest.mark.usefixtures("charmander_family")
+def test_a_cursor_no_team_has_gives_an_empty_page(
+    client: TestClient, db_session: Session, ash: SignedIn
+) -> None:
+    make_team(db_session, ash.user.id, 4)
+
+    response = client.get("/api/teams", params={"cursor": TEAM_ID})
+
+    assert (response.status_code, response.json()) == (200, {"items": [], "next_cursor": None})
+
+
+@pytest.mark.parametrize("limit", [1, 60])
+def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None:
+    assert client.get("/api/teams", params={"limit": limit}).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        pytest.param({"limit": 0}, id="limit-0"),
+        pytest.param({"limit": 61}, id="limit-61"),
+        pytest.param({"cursor": "6"}, id="cursor-not-a-uuid"),
+    ],
+)
+def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:
+    assert client.get("/api/teams", params=params).status_code == 422
 
 
 @pytest.mark.usefixtures("charmander_family")
