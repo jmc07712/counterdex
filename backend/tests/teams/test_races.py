@@ -1,6 +1,7 @@
-"""Changes to one team from two places at once: the second waits for the first to commit, then
-sees what it did. Each locks the team with lock_owned_team first, as require_team_owner does for a
-request.
+"""Changes to one team from two places at once. Each locks the team with lock_owned_team first, as
+require_team_owner does for a request, so the second waits for the first to commit, then sees what
+it did. One test leaves the lock out, to show that the database refuses what the service's checks
+can't see.
 """
 
 import uuid
@@ -51,6 +52,23 @@ def second_change(
     with sessions() as session:
         try:
             change(session, service.lock_owned_team(session, user_id, team_id))
+        except TeamConflictError as error:
+            return error.reason
+        session.commit()
+    return None
+
+
+def add_without_the_lock(
+    sessions: sessionmaker[Session], team_id: uuid.UUID, pokemon_id: int
+) -> TeamConflictReason | None:
+    """Adds a Pokémon to the team in a new session without locking the team first, and commits:
+    None if it was added, or why it wasn't.
+    """
+    with sessions() as session:
+        team = session.get(models.Team, team_id)
+        assert team is not None
+        try:
+            service.add_member(session, team, pokemon_id)
         except TeamConflictError as error:
             return error.reason
         session.commit()
@@ -126,3 +144,20 @@ def test_a_reorder_made_before_a_removal_is_out_of_date(
     )
 
     assert outcome is TeamConflictReason.ORDER_OUT_OF_DATE
+
+
+def test_the_database_refuses_a_family_member_the_check_couldnt_see(
+    committing_sessions: sessionmaker[Session], migrated_engine: Engine
+) -> None:
+    user_id, team_id = setup_team(committing_sessions, 202)
+
+    with ThreadPoolExecutor(1) as pool, committing_sessions() as first:
+        service.add_member(first, service.lock_owned_team(first, user_id, team_id), 201)
+        # Without the lock, this add reads the team before 201 is committed, so its own check
+        # passes; its insert then waits on the family constraint until the first commits.
+        later = pool.submit(add_without_the_lock, committing_sessions, team_id, 208)
+        wait_until_a_session_waits_for_a_lock(migrated_engine)
+        first.commit()
+        outcome = later.result(timeout=10)
+
+    assert outcome is TeamConflictReason.FAMILY_ON_TEAM

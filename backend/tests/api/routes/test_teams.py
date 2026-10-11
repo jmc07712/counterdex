@@ -26,9 +26,13 @@ from tests.support.teams import (
 TEAM_ID = "00000000-0000-4000-8000-000000000001"
 TEAM = f"/api/teams/{TEAM_ID}"
 FAMILY_ON_TEAM = {
-    "detail": "A team can have only one Pokémon from each evolution family.",
+    "detail": (
+        "The team already has a Pokémon from this evolution family. Replace that one, or choose "
+        "a Pokémon from another family."
+    ),
     "reason": "family_on_team",
 }
+TEAM_FULL = {"detail": "The team already has six Pokémon. Remove one first.", "reason": "team_full"}
 
 
 def member_ids(team: dict[str, Any]) -> list[int]:
@@ -238,6 +242,15 @@ def test_a_conflict_says_why(ash_client: TestClient) -> None:
     assert (response.status_code, response.json()) == (409, FAMILY_ON_TEAM)
 
 
+def test_a_full_team_says_to_remove_one_first(ash_client: TestClient, db_session: Session) -> None:
+    add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206, 207)
+    ash_client.put(TEAM, json={"name": "Six", "pokemon_ids": [201, 202, 203, 204, 205, 206]})
+
+    response = ash_client.post(f"{TEAM}/members", json={"pokemon_id": 207})
+
+    assert (response.status_code, response.json()) == (409, TEAM_FULL)
+
+
 def test_branches_of_one_family_cant_share_a_team(
     ash_client: TestClient, db_session: Session
 ) -> None:
@@ -306,10 +319,7 @@ def test_a_change_waits_for_one_in_progress_then_sees_it(
         first.commit()
         response = add.result(timeout=10)
 
-    assert (response.status_code, response.json()) == (
-        409,
-        {"detail": "The team already has six Pokémon.", "reason": "team_full"},
-    )
+    assert (response.status_code, response.json()) == (409, TEAM_FULL)
 
 
 @pytest.mark.usefixtures("charmander_family")
