@@ -23,20 +23,25 @@ import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
 import { TeamPage } from './team'
+import { TeamEditPage } from './team-edit'
 
 const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee } = catalog
 const CATALOG = Object.values(catalog)
 
-function renderTeam(teamId = TEAM_ID) {
+const VIEW = `/teams/${TEAM_ID}`
+const EDIT = `/teams/${TEAM_ID}/edit`
+
+function renderTeam(path = VIEW) {
   return renderWithProviders(
     <>
       <Routes>
         <Route path="/teams/:teamId" element={<TeamPage />} />
+        <Route path="/teams/:teamId/edit" element={<TeamEditPage />} />
         <Route path="/" element={<p>Home</p>} />
       </Routes>
       <Toaster />
     </>,
-    { path: `/teams/${teamId}` },
+    { path },
   )
 }
 
@@ -74,11 +79,63 @@ function memberIds(team: Team) {
 }
 
 describe('TeamPage, for the team’s owner', () => {
+  it('shows the owner the party, with View current in a View / Edit toggle', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
+    browse([])
+    const { user, router } = renderTeam()
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Team 1' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View' })).toHaveAttribute('aria-current', 'page')
+    const edit = screen.getByRole('link', { name: 'Edit' })
+    expect(edit).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
+    expect(slotRows()[0]).toHaveTextContent('Lead')
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove Charmander' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Build your own team' })).not.toBeInTheDocument()
+
+    await user.click(edit)
+
+    expect(router.state.location.pathname).toBe(EDIT)
+    expect(await screen.findByRole('textbox', { name: 'Team name' })).toBeInTheDocument()
+  })
+
+  it('links the owner’s empty slots to Edit', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([])
+    renderTeam()
+
+    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
+    const rows = slotRows()
+    rows.slice(1).forEach((row, index) => {
+      expect(
+        within(row).getByRole('link', { name: `Add Pokémon to slot ${index + 2}` }),
+      ).toHaveAttribute('href', EDIT)
+    })
+  })
+
+  it('edits the team on its Edit page, with Edit current in the toggle', async () => {
+    serveAsh([makeTeam({ pokemon: [charmander] })])
+    browse([])
+    const { user, router } = renderTeam(EDIT)
+
+    expect(await screen.findByRole('textbox', { name: 'Team name' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('aria-current', 'page')
+    const view = screen.getByRole('link', { name: 'View' })
+    expect(view).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Team actions' })).toBeInTheDocument()
+
+    await user.click(view)
+
+    expect(router.state.location.pathname).toBe(VIEW)
+    expect(await screen.findByText('Lead')).toBeInTheDocument()
+  })
+
   it('shows the team’s name as the page’s heading, and its six slots', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([])
 
-    renderTeam()
+    renderTeam(EDIT)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Team 1' })).toBeInTheDocument()
     const rows = slotRows()
@@ -101,7 +158,7 @@ describe('TeamPage, for the team’s owner', () => {
     ])
     browse([])
 
-    renderTeam()
+    renderTeam(EDIT)
 
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
     const [charizardSlot, pikachuSlot] = slotRows()
@@ -122,7 +179,7 @@ describe('TeamPage, for the team’s owner', () => {
     onWideScreen()
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu, snorlax])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
     await user.click(await within(browser).findByRole('button', { name: 'Add Pikachu' }))
@@ -139,7 +196,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('adds from a sheet on phones, which stays open to add another', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu, snorlax])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     expect(screen.queryByRole('complementary', { name: 'Add Pokémon' })).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
@@ -155,7 +212,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('closes the sheet to show the team from the toast’s View', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([pikachu])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Add Pokémon' }))
     const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
@@ -177,7 +234,7 @@ describe('TeamPage, for the team’s owner', () => {
       onWideScreen()
       serveAsh([makeTeam({ pokemon: [charmander] })])
       browse([pokemon])
-      renderTeam()
+      renderTeam(EDIT)
 
       const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
       const row = (await within(browser).findByText(displayName(pokemon.name))).closest('li')
@@ -191,7 +248,7 @@ describe('TeamPage, for the team’s owner', () => {
     onWideScreen()
     serveAsh([makeTeam({ pokemon: [charmander, pikachu, snorlax, gengar, eevee, lapras] })])
     browse([catalog.dragonite])
-    renderTeam()
+    renderTeam(EDIT)
 
     const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
     const row = (await within(browser).findByText('Dragonite')).closest('li')
@@ -204,7 +261,7 @@ describe('TeamPage, for the team’s owner', () => {
     onWideScreen()
     serveAsh([makeTeam()])
     const requests = browse([pikachu])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
     await user.type(within(browser).getByRole('searchbox', { name: 'Search Pokémon' }), 'pika')
@@ -221,7 +278,7 @@ describe('TeamPage, for the team’s owner', () => {
         ? { items: [snorlax], next_cursor: null }
         : { items: [pikachu], next_cursor: 25 },
     )
-    renderTeam()
+    renderTeam(EDIT)
     const browser = await screen.findByRole('complementary', { name: 'Add Pokémon' })
     await within(browser).findByText('Pikachu')
 
@@ -234,7 +291,7 @@ describe('TeamPage, for the team’s owner', () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
     const hold = holdTeamChanges()
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
 
@@ -247,7 +304,7 @@ describe('TeamPage, for the team’s owner', () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
     const hold = holdTeamChanges()
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
     await user.click(screen.getByRole('button', { name: 'Remove Pikachu' }))
@@ -276,7 +333,7 @@ describe('TeamPage, for the team’s owner', () => {
         ),
       ),
     )
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
     const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
     // Held, so what shows is the change undone rather than the team fetched again.
     const fetches = holdTeamFetches()
@@ -293,7 +350,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('renames on Enter, and puts back a blank name', async () => {
     const api = serveAsh([makeTeam()])
     browse([])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     const name = await screen.findByRole('textbox', { name: 'Team name' })
     await user.clear(name)
@@ -312,7 +369,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('stops a name at 40 characters', async () => {
     serveAsh([makeTeam()])
     browse([])
-    renderTeam()
+    renderTeam(EDIT)
 
     expect(await screen.findByRole('textbox', { name: 'Team name' })).toHaveAttribute(
       'maxlength',
@@ -323,7 +380,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('deletes after you confirm, then goes home', async () => {
     const api = serveAsh([makeTeam()])
     browse([])
-    const { user, router } = renderTeam()
+    const { user, router } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Team actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Delete team' }))
@@ -336,7 +393,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('keeps the team if you don’t confirm, with focus back on its menu', async () => {
     const api = serveAsh([makeTeam()])
     browse([])
-    const { user } = renderTeam()
+    const { user } = renderTeam(EDIT)
 
     const menu = await screen.findByRole('button', { name: 'Team actions' })
     await user.click(menu)
@@ -352,28 +409,36 @@ describe.each([
   ['someone else', MISTY],
   ['someone signed out', null],
 ])('TeamPage, for %s', (_, viewer) => {
-  it('shows the team as it is, by its owner, with nothing to change it', async () => {
-    onWideScreen()
-    serveSession({ signedIn: viewer })
-    serveTeams({ teams: [makeTeam({ pokemon: [charmander, pikachu] })], catalog: CATALOG })
+  it.each([
+    ['its page', VIEW],
+    ['its Edit page', EDIT],
+  ])(
+    'shows the team as it is on %s, by its owner, with nothing to change it',
+    async (_page, path) => {
+      onWideScreen()
+      serveSession({ signedIn: viewer })
+      serveTeams({ teams: [makeTeam({ pokemon: [charmander, pikachu] })], catalog: CATALOG })
 
-    renderTeam()
+      renderTeam(path)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Team 1' })).toBeInTheDocument()
-    expect(screen.getByText('by ash')).toBeInTheDocument()
-    const rows = slotRows()
-    expect(rows).toHaveLength(6)
-    expect(rows[0]).toHaveTextContent('Charmander')
-    expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: 'Explore teams' })).toHaveAttribute('href', '/explore')
-    // Each member opens its details, and that's all there is to press.
-    expect(screen.getAllByRole('button')).toEqual([
-      screen.getByRole('button', { name: 'Charmander' }),
-      screen.getByRole('button', { name: 'Pikachu' }),
-    ])
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
-  })
+      expect(await screen.findByRole('heading', { level: 1, name: 'Team 1' })).toBeInTheDocument()
+      expect(screen.getByText('by ash')).toBeInTheDocument()
+      const rows = slotRows()
+      expect(rows).toHaveLength(6)
+      expect(rows[0]).toHaveTextContent('Charmander')
+      expect(screen.getByRole('link', { name: 'Build your own team' })).toHaveAttribute('href', '/')
+      expect(screen.getByRole('link', { name: 'Explore teams' })).toHaveAttribute('href', '/explore')
+      // Each member opens its details, and that's all there is to press.
+      expect(screen.getAllByRole('button')).toEqual([
+        screen.getByRole('button', { name: 'Charmander' }),
+        screen.getByRole('button', { name: 'Pikachu' }),
+      ])
+      expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /Add Pokémon to slot/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    },
+  )
 })
 
 describe('TeamPage, as a party', () => {

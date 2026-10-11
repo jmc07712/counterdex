@@ -23,7 +23,8 @@ export function NewTeamButton({ teamCount }: { teamCount: number }) {
     create.mutate(
       { id: crypto.randomUUID(), name: m.team_default_name({ number: teamCount + 1 }) },
       {
-        onSuccess: (team) => void navigate(paths.team.getHref(team.id)),
+        // A new team is empty, so it opens ready to add Pokémon to.
+        onSuccess: (team) => void navigate(paths.teamEdit.getHref(team.id)),
         onError: (error) => {
           creating.current = false
           toast.error(m.team_problem({ problem: teamProblem(error) }))

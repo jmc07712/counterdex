@@ -35,7 +35,7 @@ const primaryNav: NavItem[] = [
     to: paths.home.getHref(),
     label: m.nav_teams,
     icon: UsersRound,
-    sections: [paths.home.path, paths.team.path],
+    sections: [paths.home.path, paths.team.path, paths.teamEdit.path],
   },
   {
     to: paths.explore.getHref(),

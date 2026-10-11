@@ -17,6 +17,7 @@ describe('AppShell navigation', () => {
   it.each([
     ['/', 'Teams'],
     ['/teams/42', 'Teams'],
+    ['/teams/42/edit', 'Teams'],
     ['/explore', 'Explore'],
     ['/pokedex', 'Pokédex'],
     ['/sign-in', 'Sign in'],

@@ -19,18 +19,25 @@ import { m } from '@/paraglide/messages.js'
 
 import { useTeam } from '../hooks/use-team'
 import { useTeamEditor } from '../hooks/use-team-editor'
+import { BuildYourOwnTeam } from './build-your-own-team'
 import { TeamBuilder } from './team-builder'
 import { TeamMenu } from './team-menu'
+import { TeamModeToggle } from './team-mode-toggle'
 import { TeamParty } from './team-party'
 
 type SavedTeamProps = {
   teamId: string
+  // Its party, or its builder; only its owner gets the builder.
+  mode: 'view' | 'edit'
   // Opens a member's details.
   onOpenPokemon: (pokemonId: number) => void
 }
 
-/** A team, by id: in the builder for its owner, and as its party for everyone else. */
-export function SavedTeam({ teamId, onOpenPokemon }: SavedTeamProps) {
+/**
+ * A team, by id, as its party. Its owner can switch to editing it in the builder; everyone else
+ * sees its party in either mode.
+ */
+export function SavedTeam({ teamId, mode, onOpenPokemon }: SavedTeamProps) {
   const team = useTeam(teamId)
   const currentUser = useCurrentUser()
 
@@ -71,11 +78,36 @@ export function SavedTeam({ teamId, onOpenPokemon }: SavedTeamProps) {
 
   // Signed out, or not sure who's signed in, counts as not the owner.
   const isOwner = currentUser.data?.username === team.data.owner.username
-  if (isOwner) return <SavedTeamBuilder team={team.data} />
-  return <TeamParty team={team.data} onOpenPokemon={onOpenPokemon} />
+  if (!isOwner) {
+    return (
+      <>
+        <TeamParty team={team.data} onOpenPokemon={onOpenPokemon} />
+        <BuildYourOwnTeam />
+      </>
+    )
+  }
+  if (mode === 'edit') return <SavedTeamBuilder team={team.data} />
+  return (
+    <TeamParty
+      team={team.data}
+      onOpenPokemon={onOpenPokemon}
+      actions={<OwnerActions team={team.data} />}
+      emptySlotsTo={paths.teamEdit.getHref(team.data.id)}
+    />
+  )
 }
 
 function SavedTeamBuilder({ team }: { team: Team }) {
   const editor = useTeamEditor(team)
-  return <TeamBuilder editor={editor} actions={<TeamMenu team={team} />} />
+  return <TeamBuilder editor={editor} actions={<OwnerActions team={team} />} />
+}
+
+// Every change saves at once, so the toggle back to View is the way out of editing.
+function OwnerActions({ team }: { team: Team }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <TeamModeToggle teamId={team.id} />
+      <TeamMenu team={team} />
+    </div>
+  )
 }

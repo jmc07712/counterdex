@@ -118,7 +118,7 @@ describe('TeamsPage', () => {
     expect(await screen.findByText('Build your first team')).toBeInTheDocument()
   })
 
-  it('creates one team however often New team is clicked while it’s creating', async () => {
+  it('creates one team however often New team is clicked, and opens it to edit', async () => {
     serveSession({ signedIn: ASH })
     const api = serveTeams({ signedIn: ASH })
     const { user, router } = renderWithProviders(<TeamsPage />)
@@ -126,7 +126,9 @@ describe('TeamsPage', () => {
     const button = await screen.findByRole('button', { name: 'New team' })
     await user.dblClick(button)
 
-    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}$/))
+    await waitFor(() =>
+      expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/),
+    )
     expect(api.requests.filter((request) => request.method === 'PUT')).toHaveLength(1)
     expect(api.teams().map((team) => team.name)).toEqual(['Team 1'])
   })

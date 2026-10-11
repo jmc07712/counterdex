@@ -10,7 +10,7 @@ export function TeamPage() {
 
   return (
     <>
-      <SavedTeam teamId={teamId} onOpenPokemon={selected.open} />
+      <SavedTeam teamId={teamId} mode="view" onOpenPokemon={selected.open} />
       <PokemonDetailsDialog
         pokemonId={selected.selected}
         onSelect={selected.show}

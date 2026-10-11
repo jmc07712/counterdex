@@ -1,4 +1,6 @@
+import { Plus } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useId } from 'react'
+import { Link } from 'react-router'
 
 import type { TeamMember } from '@/api'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
@@ -17,7 +19,7 @@ const ENTER_STAGGER_MS = 70
 // A sprite pops out of its Poké Ball this long after its slot starts to enter.
 const POP_OUT_AFTER_MS = 150
 const ENTER = 'animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both motion-reduce:animate-none'
-const ROW = 'flex min-h-18 items-center gap-3 rounded-2xl py-2 pr-3 pl-4'
+const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4'
 
 /** A team's six slots, stacked in battle order: its members' slots, then EmptySlots. */
 export function TeamSlots({ children }: { children: ReactNode }) {
@@ -90,7 +92,7 @@ type TeamSlotProps = {
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
   const headingId = useId()
   return (
-    <MemberPanel member={member} className={ROW}>
+    <MemberPanel member={member} className={cn(ROW, 'rounded-2xl')}>
       <SlotNumber slot={member.position} />
       <PanelSprite member={member} className="size-16" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
@@ -116,21 +118,46 @@ export function SlotButton(props: ComponentProps<'button'>) {
   )
 }
 
-/** The slots after the team's `filled` members, each a dashed "Empty slot". */
-export function EmptySlots({ filled }: { filled: number }) {
+type EmptySlotsProps = {
+  filled: number
+  // Where each empty slot links to be filled, such as the team's Edit page. Without it, the slots
+  // don't link.
+  to?: string
+}
+
+/** The slots after the team's `filled` members, each dashed: "Empty slot", or a link to fill it. */
+export function EmptySlots({ filled, to }: EmptySlotsProps) {
   return Array.from({ length: MAX_TEAM_SIZE - filled }, (_, index) => {
     const slot = filled + index
     return (
       <li
         key={slot}
         style={{ animationDelay: `${slot * ENTER_STAGGER_MS}ms` }}
-        className={cn(ROW, ENTER, 'border-2 border-dashed text-sm text-muted-foreground')}
+        className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
       >
-        <SlotNumber slot={slot} />
-        <span className="grid size-16 shrink-0 place-items-center">
-          <PokeBall className="size-9 opacity-50" />
-        </span>
-        {m.team_empty_slot()}
+        {to ? (
+          <Link
+            to={to}
+            aria-label={m.team_add_to_slot({ slot: slot + 1 })}
+            className={cn(
+              ROW,
+              'h-full rounded-[inherit] transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
+            )}
+          >
+            <SlotNumber slot={slot} />
+            <EmptyBall />
+            <span className="flex items-center gap-1.5 font-medium">
+              <Plus className="size-4" aria-hidden="true" />
+              {m.team_add_pokemon()}
+            </span>
+          </Link>
+        ) : (
+          <div className={cn(ROW, 'h-full')}>
+            <SlotNumber slot={slot} />
+            <EmptyBall />
+            {m.team_empty_slot()}
+          </div>
+        )}
       </li>
     )
   })
@@ -157,6 +184,14 @@ function MemberPanel({ member, className, children }: MemberPanelProps) {
     >
       {children}
     </li>
+  )
+}
+
+function EmptyBall() {
+  return (
+    <span className="grid size-16 shrink-0 place-items-center">
+      <PokeBall className="size-9 opacity-50" />
+    </span>
   )
 }
 

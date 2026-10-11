@@ -1,6 +1,10 @@
 export const paths = {
   home: { path: '/', getHref: () => '/' },
   team: { path: '/teams/:teamId', getHref: (teamId: string) => `/teams/${teamId}` },
+  teamEdit: {
+    path: '/teams/:teamId/edit',
+    getHref: (teamId: string) => `/teams/${teamId}/edit`,
+  },
   explore: { path: '/explore', getHref: () => '/explore' },
   pokedex: { path: '/pokedex', getHref: () => '/pokedex' },
   signIn: { path: '/sign-in', getHref: (next?: string) => withNext('/sign-in', next) },
