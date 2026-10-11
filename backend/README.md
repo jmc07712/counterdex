@@ -1,0 +1,228 @@
+# Counterdex API
+
+The FastAPI backend. It keeps a copy of PokéAPI in Postgres, serves it, and stores accounts and
+teams. Why it's built this way is in the [root README](../README.md); this covers working on it.
+
+## Running it
+
+Needs uv and Docker. Run these from `backend/`, after `cp .env.example .env` and
+`docker compose up -d --wait` from the repo root:
+
+```bash
+uv sync
+uv run --env-file ../.env alembic upgrade head
+uv run --env-file ../.env python -m app.jobs.sync_pokemon
+uv run --env-file ../.env uvicorn app.api.main:app --port 3000 --reload
+```
+
+The interactive docs are at http://localhost:3000/api/docs. The third command fills the database
+from PokéAPI; [How the sync works](#how-the-sync-works) explains it.
+
+## Settings
+
+The app reads environment variables only, never `.env` itself. Locally they come from the repo
+root's `.env`, passed with `--env-file`; on Vercel they're the project's environment variables.
+
+| Variable | What it does |
+| --- | --- |
+| `DATABASE_URL` | The Postgres URL. Plain `postgres://` URLs from Neon and Vercel work too. |
+| `DATABASE_URL_UNPOOLED` | Neon's direct URL. Migrations use it when it's set, since schema changes shouldn't go through the PgBouncer pooler. |
+| `CACHE_RESPONSES` | `false` sends `no-store` on every response, so changes made by hand show at once. Defaults to `true`. |
+| `SECURE_COOKIES` | `false` makes the session a plain cookie named `session`, since some browsers refuse `Secure` and `__Host-` cookies over http://localhost. Defaults to `true`. |
+
+## Layout
+
+```
+app/
+  core/        settings, database plumbing and rules for incoming text
+  pokemon/     Pokémon, species and the type chart, and the queries that serve them
+  accounts/    users, passwords and sign-in sessions
+  sync/        keeping the Pokémon tables in step with PokéAPI, and the change history
+  teams/       teams and their members
+  api/         the FastAPI app: routes, middleware and the docs
+  jobs/        command-line jobs, such as sync_pokemon
+  migrations/  Alembic
+tests/         mirrors app/; fixtures are in the conftest.py files, and builders and the
+               fake PokéAPI in tests/support
+```
+
+Domains know nothing about how they're called: `core` is at the bottom, `pokemon` and `accounts`
+build on it, and `sync` and `teams` build on those. Domains never import FastAPI or the
+entrypoints, and `api` and `jobs` don't import each other. `uv run lint-imports` checks all of it.
+
+Each file in a domain has one job:
+- `models`: tables.
+- `schemas`: the shapes the API takes and serves.
+- `types`: internal data.
+- `enums`, `constants` and `exceptions`.
+- `queries`: read-only lookups (teams keeps its reads in `service`).
+- `service`: the domain's operations.
+
+The sync adds:
+- `client`: talks to PokéAPI.
+- `pokeapi`: PokéAPI's response shapes.
+- `normalize`: turns those into ours.
+- `store`: writes them.
+
+## Conventions
+
+- Rules shared by the API and the database, such as base stats of 1–255, are one constant, used by
+  both the validator and the table's CHECK.
+- Enums are `StrEnum`s, stored as text with a CHECK (`text_enum()`) rather than as Postgres ENUM
+  types, which can't drop values.
+- Constraints are named by a naming convention, so migrations refer to them predictably.
+- Routes declare their error responses inline and turn domain exceptions into `HTTPException`s.
+  Every error's `detail` is a sentence saying what's wrong, and what to do where that helps. A
+  team's 409 also gives a `reason` code, such as `family_on_team`, for clients to act on.
+- Text the API takes in is refused with a 422 if it contains a NUL character, which Postgres can't
+  store. Put `NO_NUL` (`app/core/text.py`) after a string's other constraints.
+- Every response is `no-store` (the `NoStoreByDefault` middleware) unless its route calls
+  `cache_publicly`.
+- No `# noqa` or `# type: ignore`.
+- Take only dependency releases that are at least two weeks old.
+
+## Teams
+
+- Every route that changes an existing team depends on `require_team_owner`, which answers 404 or
+  403, or locks the team's row (`lock_owned_team`) until the request's transaction ends. Changes
+  to one team therefore run one at a time, and each sees the one before.
+- Each member stores its `species_id` and `family_id` (its species' `evolution_chain_id`). A unique
+  `(team_id, family_id)` allows one Pokémon per evolution family, and composite foreign keys tie
+  the species to the Pokémon (`species_varieties`) and the family to the species (`species`). The
+  service checks the rules first and raises `TeamConflictError`, whose reason becomes the 409's
+  `reason`.
+- `GET /api/teams` lists everyone's teams that have a Pokémon, newest first, a page at a time.
+  `q` matches a team's name, its owner's username or a member's name, ignoring case; `type`,
+  repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
+  week. Filters combine.
+
+## How the sync works
+
+`python -m app.jobs.sync_pokemon` (`app/jobs/sync_pokemon.py`) runs `run_sync`
+(`app/sync/service.py`), then the [team follow-up](#the-team-follow-up), and commits them
+together.
+
+### What it fetches
+
+`PokeApiClient` (`app/sync/client.py`) reads:
+- the `pokemon` and `pokemon-species` listings, `PAGE_SIZE` (200) entries a page, then every
+  Pokémon, every species, and each evolution chain the species belong to, once per chain;
+- the 18 types, whose damage relations become the type chart in `type_matchups`.
+
+Each species also brings its legendary and mythical flags. That's about 3,000 requests a run.
+Every response is validated with Pydantic (`pokeapi.py`) and turned into our shapes
+(`normalize.py`). The client only requests URLs on PokéAPI, and redirects aren't followed. A
+listing that fails or can't be trusted, such as one that loops or runs past `MAX_PAGES`, fails the
+sync, since whatever is missing from a listing counts as removed.
+
+### Fair use
+
+The limits are in `app/sync/constants.py`:
+- Every request sends `USER_AGENT`, which names the app and links to its repository.
+- At most `CONCURRENT_REQUESTS` (20) requests are in flight, each with a timeout of
+  `REQUEST_TIMEOUT_SECONDS` (15).
+- Only rate limiting, server errors (`RETRYABLE_STATUS_CODES`: 429, 500, 502, 503 and 504) and
+  network failures are retried, up to `MAX_ATTEMPTS` (3) tries in all, waiting
+  `RETRY_DELAY_SECONDS` (0.5) and then twice as long before each further retry. The client doesn't
+  read `Retry-After` yet.
+
+PokéAPI answers from Cloudflare's cache, with `cache-control: public, max-age=86400`, so syncing
+more than once a day can't see newer data.
+
+### How changes are detected and stored
+
+`store_pokemon` (`app/sync/store.py`) compares each fetched Pokémon with its row. The tracked
+fields are the Pokémon's columns: name, types, base stats, sprite and default-form flag, hashed
+with SHA-256 into `content_hash`.
+- **New:** inserted without a change, since no team can have it yet.
+- **Updated:** the hash differs.
+- **Removed:** stored and not yet removed, but missing from PokéAPI's listing. The row gets
+  `removed_at` and is never deleted, so teams keep it. A Pokémon whose fetch failed is left as it
+  was: only the listing decides what's removed.
+- **Restored:** marked removed, and listed again.
+
+Each change is a row in `pokemon_changes`, with snapshots of the tracked fields from before and
+after (a removal has no after), and sets the Pokémon's `last_changed_at`. That column is what the
+`changed` filters and `changed_recently` read. Each run is a row in `sync_runs`, with its counts
+and what failed. `GET /api/sync/status` serves when the data last synced and how the latest run
+went.
+
+Species, evolution families and the type chart are reference data: overwritten without history.
+A family is stored only if all of its species and its chain were fetched, and the type chart only
+if all 18 types were; otherwise what was stored before stays.
+
+Safeguards, since a bad sync would flag every team:
+- A sync that would remove more than `MAX_REMOVED_SHARE` (5%) of the stored Pokémon, or
+  `MIN_REMOVALS_ALLOWED` (10) if that's more, raises `SuspiciousRemovalError`: a broken listing
+  is likelier than that many real removals.
+- `run_sync` first takes a transaction-level advisory lock on `SYNC_LOCK_KEY`, so only one sync
+  writes at a time. A second raises `SyncAlreadyRunningError`.
+- The whole run is one transaction, so the data, its changes and the run's record are saved
+  together or not at all. On any error the job rolls back, records a failed run with the error,
+  and exits 1.
+- If a Pokémon, species, chain or type still fails after retrying, everything else is saved, the
+  run lists what failed, and the job exits 1. The next run fills the gaps.
+
+### The team follow-up
+
+After `run_sync`, the job calls `follow_species_families` (`app/teams/service.py`) in the same
+transaction. When PokéAPI moves a Pokémon to a species in another family, its members'
+`species_id` follows through the cascading foreign key to `species_varieties`, and
+`follow_species_families` moves their `family_id` to the new species' family. The foreign key to
+`species` is checked at commit, so the member can be out of step in between.
+
+A move that would put two Pokémon from one family on a team breaks the unique
+`(team_id, family_id)`, so the run fails, is rolled back and is recorded as failed. Otherwise the
+sync would have to choose which Pokémon to take off someone's team.
+
+### Running a sync
+
+```bash
+uv run --env-file ../.env python -m app.jobs.sync_pokemon
+```
+
+It logs a summary and exits 0 only if nothing failed. Nothing schedules it yet (`vercel.json` has
+no cron), so production is synced by running it by hand with production's `DATABASE_URL`. Once a
+day is the natural cadence, given PokéAPI's 24-hour cache. Tests never reach PokéAPI: they use a
+fake, described under [Tests and checks](#tests-and-checks).
+
+## Migrations
+
+```bash
+uv run --env-file ../.env alembic revision --autogenerate -m "store something"
+uv run --env-file ../.env alembic upgrade head
+```
+
+New files are date-prefixed, and ruff lints and formats them as they're written. Tests check that
+the migrations match the models, including the CHECK constraints autogenerate can't see, and that
+they downgrade cleanly. Nothing runs migrations on deploy: production's are run by hand, over
+Neon's direct URL.
+
+Two team constraints are deferred to commit: the unique slot, so members can swap slots, and the
+member's foreign key to its species' family, so the sync can move a member to its new family before
+committing. `check_a_team_members_family_at_commit` makes the second deferrable with a hand-written
+`alter constraint`.
+
+## Tests and checks
+
+```bash
+uv run pytest                                      # needs Docker
+uv run ruff check . && uv run ruff format --check .
+uv run mypy app tests                              # strict
+uv run lint-imports
+```
+
+- Database tests start a throwaway Postgres 17 container on first use (Testcontainers) and migrate
+  it. Each test runs in a transaction that's rolled back. Tests of pure logic don't start it.
+- pytest-socket fails any test that connects to anything but localhost and Docker's socket. The
+  fake PokéAPI in `tests/support/pokeapi.py` serves recorded responses from
+  `tests/support/pokeapi_responses` (Charizard's and Pikachu's families, and all 18 types) through
+  a mock transport, and a test can make requests fail or edit the responses.
+- Race tests commit on two real connections, and use `pg_locks` to wait until the second is
+  blocked before the first commits.
+
+## The frontend's client
+
+The frontend's API client is generated from this app's OpenAPI schema. After changing a route or a
+schema, run `npm run api:generate` in `frontend/`. `tests/api/test_export_openapi.py` fails until
+you do.
