@@ -9,6 +9,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { MemberBall, MemberSprite } from './member-sprite'
+import { TeamPower } from './team-power'
 
 // On hover or focus, the sprites hop one after another, this far apart.
 const HOP_STAGGER_MS = 60
@@ -52,6 +53,7 @@ export function TeamCard({ to, name, members, note }: TeamCardProps) {
           </li>
         ))}
       </ol>
+      <TeamPower members={members} />
     </Link>
   )
 }

@@ -2,12 +2,14 @@ import { Plus } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useId } from 'react'
 import { Link } from 'react-router'
 
-import type { TeamMember } from '@/api'
+import type { Stats, TeamMember } from '@/api'
+import { BaseStats } from '@/components/pokemon/base-stats'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
-import { dexNumber, displayName } from '@/components/pokemon/format'
+import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { TypeBadges } from '@/components/pokemon/type-badges'
+import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -51,7 +53,7 @@ type LeadSlotProps = {
   onOpen: () => void
 }
 
-/** The lead's slot, large: labelled as the lead, with a big sprite, its name and its types. */
+/** The lead's slot, large: labelled as the lead, with a big sprite, its name, types and stats. */
 export function LeadSlot({ member, onOpen }: LeadSlotProps) {
   const headingId = useId()
   return (
@@ -75,6 +77,13 @@ export function LeadSlot({ member, onOpen }: LeadSlotProps) {
           className="size-28 md:my-auto md:size-44 md:self-center lg:size-56"
         />
       </div>
+      <div className="flex flex-col gap-1.5">
+        <PanelStats stats={member.pokemon.stats} />
+        <dl className="flex justify-end gap-1 text-xs">
+          <dt>{m.pokemon_stat_total()}</dt>
+          <dd className="font-bold tabular-nums">{statTotal(member.pokemon.stats)}</dd>
+        </dl>
+      </div>
       <OpenButton labelledBy={headingId} onOpen={onOpen} />
     </MemberPanel>
   )
@@ -88,7 +97,10 @@ type TeamSlotProps = {
   children?: ReactNode
 }
 
-/** A member's slot as a row: its number, sprite, name, Pokédex number and types. */
+/**
+ * A member's slot as a row: its number, sprite, Pokédex number, name, types and base stat total;
+ * from lg up, where the row is wide enough, its base stats too.
+ */
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
   const headingId = useId()
   return (
@@ -99,7 +111,12 @@ export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
         <MemberNumber member={member} />
         <MemberName id={headingId} member={member} className="truncate text-lg" />
         <MemberTypes member={member} />
+        <TotalBar stats={member.pokemon.stats} />
       </div>
+      <PanelStats
+        stats={member.pokemon.stats}
+        className="hidden w-44 shrink-0 gap-0 text-[11px] leading-tight lg:flex"
+      />
       {onOpen && <OpenButton labelledBy={headingId} onOpen={onOpen} />}
       {/* Over the open button, so it can be pressed on its own. */}
       {children && <div className="relative z-10 flex shrink-0 items-center">{children}</div>}
@@ -243,6 +260,40 @@ function MemberTypes({ member }: PartOfMemberProps) {
       types={member.pokemon.types}
       className="*:*:data-[slot=badge]:ring-2 *:*:data-[slot=badge]:ring-white/80"
     />
+  )
+}
+
+type StatsProps = { stats: Stats; className?: string }
+
+// The base stats in the panel's text color: labels, values and bars, on a faint track.
+function PanelStats({ stats, className }: StatsProps) {
+  return (
+    <BaseStats
+      stats={stats}
+      className={cn(
+        '[--type-1:currentColor] [&_[data-slot=progress]]:bg-current/20 [&_dt]:text-current',
+        className,
+      )}
+    />
+  )
+}
+
+// The base stat total, with a bar against MAX_STAT_TOTAL, like the HP bar on the games' party
+// screen. A total past it fills the bar.
+function TotalBar({ stats }: StatsProps) {
+  const total = statTotal(stats)
+  return (
+    <dl className="flex items-center gap-1.5 text-xs">
+      <dt>{m.pokemon_stat_total()}</dt>
+      <dd className="flex items-center gap-2">
+        <span className="w-7 font-bold tabular-nums">{total}</span>
+        <Progress
+          aria-hidden="true"
+          value={Math.min(total / MAX_STAT_TOTAL, 1) * 100}
+          className="h-1.5 w-16 bg-current/20 *:data-[slot=progress-indicator]:bg-current"
+        />
+      </dd>
+    </dl>
   )
 }
 

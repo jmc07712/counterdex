@@ -29,6 +29,12 @@ export const STATS = [
   'speed',
 ] as const satisfies (keyof Stats)[]
 
+/**
+ * Arceus's base stat total. Only some special forms, such as a few Mega Evolutions, go higher.
+ * Bars of a total measure against it.
+ */
+export const MAX_STAT_TOTAL = 720
+
 export function statTotal(stats: Stats): number {
   return Object.values(stats).reduce((total, value) => total + value, 0)
 }

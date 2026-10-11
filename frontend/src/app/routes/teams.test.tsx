@@ -81,6 +81,11 @@ describe('TeamsPage', () => {
     renderWithProviders(<TeamsPage />)
 
     const card = await screen.findByRole('link', { name: /Team 1/ })
+    // Each catalog Pokémon's base stats add up to 540.
+    expect(within(card).getByRole('meter', { name: 'Team power' })).toHaveAttribute(
+      'aria-valuetext',
+      '1,080',
+    )
     // Decoration: the link names the team, so its tiles are hidden from assistive technology.
     const tiles = within(card).getAllByRole('listitem', { hidden: true })
     expect(tiles).toHaveLength(6)

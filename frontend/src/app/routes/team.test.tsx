@@ -17,6 +17,7 @@ import {
   serveSession,
   serveTeams,
 } from '@/test/handlers'
+import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -450,12 +451,28 @@ describe('TeamPage, as a party', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
     expect(screen.getByText('3 of 6')).toBeInTheDocument()
+    // Each catalog Pokémon's base stats add up to 540.
+    const power = screen.getByRole('meter', { name: 'Team power' })
+    expect(power).toHaveAttribute('aria-valuetext', '1,620')
+    expect(power).toHaveAttribute('aria-valuenow', '1620')
+    expect(power).toHaveAttribute('aria-valuemax', '4320')
+    expect(power).toHaveAccessibleDescription('The sum of its Pokémon’s base stats')
     const rows = slotRows()
     expect(rows).toHaveLength(6)
     expect(rows[0]).toHaveTextContent('Lead')
     expect(within(rows[0]).getByRole('heading', { level: 2 })).toHaveTextContent('Charizard')
     expect(rows[0]).toHaveTextContent('No. 0006')
     expect(rows[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
+    expect(termsAndDefinitions(rows[0])).toEqual([
+      ['HP', '95'],
+      ['Attack', '125'],
+      ['Defense', '79'],
+      ['Sp. Atk', '60'],
+      ['Sp. Def', '100'],
+      ['Speed', '81'],
+      ['Total', '540'],
+    ])
+    expect(termsAndDefinitions(rows[1])).toContainEqual(['Total', '540'])
     expect(rows.slice(1, 3).map((row) => within(row).getByRole('heading').textContent)).toEqual([
       'Pikachu',
       'Gengar',

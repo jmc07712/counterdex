@@ -7,6 +7,7 @@ import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
+import { TeamPower } from './team-power'
 import { EmptySlots, LeadSlot, PartySlots, TeamSlot } from './team-slots'
 
 type TeamPartyProps = {
@@ -33,13 +34,16 @@ export function TeamParty({ team, onOpenPokemon, actions, emptySlotsTo }: TeamPa
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-4xl font-extrabold break-words sm:text-5xl">{team.name}</h1>
-          <p className="mt-2 flex items-center gap-2 text-muted-foreground">
-            <span>{m.team_by({ username: team.owner.username })}</span>
-            <span aria-hidden="true" className="size-1 rounded-full bg-current" />
-            <span className="tabular-nums">
-              {m.team_member_count({ count: team.members.length, max: MAX_TEAM_SIZE })}
-            </span>
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <p className="flex items-center gap-2 text-muted-foreground">
+              <span>{m.team_by({ username: team.owner.username })}</span>
+              <span aria-hidden="true" className="size-1 rounded-full bg-current" />
+              <span className="tabular-nums">
+                {m.team_member_count({ count: team.members.length, max: MAX_TEAM_SIZE })}
+              </span>
+            </p>
+            <TeamPower members={team.members} className="w-full max-w-xs" />
+          </div>
         </div>
         {actions}
       </div>

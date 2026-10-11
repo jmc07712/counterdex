@@ -48,6 +48,21 @@
   "team_by": "by {username}",
   "team_slots": "Team, in battle order",
   "team_lead": "Lead",
+  "team_power": "Power",
+  "team_power_amount": [
+    {
+      "declarations": [
+        "input power",
+        "local amount = power: number"
+      ],
+      "selectors": [],
+      "match": {
+        "": "{amount}"
+      }
+    }
+  ],
+  "team_power_label": "Team power",
+  "team_power_description": "The sum of its Pokémon’s base stats",
   "team_empty_slot": "Empty slot",
   "team_add_to_slot": "Add Pokémon to slot {slot}",
   "team_remove": "Remove {name}",
