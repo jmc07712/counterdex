@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { routes } from '@/app/router'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { paths } from '@/config/paths'
 import {
@@ -10,6 +11,7 @@ import {
   serveCounterTeam,
   servePokemon,
   serveSession,
+  serveSyncStatus,
   serveTeams,
 } from '@/test/handlers'
 import { renderRoutes, renderWithProviders } from '@/test/render'
@@ -83,16 +85,19 @@ describe('TeamsPage, signed out', () => {
     )
   })
 
-  it('lists everyone’s teams, with no choice of whose', async () => {
-    const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
+  it.each(['/', '/?scope=mine'])(
+    'lists everyone’s teams at %s, with no choice of whose',
+    async (path) => {
+      const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
 
-    await renderTeams()
+      await renderTeams(path)
 
-    expect(await screen.findByRole('list', { name: 'Everyone’s teams' })).toBeInTheDocument()
-    expect(listQueries).toEqual([''])
-    expect(screen.queryByRole('radio', { name: 'My teams' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'New team' })).not.toBeInTheDocument()
-  })
+      expect(await screen.findByRole('list', { name: 'Everyone’s teams' })).toBeInTheDocument()
+      expect(listQueries).toEqual([''])
+      expect(screen.queryByRole('radio', { name: 'My teams' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'New team' })).not.toBeInTheDocument()
+    },
+  )
 })
 
 describe('TeamsPage, before it knows who’s signed in', () => {
@@ -143,6 +148,15 @@ describe('TeamsPage, signed in', () => {
     expect(screen.getByRole('radio', { name: 'My teams' })).not.toBeChecked()
     expect(await screen.findByRole('list', { name: 'Everyone’s teams' })).toBeInTheDocument()
     expect(listQueries).toEqual([''])
+  })
+
+  it('opens on everyone’s teams for a scope it doesn’t know', async () => {
+    const { listQueries } = serveTeams({ teams: [FIRE, RAIN] })
+
+    await renderTeams('/?scope=theirs')
+
+    expect(screen.getByRole('radio', { name: 'Everyone' })).toBeChecked()
+    await waitFor(() => expect(listQueries).toEqual(['']))
   })
 
   it('lists your teams, empty ones too, without saying whose they are', async () => {
@@ -220,6 +234,43 @@ describe('TeamsPage, signed in', () => {
     await waitFor(() => expect(listQueries.at(-1)).toBe('q=fire&type=fire&changed=true&owner=ash'))
   })
 
+  it('loads the next page of your teams', async () => {
+    const { listQueries } = serveTeams({ teams: [FIRE, RAIN, DRAFT], pageSize: 1 })
+    const { user } = await renderTeams('/?scope=mine')
+
+    await screen.findByRole('article', { name: 'Fire' })
+    await user.click(screen.getByRole('button', { name: 'Load more' }))
+
+    expect(await screen.findByRole('article', { name: 'Draft' })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
+    expect(listQueries.map((query) => new URLSearchParams(query).get('owner'))).toEqual([
+      'ash',
+      'ash',
+    ])
+  })
+
+  it('keeps showing your teams when the filters are cleared', async () => {
+    serveTeams({ teams: [FIRE, RAIN] })
+    // Added last, so it answers first: nothing matches a search, and anything else goes on to
+    // the stand-in.
+    server.use(
+      http.get('/api/teams', ({ request }) => {
+        if (new URL(request.url).searchParams.has('q')) {
+          return HttpResponse.json({ items: [], next_cursor: null })
+        }
+      }),
+    )
+    const { user, router } = await renderTeams('/?scope=mine&q=zzz')
+
+    await user.click(await screen.findByRole('button', { name: 'Clear filters' }))
+
+    const mine = await screen.findByRole('list', { name: 'My teams' })
+    expect(within(mine).getByRole('article', { name: 'Fire' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'My teams' })).toBeChecked()
+    expect(router.state.location.search).toBe('?scope=mine')
+  })
+
   it('shows each team as six tiles: its members, in their types, then its empty slots', async () => {
     serveTeams({
       teams: [
@@ -270,6 +321,45 @@ describe('TeamsPage, signed in', () => {
     expect(router.state.location.search).toBe('')
   })
 
+  it.each([
+    ['with a mouse, to the search', false, 'searchbox'],
+    ['on a touch screen, to the results', true, 'region'],
+  ] as const)(
+    'moves focus when you browse everyone’s teams %s',
+    async (_, touch, focused) => {
+      if (touch) onTouchScreen()
+      serveTeams({ teams: [RAIN] })
+      const { user } = await renderTeams('/?scope=mine')
+
+      await user.click(await screen.findByRole('button', { name: 'Browse everyone’s teams' }))
+
+      const target =
+        focused === 'searchbox'
+          ? screen.getByRole('searchbox', { name: /Search teams/ })
+          : screen.getByRole('region', { name: 'Results' })
+      expect(target).toHaveFocus()
+      expect(await screen.findByRole('article', { name: 'Rain' })).toBeInTheDocument()
+    },
+  )
+
+  it('shows everyone’s teams once you sign out on yours', async () => {
+    serveTeams({ teams: [FIRE, RAIN, DRAFT] })
+    serveSyncStatus()
+    const { user } = renderRoutes(routes, { path: '/?scope=mine' })
+    await screen.findByRole('list', { name: 'My teams' })
+
+    const [account] = await screen.findAllByRole('button', { name: 'Account: ash' })
+    await user.click(account)
+    await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }))
+
+    expect(await screen.findByText('Sign in to build teams')).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'My teams' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Draft' })).not.toBeInTheDocument()
+    const everyones = await screen.findByRole('list', { name: 'Everyone’s teams' })
+    expect(within(everyones).getByRole('article', { name: 'Rain' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'My teams' })).not.toBeInTheDocument()
+  })
+
   it('creates one team however often New team is clicked, and opens it to edit', async () => {
     const api = serveTeams({ signedIn: ASH })
     const { user, router } = await renderTeams()
@@ -289,7 +379,11 @@ describe('TeamsPage, signed in', () => {
     const { user, router } = await renderTeams('/?scope=mine')
     await screen.findByRole('list', { name: 'My teams' })
 
-    await user.click(await screen.findByRole('button', { name: 'New team' }))
+    const button = await screen.findByRole('button', { name: 'New team' })
+    const heading = screen.getByRole('heading', { level: 1, name: 'Teams' })
+    expect(heading.parentElement).toContainElement(button)
+    expect(screen.getByRole('region', { name: 'Results' })).not.toContainElement(button)
+    await user.click(button)
 
     await waitFor(() =>
       expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/),
