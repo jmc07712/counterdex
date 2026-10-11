@@ -46,9 +46,9 @@ function slot() {
   return first
 }
 
-// The text of each list item in `slot`: its types, and the parts of its one-line change.
-function listItems(slot: HTMLElement) {
-  return within(slot)
+// The text of each list item in `row`: its types, and the parts of its one-line change.
+function listItems(row: HTMLElement) {
+  return within(row)
     .getAllByRole('listitem')
     .map((item) => item.textContent)
 }
