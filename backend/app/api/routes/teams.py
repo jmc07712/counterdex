@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 
@@ -44,6 +44,16 @@ TEAM_CONFLICT = (
     "The change can't be made to the team as it is now: `detail` says why, and `reason` gives it "
     "as a code."
 )
+# The error responses of a route that changes a team, which only its owner can do.
+OWNERS_ONLY: dict[int | str, dict[str, Any]] = {
+    status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
+    status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
+    status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
+}
+# The error response of a change that can conflict with the team as it is now.
+CONFLICTS: dict[int | str, dict[str, Any]] = {
+    status.HTTP_409_CONFLICT: {"model": TeamConflict, "description": TEAM_CONFLICT},
+}
 
 TeamId = Annotated[uuid.UUID, Path(description="The team's `id`: a UUID its creator chose.")]
 MemberId = Annotated[
@@ -137,10 +147,7 @@ def list_user_teams(session: SessionDep, username: Username) -> list[Team]:
     responses={
         status.HTTP_201_CREATED: {"model": Team, "description": "The team was created."},
         status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_409_CONFLICT: {
-            "model": TeamConflict,
-            "description": TEAM_CONFLICT,
-        },
+        **CONFLICTS,
     },
 )
 def create_team(
@@ -174,11 +181,7 @@ def get_team(session: SessionDep, team_id: TeamId) -> Team:
 @router.patch(
     "/teams/{team_id}",
     summary="Rename a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
-    },
+    responses=OWNERS_ONLY,
 )
 def rename_team(
     session: SessionDep,
@@ -195,11 +198,7 @@ def rename_team(
     "/teams/{team_id}",
     summary="Delete a team",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
-    },
+    responses=OWNERS_ONLY,
 )
 def delete_team(
     session: SessionDep, team: Annotated[models.Team, Depends(require_team_owner)]
@@ -212,15 +211,7 @@ def delete_team(
 @members_router.post(
     "/teams/{team_id}/members",
     summary="Add a Pokémon to a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
-        status.HTTP_409_CONFLICT: {
-            "model": TeamConflict,
-            "description": TEAM_CONFLICT,
-        },
-    },
+    responses=OWNERS_ONLY | CONFLICTS,
 )
 def add_team_member(
     session: SessionDep,
@@ -240,15 +231,9 @@ def add_team_member(
 @members_router.put(
     "/teams/{team_id}/members/{pokemon_id}",
     summary="Replace a Pokémon on a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"},
-        status.HTTP_409_CONFLICT: {
-            "model": TeamConflict,
-            "description": TEAM_CONFLICT,
-        },
-    },
+    responses=OWNERS_ONLY
+    | {status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"}}
+    | CONFLICTS,
 )
 def replace_team_member(
     session: SessionDep,
@@ -269,11 +254,8 @@ def replace_team_member(
 @members_router.delete(
     "/teams/{team_id}/members/{pokemon_id}",
     summary="Remove a Pokémon from a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"},
-    },
+    responses=OWNERS_ONLY
+    | {status.HTTP_404_NOT_FOUND: {"description": f"{TEAM_NOT_FOUND} Or: {MEMBER_NOT_FOUND}"}},
 )
 def remove_team_member(
     session: SessionDep,
@@ -290,15 +272,7 @@ def remove_team_member(
 @members_router.put(
     "/teams/{team_id}/order",
     summary="Reorder a team",
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": NOT_SIGNED_IN},
-        status.HTTP_403_FORBIDDEN: {"description": NOT_TEAM_OWNER},
-        status.HTTP_404_NOT_FOUND: {"description": TEAM_NOT_FOUND},
-        status.HTTP_409_CONFLICT: {
-            "model": TeamConflict,
-            "description": TEAM_CONFLICT,
-        },
-    },
+    responses=OWNERS_ONLY | CONFLICTS,
 )
 def reorder_team(
     session: SessionDep, team: Annotated[models.Team, Depends(require_team_owner)], order: TeamOrder
