@@ -5,7 +5,7 @@ Nothing here commits: the caller owns the transaction.
 
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.accounts import models
 from app.accounts.constants import RENEW_SESSIONS_WITHIN, SESSION_LIFETIME
 from app.accounts.exceptions import UsernameTakenError, UserNotFoundError
 from app.accounts.passwords import hash_password, verify_password
+from app.accounts.queries import find_user
 from app.accounts.schemas import Credentials, NewAccount, User
 from app.accounts.tokens import hash_token, new_token
 from app.accounts.types import SignedIn
@@ -45,7 +46,7 @@ def sign_in(session: Session, credentials: Credentials) -> SignedIn | None:
     A wrong username and a wrong password return the same thing.
     """
     password = credentials.password.get_secret_value()
-    user = _find_user(session, credentials.username)
+    user = find_user(session, credentials.username)
     if user is None:
         verify_password(password, None)
         return None
@@ -105,19 +106,12 @@ def set_admin(session: Session, username: str, is_admin: bool) -> User:
 
     The username's case doesn't matter. Raises UserNotFoundError if no one has it.
     """
-    user = _find_user(session, username)
+    user = find_user(session, username)
     if user is None:
         raise UserNotFoundError(username)
     user.is_admin = is_admin
     session.flush()
     return User.model_validate(user)
-
-
-def _find_user(session: Session, username: str) -> models.User | None:
-    """The user with this username, whatever its case."""
-    return session.scalars(
-        select(models.User).where(func.lower(models.User.username) == username.lower())
-    ).one_or_none()
 
 
 def _start_session(session: Session, user: models.User) -> SignedIn:
