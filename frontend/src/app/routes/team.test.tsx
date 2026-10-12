@@ -199,7 +199,7 @@ describe('TeamPage, for the team’s owner', () => {
     await user.click(screen.getByRole('button', { name: 'Add Pokémon' }))
 
     const sheet = await screen.findByRole('dialog', { name: 'Add Pokémon' })
-    expect(sheet).toHaveAttribute('data-slot', 'sheet-content')
+    expect(sheet).toHaveAttribute('data-side', 'bottom')
     expect(sheet).toHaveFocus()
     expect(within(sheet).getByRole('combobox', { name: 'Search Pokémon' })).not.toHaveFocus()
     expect(await within(sheet).findByRole('article', { name: 'Pikachu' })).toBeInTheDocument()

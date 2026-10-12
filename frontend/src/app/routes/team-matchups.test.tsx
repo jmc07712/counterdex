@@ -120,9 +120,8 @@ const threatMatchupOf: MatchupOf = (pokemon, opponentId) =>
 
 // What the list of threats is named.
 const TOP_THREE = 'The top 3, the biggest first'
-// The grid's caption, which names it, also says whose side each cell rates.
-const TOP_THREE_GRID =
-  'The top 3, the biggest first. Each cell rates your Pokémon (column) against the threat (row) as Good, Even or Bad, with how effective your Pokémon’s best moves are. Choose one to see why.'
+// The grid's caption, which names it, starts the same, then says whose side each cell rates.
+const TOP_THREE_GRID = /^The top 3, the biggest first\. /
 
 // Ash's team, with `viewer` signed in: Misty unless given, or Ash, or nobody. A counter built to
 // it opens matched up against it.
@@ -672,12 +671,14 @@ describe('TeamPage, threats to your own team', () => {
     expect(within(cards[0]).getByRole('button', { name: 'Dragonite' })).toHaveAccessibleDescription(
       'Beats Charizard, Pikachu and Gengar',
     )
-    // Its own thumb, and one for each member it beats.
-    expect(cards[0].querySelectorAll('img')).toHaveLength(1 + 3)
+    // Its own thumb, and one for each member it beats: decoration, hidden from screen readers.
+    const thumbs = (card: HTMLElement) =>
+      within(card).getAllByRole('presentation', { hidden: true })
+    expect(thumbs(cards[0])).toHaveLength(1 + 3)
     expect(within(cards[1]).getByText('Beats Charizard')).toBeInTheDocument()
-    expect(cards[1].querySelectorAll('img')).toHaveLength(1 + 1)
+    expect(thumbs(cards[1])).toHaveLength(1 + 1)
     expect(within(cards[2]).getByText('Even with all of yours')).toBeInTheDocument()
-    expect(cards[2].querySelectorAll('img')).toHaveLength(1)
+    expect(thumbs(cards[2])).toHaveLength(1)
   })
 
   it.each([

@@ -173,9 +173,12 @@ describe('useTeamChange', () => {
   it('leaves its owner’s list waiting to be fetched again when the team isn’t in it', async () => {
     serveTeams({ teams: [TEAM, OTHER], catalog: Object.values(catalog), signedIn: ASH })
     const held = holdRemoving(charmander.id)
-    const { result } = renderHookWithProviders(() => ({
+    // Not shown until the owner is set.
+    let owner: string | undefined
+    const { result, rerender } = renderHookWithProviders(() => ({
       client: useQueryClient(),
       remove: useRemoveTeamMember(TEAM),
+      listed: useUserTeams(owner),
     }))
     const listKey = listUserTeamsOptions({ path: { username: ASH.username } }).queryKey
     // Listed before the team was made, then marked to be fetched again when next shown.
@@ -188,8 +191,13 @@ describe('useTeamChange', () => {
       void result.current.remove(charmander.id)
     })
     await waitFor(() => expect(held.arrived()).toBe(1))
+    owner = ASH.username
+    rerender()
 
-    expect(result.current.client.getQueryState(listKey)?.isInvalidated).toBe(true)
+    // Shown now, it's fetched again, so it has the team.
+    await waitFor(() =>
+      expect(result.current.listed.data?.map((team) => team.id)).toContain(TEAM_ID),
+    )
     held.release()
   })
 })

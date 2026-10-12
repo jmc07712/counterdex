@@ -355,13 +355,15 @@ describe('TeamsPage, signed in', () => {
     const [tileList] = within(card).getAllByRole('list', { hidden: true })
     const tiles = within(tileList).getAllByRole('listitem', { hidden: true })
     expect(tiles).toHaveLength(6)
+    // A tile's sprite, hidden with it.
+    const sprite = (tile: HTMLElement) => within(tile).queryByRole('presentation', { hidden: true })
     expect(tiles[0]).toHaveStyle({ backgroundColor: TYPE_STYLES.fire.background })
-    expect(tiles[0].querySelector('img')).toBeInTheDocument()
+    expect(sprite(tiles[0])).toBeInTheDocument()
     // Removed from the Pokédex, so not painted in its type, but still there, and said so.
     expect(card).toHaveTextContent('Pikachu was removed from PokéAPI on Oct 11, 2026')
     expect(tiles[1]).not.toHaveStyle({ backgroundColor: TYPE_STYLES.electric.background })
-    expect(tiles[1].querySelector('img')).toBeInTheDocument()
-    for (const empty of tiles.slice(2)) expect(empty.querySelector('img')).not.toBeInTheDocument()
+    expect(sprite(tiles[1])).toBeInTheDocument()
+    for (const empty of tiles.slice(2)) expect(sprite(empty)).not.toBeInTheDocument()
   })
 
   it('invites you to build your first team, or to browse everyone’s', async () => {
@@ -440,7 +442,10 @@ describe('TeamsPage, signed in', () => {
 
     const button = await screen.findByRole('button', { name: 'New team' })
     const heading = screen.getByRole('heading', { level: 1, name: 'Teams' })
-    expect(heading.parentElement).toContainElement(button)
+    // Next after the heading, before the filters and results.
+    expect(heading.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    const filters = screen.getByRole('region', { name: 'Filters' })
+    expect(button.compareDocumentPosition(filters)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     expect(screen.getByRole('region', { name: 'Results' })).not.toContainElement(button)
     await user.click(button)
 
@@ -476,7 +481,7 @@ describe('TeamsPage, signed in', () => {
         expect(
           within(mine)
             .getAllByRole('article')
-            .map((card) => card.querySelector('h2')?.textContent),
+            .map((card) => within(card).getByRole('heading').textContent),
         ).toEqual(listed),
       )
     },
@@ -670,7 +675,7 @@ describe('TeamsPage, everyone’s teams', () => {
     const names = () =>
       within(screen.getByRole('list', { name: 'Everyone’s teams' }))
         .getAllByRole('article')
-        .map((card) => card.querySelector('h2')?.textContent)
+        .map((card) => within(card).getByRole('heading').textContent)
     await waitFor(() => expect(names()).toEqual(['Rain', 'Fire']))
 
     await user.click(screen.getByRole('radio', { name: 'Most powerful' }))

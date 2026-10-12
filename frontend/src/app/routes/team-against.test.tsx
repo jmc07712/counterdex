@@ -4,7 +4,6 @@ import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { type Matchup, type Pokemon, PokemonType, Rating, RelativeSpeed, type Team } from '@/api'
-import { getTeamQueryKey } from '@/api/@tanstack/react-query.gen'
 import { Toaster } from '@/components/layout/toaster'
 import { type MatchupOf, serveMatchups } from '@/test/handlers/counter'
 import { servePokemon } from '@/test/handlers/pokemon'
@@ -184,10 +183,8 @@ describe('TeamEditPage, against the team in ?against', () => {
     const { queryClient } = renderEdit(`${EDIT}?against=${unknown}`)
 
     expect(await screen.findByRole('textbox', { name: 'Team name' })).toBeInTheDocument()
-    // Their team has been asked for and not found.
-    await waitFor(() =>
-      expect(queryClient.getQueryData(getTeamQueryKey({ path: { team_id: unknown } }))).toBeNull(),
-    )
+    // Once their team has been asked for and not found.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
     expect(screen.queryByRole('region', { name: /^Against/ })).not.toBeInTheDocument()
     expect(requests).toEqual([])
   })

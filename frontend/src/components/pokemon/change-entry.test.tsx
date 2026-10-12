@@ -53,7 +53,7 @@ describe('ChangeEntry', () => {
 
     expect(container).toHaveTextContent('Removed from PokéAPI')
     expect(screen.getByText('Oct 9, 2026')).toBeInTheDocument()
-    expect(container.querySelector('dl')).not.toBeInTheDocument()
+    expect(screen.queryByRole('term')).not.toBeInTheDocument()
   })
 
   it('shows a restoration’s kind and date, and what changed while it was away', () => {

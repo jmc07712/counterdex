@@ -42,7 +42,7 @@ describe('PokemonDetailsDialog', () => {
     servePokemonDetails()
 
     const { dialog, user, onClose } = await openDetails()
-    expect(dialog).toHaveAttribute('data-slot', 'sheet-content')
+    expect(dialog).toHaveAttribute('data-side', 'bottom')
     await user.keyboard('{Escape}')
 
     expect(onClose).toHaveBeenCalled()
@@ -53,7 +53,8 @@ describe('PokemonDetailsDialog', () => {
     servePokemonDetails()
 
     const { dialog, user, onClose } = await openDetails()
-    expect(dialog).toHaveAttribute('data-slot', 'dialog-content')
+    // Not a sheet from an edge of the screen.
+    expect(dialog).not.toHaveAttribute('data-side')
     await user.click(within(dialog).getByRole('button', { name: 'Close' }))
 
     expect(onClose).toHaveBeenCalled()
