@@ -1,4 +1,4 @@
-import type { Matchup, Pokemon, Rating } from '@/api'
+import { type Matchup, type Pokemon, Rating } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -8,16 +8,16 @@ import { matchupSentence, multiplierWords } from '../utils/matchup-sentence'
 
 // Each rating's status light.
 const LIGHTS: Record<Rating, string> = {
-  good: 'bg-led-green',
-  even: 'bg-led-yellow',
-  bad: 'bg-destructive',
+  [Rating.GOOD]: 'bg-led-green',
+  [Rating.EVEN]: 'bg-led-yellow',
+  [Rating.BAD]: 'bg-destructive',
 }
 
 // Each rating's tint, behind its words.
 const TINTS: Record<Rating, string> = {
-  good: 'bg-led-green/15',
-  even: 'bg-muted',
-  bad: 'bg-destructive/10',
+  [Rating.GOOD]: 'bg-led-green/15',
+  [Rating.EVEN]: 'bg-muted',
+  [Rating.BAD]: 'bg-destructive/10',
 }
 
 // A matchup's rating as a status light and a word, so it doesn't rest on color alone.
