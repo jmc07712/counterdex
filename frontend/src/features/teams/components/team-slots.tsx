@@ -1,16 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus, Replace } from 'lucide-react'
-import {
-  type ComponentProps,
-  createContext,
-  type ReactNode,
-  type Ref,
-  type RefObject,
-  use,
-  useId,
-  useState,
-} from 'react'
+import { type ComponentProps, type ReactNode, type Ref, useId } from 'react'
 import { Link } from 'react-router'
 
 import { ChangeKind, type Stats, type TeamMember } from '@/api'
@@ -26,21 +17,16 @@ import { formatDate } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
+import { ENTER, Entering, useEnterDelay } from '../hooks/use-enter-delay'
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { memberColors, MUTED } from '../utils/member-colors'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
 import { NewestChange, NewestChangeLine } from './newest-change'
 
-// Slots enter one after another, in battle order, this far apart.
-const ENTER_STAGGER_MS = 70
 // A sprite pops out of its Poké Ball this long after its slot starts to enter.
 const POP_OUT_AFTER_MS = 150
-const ENTER = 'animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both motion-reduce:animate-none'
 const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4 @max-[34rem]/slots:min-h-16'
-
-// Whether the slots are on their first render, when they enter one after another.
-const Entering = createContext<RefObject<boolean>>({ current: false })
 
 type TeamSlotsProps = {
   // The list, which focus can be moved to.
@@ -85,17 +71,6 @@ export function PartySlots({ children }: { children: ReactNode }) {
       </ol>
     </Entering>
   )
-}
-
-/**
- * How long a slot waits to enter: its place in battle order when the slots first show, and not at
- * all when it shows later. Kept from its first render, as the slots' next render would otherwise
- * cut its wait short.
- */
-function useEnterDelay(slot: number) {
-  const entering = use(Entering)
-  const [delay] = useState(() => (entering.current ? slot * ENTER_STAGGER_MS : 0))
-  return delay
 }
 
 type LeadSlotProps = {
