@@ -69,11 +69,7 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     )
     if row is None:
         return None
-    species = session.scalars(
-        select(models.Species)
-        .join(models.SpeciesVariety, models.SpeciesVariety.species_id == models.Species.id)
-        .where(models.SpeciesVariety.pokemon_id == pokemon_id)
-    ).one_or_none()
+    species = None if row["species_id"] is None else session.get(models.Species, row["species_id"])
     if species is None:
         # A sync stores a Pokémon before its species, so this lasts until a sync stores both.
         return schemas.PokemonDetails(
