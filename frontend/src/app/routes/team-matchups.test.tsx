@@ -208,15 +208,15 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const { user } = renderTeam()
 
     const section = await findSection()
-    const choosing = within(section).getByRole('list', { name: 'Choosing the picks' })
+    const choosing = within(section).getByRole('list', { name: 'How the picks are chosen' })
     expect(choosing).not.toBeVisible()
 
     await user.click(within(section).getByText('How it works'))
 
     expect(choosing).toBeVisible()
-    expect(choosing).toHaveTextContent('The counter is built one pick at a time.')
-    expect(within(section).getByRole('list', { name: 'Scoring a matchup' })).toHaveTextContent(
-      'A score of 0.75 or more is Good, −0.75 or less is Bad',
+    expect(choosing).toHaveTextContent('Pokémon are added one at a time')
+    expect(within(section).getByRole('list', { name: 'How a matchup is scored' })).toHaveTextContent(
+      '0.75 or more is Good, −0.75 or less is Bad',
     )
   })
 
@@ -658,14 +658,14 @@ describe('TeamPage, threats to your own team', () => {
     const { user } = renderTeam()
 
     const section = await findThreats()
-    const choosing = within(section).getByRole('list', { name: 'Choosing the top 12' })
+    const choosing = within(section).getByRole('list', { name: 'How the top 12 are chosen' })
     expect(choosing).not.toBeVisible()
 
     await user.click(within(section).getByText('How it works'))
 
-    expect(choosing).toHaveTextContent('The threats are the 12 with the highest totals')
+    expect(choosing).toHaveTextContent('The 12 with the highest totals are your top threats')
     expect(choosing).toHaveTextContent('A weak spot is one of your Pokémon')
-    expect(within(section).getByRole('list', { name: 'Scoring a matchup' })).toBeVisible()
+    expect(within(section).getByRole('list', { name: 'How a matchup is scored' })).toBeVisible()
   })
 
   it('shows its top threats below its party, with where the team is weak to them', async () => {
