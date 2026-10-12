@@ -115,7 +115,7 @@ changes more (`features/sync-status`).
   this week and which was removed from PokéAPI and when.
 - **A team** (`/teams/:teamId`) is a party screen: the lead large, then the other five in battle
   order, each slot in its main type's color with its stats, and the team's power, the sum of its
-  members' base stat totals. Opening a member shows its details. A line above the slots names the
+  members' base stat totals. Opening a member shows its details. A box above the slots names the
   members a sync changed this week. The lead shows its newest change as the Pokédex's change
   history does, and the other slots sum theirs up on one line. A removed member is muted, with the
   date it was removed in place of its types, which is its newest change.
@@ -143,7 +143,7 @@ changes more (`features/sync-status`).
   API's weights in `backend/app/counter/constants.py`, so a change there needs them changed too.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
   (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
-  pinned at the left, with its name to rename, the same line above the slots, and its slots, each
+  pinned at the left, with its name to rename, the same box above the slots, and its slots, each
   changed member's change on one line, a button to remove each member and a Replace link on each
   removed one; the Pokédex fills the rest, with the Pokédex page's filters, kept in the URL, and
   cards. Each card's button adds its Pokémon, puts it in the place of the member from its
