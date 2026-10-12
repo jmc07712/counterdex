@@ -61,10 +61,7 @@ type MatchupResultsProps = {
  */
 export function MatchupResults({ busy, className, children }: MatchupResultsProps) {
   return (
-    <div
-      aria-busy={busy}
-      className={cn('transition-opacity duration-200 aria-busy:opacity-60', className)}
-    >
+    <div aria-busy={busy} className={cn('busy-fade', className)}>
       {children}
     </div>
   )

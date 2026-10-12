@@ -106,7 +106,7 @@ export function TeamsGrid({
       <DealtInList
         aria-label={owner === undefined ? m.teams_everyones() : m.teams_mine()}
         aria-busy={teams.isPlaceholderData}
-        className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
+        className={`${GRID} busy-fade`}
       >
         {pages.flatMap((page) =>
           page.items.map((team, index) => (
