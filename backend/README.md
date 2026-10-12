@@ -43,7 +43,7 @@ app/
   api/         the FastAPI app: routes, middleware and the docs
   jobs/        command-line jobs, such as sync_pokemon
   migrations/  Alembic
-tests/         mirrors app/; fixtures are in the conftest.py files, and builders and the
+tests/         mirrors app/; shared fixtures are in tests/conftest.py, and builders and the
                fake PokéAPI in tests/support
 ```
 
@@ -73,7 +73,12 @@ The sync adds:
 - Enums are `StrEnum`s, stored as text with a CHECK (`text_enum()`) rather than as Postgres ENUM
   types, which can't drop values.
 - Constraints are named by a naming convention, so migrations refer to them predictably.
-- Routes declare their error responses inline and turn domain exceptions into `HTTPException`s.
+- When a service needs to know which constraint a write broke, it compares the name with
+  `violates_unique` (`app/core/db.py`) against the same constant the table is declared with,
+  such as `FAMILY_ON_TEAM` in `app/teams/models.py`. So the two can't drift apart.
+- Routes declare their error responses next to the route and turn domain exceptions into
+  `HTTPException`s. Responses several routes share are named once, such as `OWNERS_ONLY` and
+  `CONFLICTS` for the teams routes and `NOT_SYNCED` for the counter routes.
   Every error's `detail` is a sentence saying what's wrong, and what to do where that helps. A
   team's 409 also gives a `reason` code, such as `family_on_team`, for clients to act on.
 - Text the API takes in is refused with a 422 if it contains a NUL character, which Postgres can't
@@ -92,13 +97,13 @@ The sync adds:
   the species to the Pokémon (`species_varieties`) and the family to the species (`species`). The
   service checks the rules first and raises `TeamConflictError`, whose reason becomes the 409's
   `reason`.
-- `GET /api/teams` lists everyone's teams that have a Pokémon, newest first, a page at a time.
-  `q` matches a team's name, its owner's username or a member's name, ignoring case; `type`,
-  repeatable, needs a member of each type; `changed` needs a member a sync changed in the last
-  week; `owner` keeps one user's teams, including those with no Pokémon yet unless another filter
-  needs one. Filters combine. `sort=power` orders by the sum of the members' base stats instead,
-  worked out on read from current stats, so no index serves it and each page reads every
-  matching team.
+- `GET /api/teams` lists everyone's teams that have a Pokémon, newest first, a page at a time. `q`
+  matches a team's name, its owner's username or a member's name, ignoring case; `type`, repeatable,
+  needs a member of each type; `changed` needs a member a sync changed in the last week; `owner`
+  keeps one user's teams, including those with no Pokémon yet unless another filter needs one.
+  Filters combine. `sort=power` orders by the sum of the members' base stats instead (`stat_total()`
+  in `app/pokemon/queries.py`), worked out on read from current stats, so no index serves it and
+  each page reads every matching team.
 
 ## Atomicity and races
 
@@ -179,6 +184,12 @@ their lead, then the rest in the order of the opponents they each score best aga
 Choosing one at a time isn't guaranteed to find the best possible six: that would mean scoring
 every set of six from the whole Pokédex. It's quick, it gives the same answer every time, and each
 pick can be explained by its matchups.
+
+**Why these numbers.** The weights are picked by hand, because there's no battle data to fit them
+to. Each one is checked against the synced Pokédex. For example, a stat gap only outweighs a whole
+type step in 0.6% of pairs, so types decide most matchups. The reason for every number is written
+next to it in `app/counter/constants.py`, and the root README sums them up in
+[Why it's scored this way](../README.md#why-its-scored-this-way).
 
 **The threats** are the 12 Pokémon with the highest total score against the team, each evolution
 family once, by its best. Pokémon from the team's own evolution families are left out, a removed
@@ -347,6 +358,17 @@ uv run lint-imports
   a mock transport, and a test can make requests fail or edit the responses.
 - Race tests commit on two real connections, and use `pg_locks` to wait until the second is
   blocked before the first commits.
+- The suite has about 600 tests and runs in under ten seconds. Each behavior is tested once, at
+  the level that shows it best. Rules are tested in the service, and status codes, messages and
+  caching through the routes.
+- Passwords are hashed with cheap Argon2 settings in tests, except in
+  `tests/accounts/test_passwords.py`, which checks the real ones. Real hashing would take a
+  quarter of the run.
+- Shared fixtures such as `pokedex` (the type chart and a set of real Pokémon with their species and
+  families, as a sync stores them) and `sessions` live in `tests/conftest.py`. Builders such as
+  `remove_pokemon` and `change_recently` are in `tests/support/pokemon.py`.
+- One test checks that every route and every parameter has a description, so the API docs stay
+  complete.
 
 ## The frontend's client
 
