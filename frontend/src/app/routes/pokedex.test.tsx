@@ -15,6 +15,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveAsh } from '@/test/handlers/teams'
 import { onTouchScreen } from '@/test/media'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
+import { ON_SCREEN } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { failOnce, holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -244,8 +245,7 @@ describe('PokedexPage', () => {
 
     renderWithProviders(<PokedexPage />, { path: `/?status=${status}` })
 
-    // The one on screen, not the results status, which reads it out too.
-    expect(await screen.findByText(message, { ignore: '[role=status]' })).toBeInTheDocument()
+    expect(await screen.findByText(message, ON_SCREEN)).toBeInTheDocument()
   })
 
   it('keeps a search within the 50 characters the API takes', async () => {

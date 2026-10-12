@@ -23,6 +23,7 @@ import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { makeDetails } from '@/test/pokemon'
+import { ON_SCREEN } from '@/test/queries'
 import { failOnce, holdRequests, server } from '@/test/server'
 import { EDIT, renderTeam, VIEW } from '@/test/team-page'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -31,10 +32,6 @@ import { ASH, MISTY } from '@/test/users'
 const { charizard, pikachu, gengar, lapras, snorlax, dragonite } = catalog
 const CATALOG = Object.values(catalog)
 const { GOOD, BAD } = Rating
-
-// The results status reads the coverage line out too; text queries skip it to find the one on
-// screen.
-const ON_SCREEN = { ignore: '[role=status]' }
 
 const EDIT_PAGE = /^\/teams\/([0-9a-f-]{36})\/edit$/
 

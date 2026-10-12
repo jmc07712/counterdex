@@ -12,6 +12,7 @@ import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { onWideScreen } from '@/test/media'
+import { ON_SCREEN } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -22,9 +23,6 @@ import { TeamEditPage } from './team-edit'
 const { charmander, pikachu, gengar, lapras } = catalog
 const CATALOG = Object.values(catalog)
 const { GOOD, BAD } = Rating
-
-// The coverage line is read out too; text queries skip that copy to find the one on screen.
-const ON_SCREEN = { ignore: '[role=status]' }
 
 const THEIR_ID = '00000000-0000-4000-8000-000000000002'
 const OURS = makeTeam({ pokemon: [charmander, pikachu] })

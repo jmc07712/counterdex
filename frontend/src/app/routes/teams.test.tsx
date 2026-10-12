@@ -12,6 +12,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncStatus } from '@/test/handlers/sync'
 import { serveTeams } from '@/test/handlers/teams'
 import { onTouchScreen } from '@/test/media'
+import { ON_SCREEN } from '@/test/queries'
 import { renderRoutes, renderWithProviders } from '@/test/render'
 import { holdRequests, refusal, server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
@@ -19,10 +20,6 @@ import { ASH, MISTY } from '@/test/users'
 
 import { TeamEditPage } from './team-edit'
 import { TeamsPage } from './teams'
-
-// The results status reads an empty state's title out too; text queries skip it to find the one
-// on screen.
-const ON_SCREEN = { ignore: '[role=status]' }
 
 const RAIN = makeTeam({
   id: '00000000-0000-4000-8000-00000000000a',
