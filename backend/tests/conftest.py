@@ -4,11 +4,13 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.community.postgres import PostgresContainer
 
-from app.accounts import service
+from app.accounts import passwords, service
 from app.accounts.types import SignedIn
 from app.core.config import get_settings
 from app.core.db import Base, get_engine, get_session
@@ -19,6 +21,16 @@ from tests.support.pokemon import LEVEL_16, LEVEL_36, add_species, make_pokemon
 
 # Same major version as production (Neon) and docker-compose.yml.
 POSTGRES_IMAGE = "postgres:17-alpine"
+
+# Argon2id at its lowest cost. At the real cost, hashing the passwords of the users the tests
+# sign up took half the run.
+CHEAP_HASHER = PasswordHash((Argon2Hasher(time_cost=1, memory_cost=8, parallelism=1),))
+
+
+@pytest.fixture(autouse=True)
+def cheap_password_hashing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Passwords hashed with CHEAP_HASHER; test_passwords.py turns this off."""
+    monkeypatch.setattr(passwords, "_hasher", CHEAP_HASHER)
 
 
 @pytest.fixture

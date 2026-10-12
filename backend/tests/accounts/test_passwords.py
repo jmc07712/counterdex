@@ -4,6 +4,11 @@ from pwdlib import PasswordHash
 from app.accounts.passwords import hash_password, verify_password
 
 
+@pytest.fixture(autouse=True)
+def cheap_password_hashing() -> None:
+    """These tests are about the real hasher, so they keep it."""
+
+
 def test_hashes_with_argon2id() -> None:
     assert hash_password("pikachu1").startswith("$argon2id$")
 
