@@ -102,64 +102,58 @@ sync puts PokéAPI's real data back. It records that as changes too, including P
 
 ## Counter teams
 
-Counterdex can't simulate real battles, because PokéAPI's data doesn't include moves. Instead, it
-gives every pairing of two Pokémon a score. It then uses those scores to build counter teams and to
-find the biggest threats to your own teams.
+PokéAPI doesn't include moves, so Counterdex can't simulate real battles. Instead, it scores every
+pair of Pokémon. It uses those scores to build counter teams and to find threats to your teams.
 
 ### How the scoring works, and why
 
-The easiest way to see how a pairing is scored is to follow one. Here's Pikachu against Gyarados.
+Here's an example. Pikachu is up against Gyarados.
 
 | Step | What happens | Points |
 | --- | --- | --- |
-| Pikachu's best attack | Pikachu is an Electric type. Electric attacks are twice as strong against Water types and twice as strong against Flying types. Gyarados is both, so Pikachu's attacks are four times as strong. | +2 |
-| Gyarados's best attack | Gyarados is a Water and Flying type. Water attacks do normal damage to Pikachu, and Flying attacks do half. Its best attack is Water, at normal damage. | 0 |
-| Base stats | Pikachu's base stats add up to 320, and Gyarados's add up to 540. Pikachu is 220 points behind. | −0.55 |
-| Speed | Pikachu's Speed is 90 and Gyarados's is 81, so Pikachu is faster. | +0.25 |
+| Pikachu attacks | Electric hits Water types twice as hard, and Flying types twice as hard. Gyarados is both, so Pikachu hits it four times as hard. | +2 |
+| Gyarados attacks | Its best attack is Water, which hits Pikachu normally. | 0 |
+| Base stats | Pikachu's stats add up to 320. Gyarados's add up to 540. Pikachu is 220 behind. | −0.55 |
+| Speed | Pikachu (90) is faster than Gyarados (81). | +0.25 |
 | **Total** | | **+1.70** |
 
-A total of 0.75 or more is rated Good, so Pikachu against Gyarados is Good. Pikachu wins on type,
-even though its stats are much lower. From Gyarados's side, the score is exactly the opposite. It's
-−1.70, which is rated Bad.
+Anything 0.75 or higher is Good, so Pikachu beats Gyarados. Its type advantage matters more than its
+weaker stats. For Gyarados, the score flips to −1.70, which is Bad.
 
-Here's what each step counts, and why.
+The rules are simple.
 
-- Each Pokémon's best attack is worth one point for every time its damage doubles. Twice as strong
-  is +1, and four times as strong is +2. Half as strong is −1, a quarter is −2, and no effect at all
-  is −3. The other Pokémon's best attack counts against it in the same way. Types count the most
-  because they usually decide real battles.
-- Every 100 points of difference in base stats is worth a quarter of a point. In the example,
-  Pikachu is 220 points behind, so it loses 0.55. Stats are worth a lot less than types on purpose.
-  A stat gap only outweighs a full type advantage when it's 400 points or more, which is very rare.
-- The faster Pokémon gets a quarter of a point, and the slower one loses a quarter. Going first
-  matters, but the data only says which Pokémon is faster, not by how much.
-- A total of 0.75 or more is Good, −0.75 or less is Bad, and anything in between is Even.
+- **Attacks count the most.** Every time an attack's damage doubles, it's worth 1 point. So 2× is
+  +1 and 4× is +2. Weak attacks lose points the same way. ½× is −1, ¼× is −2, and no effect is −3.
+  The other Pokémon's best attack is scored the same way and taken away.
+- **Base stats count a little.** Every 100 points of difference is worth 0.25. A stat gap only beats
+  a type advantage when it's 400 points or more, and that's rare.
+- **Speed counts a little too.** Being faster is worth +0.25, and being slower is −0.25.
+- **The total sets the rating.** 0.75 or more is Good, −0.75 or less is Bad, and anything in between
+  is Even.
 
-I chose these numbers by hand, because there's no battle data to fit them to. Then I checked them
-against the real Pokédex to make sure types decide most pairings and stats mostly break close calls.
+I picked these numbers by hand, since there's no battle data to learn them from. Then I checked them
+against the real Pokédex. Types decide most matchups, and stats mostly settle the close ones.
 
 ### Building a counter team
 
-To build a counter team, Counterdex adds one Pokémon at a time. Each time, it picks the Pokémon that
-helps most against the team you're looking at. If three or more picks would be weak to the same
-type, the counter team loses a point, so it avoids stacking up one weakness. No two picks come from
-the same evolution family, legendary Pokémon and alternate forms are left out unless you turn them
-on, and the finished team comes back in battle order. Every pick in the app shows its score and a
-plain-English reason.
+Counterdex builds a counter team one Pokémon at a time. Each time, it adds the Pokémon that helps
+most against the other team. It tries not to pick three or more Pokémon with the same weakness. It
+never picks two Pokémon from the same evolution family. Legendary Pokémon and alternate forms are
+left out unless you turn them on. The team comes back in battle order, and every pick says why it
+was chosen.
 
-Adding one Pokémon at a time is fast and always gives the same team. Checking every possible team of
-six instead would mean looking at about 1.6 quadrillion teams. The downside is that it can
-occasionally miss a team of six that's only better as a whole.
+Why one at a time? Checking every possible team of six would mean looking at about 1.6 quadrillion
+teams. Picking one at a time is instant and always gives the same answer. It can sometimes miss a
+team that only works well as a whole.
 
 ### Threats to your own team
 
-On your own teams, Counterdex shows the 12 Pokémon that score best against your team instead.
-There's at most one from each evolution family, and none from your own team's families. Any of your
-Pokémon that at least half of those threats beat is called out as a weak spot.
+On your own teams, Counterdex shows the 12 Pokémon that do best against your team. It picks at most
+one from each evolution family, and skips your own team's families. If at least half of those
+threats beat one of your Pokémon, that Pokémon is marked as a weak spot.
 
-All of these numbers are in [`backend/app/counter/constants.py`](backend/app/counter/constants.py),
-with the reason for each one written next to it. The
-[backend guide](backend/README.md#counter-teams) has more detail.
+All the numbers live in [`backend/app/counter/constants.py`](backend/app/counter/constants.py), with
+a note explaining each one. The [backend guide](backend/README.md#counter-teams) has more detail.
 
 ## Design decisions
 
