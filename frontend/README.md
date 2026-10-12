@@ -247,7 +247,7 @@ A team's page (`/teams/:teamId`) is a party screen.
 - **A removed member** is muted, with the date it was removed in place of its types. The removal is
   its newest change.
 - **Below the party**, someone else's team shows [How to beat this team](#how-to-beat-this-team).
-  Your own shows [Top threats to this team](#top-threats-to-this-team).
+  Your own shows [Top threats to your team](#top-threats-to-your-team).
 - **The owner** also gets a View / Edit toggle, and a Replace link on each removed member.
 
 **Files:** `src/app/routes/team.tsx`, `components/saved-team.tsx`, `components/team-party.tsx`,
@@ -267,9 +267,9 @@ Under someone else's team, "How to beat this team" shows a counter from `GET /ap
 
 **Files:** `components/how-to-beat-team.tsx`, `components/counter-team-button.tsx`.
 
-### Top threats to this team
+### Top threats to your team
 
-Under your own team, "Top threats to this team" shows the Pokémon from `GET /api/team-threats`
+Under your own team, "Top threats to your team" shows the Pokémon from `GET /api/team-threats`
 that match up best against it. Each threat opens its details.
 
 - **No relatives.** None come from the team's own evolution families.

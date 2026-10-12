@@ -174,7 +174,7 @@ async function findSection() {
 }
 
 async function findThreats() {
-  return screen.findByRole('region', { name: 'Top threats to this team' })
+  return screen.findByRole('region', { name: 'Top threats to your team' })
 }
 
 function names(pokemon: Pokemon[]) {
@@ -645,7 +645,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await within(await findSection()).findByRole('table')
 
     expect(
-      screen.queryByRole('region', { name: 'Top threats to this team' }),
+      screen.queryByRole('region', { name: 'Top threats to your team' }),
     ).not.toBeInTheDocument()
     expect(threats).toEqual([])
   })
@@ -840,7 +840,7 @@ describe('TeamPage, threats to your own team', () => {
     const section = await findThreats()
 
     expect(
-      within(section).getByRole('group', { name: 'Finding threats to this team' }),
+      within(section).getByRole('group', { name: 'Finding threats to your team' }),
     ).toBeInTheDocument()
     expect(within(section).getByRole('status')).toBeEmptyDOMElement()
   })
@@ -926,7 +926,7 @@ describe('TeamPage, threats to your own team', () => {
 
     const section = await findThreats()
     expect(
-      await within(section).findByText('Couldn’t find threats to this team'),
+      await within(section).findByText('Couldn’t find threats to your team'),
     ).toBeInTheDocument()
 
     await user.click(within(section).getByRole('button', { name: 'Try again' }))
@@ -943,7 +943,7 @@ describe('TeamPage, threats to your own team', () => {
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
 
     expect(
-      screen.queryByRole('region', { name: 'Top threats to this team' }),
+      screen.queryByRole('region', { name: 'Top threats to your team' }),
     ).not.toBeInTheDocument()
     expect(threats).toEqual([])
   })
@@ -957,7 +957,7 @@ describe('TeamPage, threats to your own team', () => {
     await screen.findByRole('textbox', { name: 'Team name' })
 
     expect(
-      screen.queryByRole('region', { name: 'Top threats to this team' }),
+      screen.queryByRole('region', { name: 'Top threats to your team' }),
     ).not.toBeInTheDocument()
     expect(threats).toEqual([])
   })

@@ -374,7 +374,7 @@
   "matchup_how_speed": "Speed: +0.25 if it’s faster, −0.25 if it’s slower.",
   "matchup_how_ratings": "0.75 or more is Good, −0.75 or less is Bad, and anything in between is Even. Moves, abilities and items aren’t counted.",
   "team_counter_title": "How to beat this team",
-  "team_counter_description": "Six Pokémon picked to beat this team, in battle order. Each pick is scored against this team’s Pokémon on types, base stats and Speed.",
+  "team_counter_description": "Six Pokémon picked to beat this team, in battle order. On your own teams, you’ll see their top threats instead.",
   "team_counter_how_title": "How the picks are chosen",
   "team_counter_how_one_at_a_time": "Pokémon are added one at a time, each time the one that helps most against this team.",
   "team_counter_how_weaknesses": "Picks that share a weakness are avoided: if three or more are weak to one of this team’s types, that costs a point.",
@@ -426,8 +426,8 @@
     }
   ],
   "team_threat_beaten_by_all": "Beaten by all of yours",
-  "team_threats_title": "Top threats to this team",
-  "team_threats_description": "The Pokémon that match up best against it, scored on types, base stats and Speed.",
+  "team_threats_title": "Top threats to your team",
+  "team_threats_description": "The 12 Pokémon that do best against your team, so you can see where it’s weak. On someone else’s team, you’ll see a counter team to beat it instead.",
   "team_threats_how_title": "How the top 12 are chosen",
   "team_threats_how_score": "Every eligible Pokémon is scored against each of yours, and its scores are added up.",
   "team_threats_how_top": "The 12 with the highest totals are your top threats, at most one from each evolution family.",
@@ -488,9 +488,9 @@
       }
     }
   ],
-  "team_threats_loading": "Finding threats to this team",
+  "team_threats_loading": "Finding threats to your team",
   "team_threats_needs_sync": "Threats need a Pokédex sync first",
-  "team_threats_load_failed": "Couldn’t find threats to this team",
+  "team_threats_load_failed": "Couldn’t find threats to your team",
   "team_against_title": "Against {team}",
   "team_against_team_load_failed": "Couldn’t load the team to match up against",
   "team_against_close": "Stop matching up against {team}",
