@@ -421,6 +421,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(api.teams()[0].members.map((member) => member.pokemon.id)).toEqual(
       PICKS.map((pick) => pick.id),
     )
+    expect(await screen.findByRole('region', { name: 'Against Team 1' })).toBeInTheDocument()
   })
 
   it('links someone signed out to signing in first, then back to the same counter', async () => {
@@ -431,6 +432,11 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const section = await findSection()
 
     expect(await within(section).findByRole('link', { name: 'Build this counter' })).toHaveAttribute(
+      'href',
+      `/sign-in?next=${encodeURIComponent(`${VIEW}?alternate_forms=true`)}`,
+    )
+    // As does the Counter button beside the team's name.
+    expect(screen.getByRole('link', { name: 'Build a counter to Team 1' })).toHaveAttribute(
       'href',
       `/sign-in?next=${encodeURIComponent(`${VIEW}?alternate_forms=true`)}`,
     )
@@ -574,6 +580,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await screen.findByRole('heading', { level: 1, name: 'Team 1' })
 
     expect(screen.queryByRole('region', { name: 'How to beat this team' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Build a counter/ })).not.toBeInTheDocument()
     expect(counters).toEqual([])
   })
 
