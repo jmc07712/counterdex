@@ -180,13 +180,20 @@ def test_pages_through_a_search_without_repeating_or_skipping_a_team(
     )
 
 
-def test_a_search_with_a_cursor_no_team_has_gives_an_empty_page(
-    db_session: Session, ash: SignedIn
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param(TeamsQuery(q="rain", cursor=TEAM_ID), id="search"),
+        pytest.param(TeamsQuery(sort=TeamSort.POWER, cursor=TEAM_ID), id="power-sort"),
+    ],
+)
+def test_a_cursor_no_team_has_gives_an_empty_page(
+    db_session: Session, ash: SignedIn, query: TeamsQuery
 ) -> None:
     add_species_pokemon(db_session, 201)
     make_team(db_session, ash.user.id, 201, name="Rain")
 
-    page = queries.list_teams(db_session, TeamsQuery(q="rain", cursor=TEAM_ID))
+    page = queries.list_teams(db_session, query)
 
     assert page == TeamPage(items=[], next_cursor=None)
 
@@ -641,17 +648,6 @@ def test_pages_through_an_owners_teams_by_power_across_ones_with_no_pokemon(
         ["Empty 2h"],
     ]
     assert (first.next_cursor, second.next_cursor) == (empty_hour.id, None)
-
-
-def test_a_power_sort_with_a_cursor_no_team_has_gives_an_empty_page(
-    db_session: Session, ash: SignedIn
-) -> None:
-    add_species_pokemon(db_session, 201)
-    make_team(db_session, ash.user.id, 201, name="Rain")
-
-    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER, cursor=TEAM_ID))
-
-    assert page == TeamPage(items=[], next_cursor=None)
 
 
 @pytest.mark.parametrize(

@@ -101,34 +101,22 @@ async def test_moves_a_team_member_to_the_family_of_its_pokemons_new_species(
     assert members(committing_sessions) == [(6, 26, 10)]
 
 
+@pytest.mark.parametrize(
+    "edit",
+    [
+        pytest.param(pikachus_family_joins_charizards, id="their-families-become-one"),
+        pytest.param(charizard_joins_raichus_species, id="one-moves-into-the-others-family"),
+    ],
+)
 async def test_fails_a_sync_that_would_give_a_team_two_pokemon_from_one_family(
-    committing_sessions: sessionmaker[Session],
+    committing_sessions: sessionmaker[Session], edit: Callable[[str, dict[str, Any]], None]
 ) -> None:
-    # Charizard and Pikachu share a team, so making their families one would break the family
-    # rule. The sync fails and is rolled back, rather than taking a Pokémon off the team.
+    # Charizard and Pikachu share a team, so putting them in one family would break the family
+    # rule. The sync fails and is rolled back, rather than taking a Pokémon off the team, so
+    # each stays in its own species and family.
     await sync_with_a_team(committing_sessions, 6, 25)
 
-    exit_code = await sync_pokemon(
-        fake_pokeapi(edit=pikachus_family_joins_charizards), committing_sessions
-    )
-
-    assert (exit_code, counts(committing_sessions)) == (
-        1,
-        (2, [SyncStatus.SUCCEEDED, SyncStatus.FAILED]),
-    )
-    assert members(committing_sessions) == [(6, 6, 2), (25, 25, 10)]
-
-
-async def test_fails_a_sync_that_moves_a_pokemon_into_the_family_of_another_on_its_team(
-    committing_sessions: sessionmaker[Session],
-) -> None:
-    # Charizard moves into Raichu's species, in Pikachu's family, and Pikachu is on its team.
-    # The sync fails and is rolled back, so Charizard stays in its own species and family.
-    await sync_with_a_team(committing_sessions, 6, 25)
-
-    exit_code = await sync_pokemon(
-        fake_pokeapi(edit=charizard_joins_raichus_species), committing_sessions
-    )
+    exit_code = await sync_pokemon(fake_pokeapi(edit=edit), committing_sessions)
 
     assert (exit_code, counts(committing_sessions)) == (
         1,

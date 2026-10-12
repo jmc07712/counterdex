@@ -147,15 +147,30 @@ def test_adding_to_a_full_team_fails(db_session: Session, ash: SignedIn) -> None
 # --- Replacing ---
 
 
+# A member's own family can replace it: a later stage, another form or another branch.
+@pytest.mark.parametrize(
+    ("old", "new", "family"),
+    [
+        pytest.param(4, 6, 2, id="later-stage"),
+        pytest.param(6, 10034, 2, id="other-form"),
+        pytest.param(134, 135, 67, id="another-branch"),
+    ],
+)
 @pytest.mark.usefixtures("charmander_family")
-def test_replacing_keeps_the_slot(db_session: Session, ash: SignedIn) -> None:
+def test_replacing_keeps_the_slot(
+    db_session: Session, ash: SignedIn, old: int, new: int, family: int
+) -> None:
+    add_eevee_family(db_session)
     add_species_pokemon(db_session, 201)
-    team = make_team(db_session, ash.user.id, 4, 201)
+    team = make_team(db_session, ash.user.id, old, 201)
     locked = service.lock_owned_team(db_session, ash.user.id, team.id)
 
-    replaced = service.replace_member(db_session, locked, 4, 6)
+    replaced = service.replace_member(db_session, locked, old, new)
 
-    assert member_ids(replaced) == [6, 201]
+    assert [(member.pokemon.id, member.pokemon.family_id) for member in replaced.members] == [
+        (new, family),
+        (201, 1201),
+    ]
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -179,28 +194,6 @@ def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
     replaced = service.replace_member(db_session, locked, 4, 6)
 
     assert member_ids(replaced) == [6, 201, 202, 203, 204, 205]
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_a_member_can_be_replaced_by_its_other_form(db_session: Session, ash: SignedIn) -> None:
-    team = make_team(db_session, ash.user.id, 6)
-    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
-
-    assert member_ids(service.replace_member(db_session, locked, 6, 10034)) == [10034]
-
-
-def test_a_member_can_be_replaced_by_another_branch_of_its_family(
-    db_session: Session, ash: SignedIn
-) -> None:
-    add_eevee_family(db_session)
-    team = make_team(db_session, ash.user.id, 134)
-    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
-
-    replaced = service.replace_member(db_session, locked, 134, 135)
-
-    assert [(member.pokemon.id, member.pokemon.family_id) for member in replaced.members] == [
-        (135, 67)
-    ]
 
 
 @pytest.mark.usefixtures("charmander_family")

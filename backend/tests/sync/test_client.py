@@ -115,24 +115,14 @@ async def test_waits_as_long_as_a_429_or_503_asks_up_to_the_most(
         pytest.param(503, {}, id="503-without-Retry-After"),
         # HTTP defines Retry-After for 429 and 503, not for other server errors.
         pytest.param(500, {"Retry-After": "2"}, id="500-with-Retry-After"),
+        # Arabic-Indic three: str.isdecimal accepts it and int() reads it as 3.
+        pytest.param(429, {b"Retry-After": "٣".encode()}, id="429-in-non-ascii-digits"),
     ],
 )
 async def test_waits_the_doubling_delay_unless_a_429_or_503_asks_for_seconds(
-    sleeps: list[float], status: int, headers: dict[str, str]
+    sleeps: list[float], status: int, headers: dict[str, str] | dict[bytes, bytes]
 ) -> None:
     handler = answering_first(httpx2.Response(status, headers=headers))
-
-    result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
-
-    assert [p.name for p in result.pokemon] == ["pikachu"]
-    assert sleeps == [0.5]
-
-
-async def test_waits_the_doubling_delay_when_a_429_asks_in_non_ascii_digits(
-    sleeps: list[float],
-) -> None:
-    # Arabic-Indic three: str.isdecimal accepts it and int() reads it as 3.
-    handler = answering_first(httpx2.Response(429, headers={b"Retry-After": "٣".encode()}))
 
     result = await client_for(handler, retry_delay=0.5).fetch_pokemon()
 

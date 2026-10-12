@@ -137,18 +137,19 @@ def test_signing_out_leaves_other_sessions(db_session: Session, ash: SignedIn) -
 # --- Making admins ---
 
 
-def test_makes_a_user_an_admin(db_session: Session, ash: SignedIn) -> None:
-    user = service.set_admin(db_session, "ash", True)
+@pytest.mark.parametrize(
+    ("username", "is_admin"),
+    [pytest.param("ash", True, id="make-an-admin"), pytest.param("oak", False, id="take-it-away")],
+)
+def test_makes_a_user_an_admin_or_takes_that_away(
+    db_session: Session, request: pytest.FixtureRequest, username: str, is_admin: bool
+) -> None:
+    signed_in: SignedIn = request.getfixturevalue(username)
 
-    assert user == ash.user.model_copy(update={"is_admin": True})
-    assert db_session.get_one(User, ash.user.id).is_admin is True
+    user = service.set_admin(db_session, username, is_admin)
 
-
-def test_takes_admin_away(db_session: Session, oak: SignedIn) -> None:
-    user = service.set_admin(db_session, "oak", False)
-
-    assert user == oak.user.model_copy(update={"is_admin": False})
-    assert db_session.get_one(User, oak.user.id).is_admin is False
+    assert user == signed_in.user.model_copy(update={"is_admin": is_admin})
+    assert db_session.get_one(User, signed_in.user.id).is_admin is is_admin
 
 
 def test_finds_the_user_whatever_the_case(db_session: Session) -> None:
@@ -159,18 +160,22 @@ def test_finds_the_user_whatever_the_case(db_session: Session) -> None:
     assert user == brock.model_copy(update={"is_admin": True})
 
 
-def test_making_an_admin_again_changes_nothing(db_session: Session, oak: SignedIn) -> None:
-    first = service.set_admin(db_session, "oak", True)
-    second = service.set_admin(db_session, "oak", True)
+@pytest.mark.parametrize(
+    ("username", "is_admin"),
+    [
+        pytest.param("oak", True, id="make-an-admin-again"),
+        pytest.param("ash", False, id="take-it-away-again"),
+    ],
+)
+def test_setting_admin_again_changes_nothing(
+    db_session: Session, request: pytest.FixtureRequest, username: str, is_admin: bool
+) -> None:
+    signed_in: SignedIn = request.getfixturevalue(username)
 
-    assert first == second == oak.user
+    first = service.set_admin(db_session, username, is_admin)
+    second = service.set_admin(db_session, username, is_admin)
 
-
-def test_taking_admin_away_again_changes_nothing(db_session: Session, ash: SignedIn) -> None:
-    first = service.set_admin(db_session, "ash", False)
-    second = service.set_admin(db_session, "ash", False)
-
-    assert first == second == ash.user
+    assert first == second == signed_in.user
 
 
 def test_leaves_other_users_alone(db_session: Session, ash: SignedIn, misty: SignedIn) -> None:
