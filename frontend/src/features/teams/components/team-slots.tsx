@@ -37,7 +37,7 @@ const ENTER_STAGGER_MS = 70
 // A sprite pops out of its Poké Ball this long after its slot starts to enter.
 const POP_OUT_AFTER_MS = 150
 const ENTER = 'animate-in fade-in-0 slide-in-from-bottom-3 duration-300 fill-mode-both motion-reduce:animate-none'
-const ROW = 'flex min-h-16 items-center gap-3 py-2 pr-3 pl-4'
+const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4 @max-[34rem]/slots:min-h-16'
 
 // Whether the slots are on their first render, when they enter one after another.
 const Entering = createContext<RefObject<boolean>>({ current: false })
@@ -48,7 +48,10 @@ type TeamSlotsProps = {
   children: ReactNode
 }
 
-/** A team's six slots, stacked in battle order: its members' slots, then EmptySlots. */
+/**
+ * A team's six slots, stacked in battle order: its members' slots, then EmptySlots. Narrower than
+ * 34rem, as in Edit's column, the slots are compact.
+ */
 export function TeamSlots({ ref, children }: TeamSlotsProps) {
   const entering = useFirstRender()
   return (
@@ -57,7 +60,7 @@ export function TeamSlots({ ref, children }: TeamSlotsProps) {
         ref={ref}
         tabIndex={-1}
         aria-label={m.team_slots()}
-        className="flex flex-col gap-2 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="@container/slots flex flex-col gap-2 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {children}
       </ol>
@@ -156,9 +159,10 @@ type TeamSlotProps = {
 }
 
 /**
- * A member's slot as a row: its number, sprite, name and types, and its newest change on a line if
- * a sync changed it recently. In a row at least 34rem wide, its sprite is larger, with its Pokédex
- * number above its name, its base stat total below its types, and its base stats beside them.
+ * A member's slot as a row: its number, sprite, Pokédex number, name, types and base stat total,
+ * and its newest change on a line if a sync changed it recently; in a row at least 34rem wide, its
+ * base stats too. In TeamSlots narrower than 34rem, its sprite is smaller, and its Pokédex number
+ * and base stat total are left out, with the changed mark beside its name instead.
  */
 export function TeamSlot({ member, onOpen, children }: TeamSlotProps) {
   return (
@@ -210,22 +214,22 @@ function SlotRow({ member, onOpen, children }: TeamSlotProps) {
   return (
     <>
       <SlotNumber slot={member.position} />
-      <PanelSprite member={member} className="size-12 @min-[34rem]:size-16" />
+      <PanelSprite member={member} className="size-16 @max-[34rem]/slots:size-12" />
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-        <MemberNumber member={member} className="hidden @min-[34rem]:flex" />
+        <MemberNumber member={member} className="@max-[34rem]/slots:hidden" />
         <div className="flex max-w-full items-center gap-1">
           <MemberName
             id={headingId}
             member={member}
-            className="min-w-0 truncate text-base leading-5 font-extrabold @min-[34rem]:text-lg @min-[34rem]:leading-7"
+            className="min-w-0 truncate text-lg font-extrabold @max-[34rem]/slots:text-base @max-[34rem]/slots:leading-5"
           />
           {/* In place of the Pokédex number's mark, while the number is left out. */}
           {member.pokemon.changed_recently && (
-            <ChangedMark className="shrink-0 text-current @min-[34rem]:hidden" />
+            <ChangedMark className="hidden shrink-0 text-current @max-[34rem]/slots:inline-flex" />
           )}
         </div>
         <MemberTypes member={member} />
-        <TotalBar stats={member.pokemon.stats} className="hidden @min-[34rem]:flex" />
+        <TotalBar stats={member.pokemon.stats} className="@max-[34rem]/slots:hidden" />
         <NewestChangeLine member={member} className="mt-0.5" />
       </div>
       <PanelStats
@@ -287,10 +291,7 @@ function EmptySlot({ slot, to }: { slot: number; to?: string }) {
   return (
     <li
       style={{ animationDelay: `${delay}ms` }}
-      className={cn(
-        ENTER,
-        '@container rounded-2xl border-2 border-dashed text-sm text-muted-foreground',
-      )}
+      className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
     >
       {to ? (
         <Link
@@ -349,8 +350,8 @@ function MemberPanel({ member, style, className, children, ...props }: MemberPan
 // As large as a member's sprite in a row as wide.
 function EmptyBall() {
   return (
-    <span className="grid size-12 shrink-0 place-items-center @min-[34rem]:size-16">
-      <PokeBall className="size-7 opacity-50 @min-[34rem]:size-9" />
+    <span className="grid size-16 shrink-0 place-items-center @max-[34rem]/slots:size-12">
+      <PokeBall className="size-9 opacity-50 @max-[34rem]/slots:size-7" />
     </span>
   )
 }
