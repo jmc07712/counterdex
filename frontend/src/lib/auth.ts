@@ -9,16 +9,13 @@ import {
 import { getCurrentUser, signOut, type User } from '@/api'
 import { getCurrentUserQueryKey } from '@/api/@tanstack/react-query.gen'
 
+import { dataOrNull } from './queries'
+
 /** Who's signed in: a user, or null for nobody. */
 export const currentUserOptions = queryOptions({
   queryKey: getCurrentUserQueryKey(),
-  queryFn: async ({ signal }): Promise<User | null> => {
-    const { data, response } = await getCurrentUser({ signal })
-    // The API answers 401 when nobody is signed in.
-    if (response?.status === 401) return null
-    if (data === undefined) throw new Error(`GET /api/session failed: ${response?.status}`)
-    return data
-  },
+  // The API answers 401 when nobody is signed in.
+  queryFn: ({ signal }) => dataOrNull(getCurrentUser({ signal }), 401),
   // Checked again whenever the app comes back into view, however recently, as signing in or
   // out in another tab changes it.
   refetchOnWindowFocus: 'always',
