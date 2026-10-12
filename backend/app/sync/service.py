@@ -16,7 +16,7 @@ from app.sync.models import PokemonChange, SyncRun
 from app.sync.normalize import normalize_pokemon, normalize_species, normalize_type_chart
 from app.sync.pokeapi import PokeApiPokemon
 from app.sync.store import store_pokemon, store_species, store_type_chart
-from app.sync.types import Clock, SyncReport
+from app.sync.types import Clock, StoreResult, SyncReport
 
 logger = logging.getLogger(__name__)
 
@@ -60,33 +60,14 @@ async def run_sync(
     # Stored whole or not at all: if a type failed to fetch, the chart stored before is kept.
     store_type_chart(session, normalize_type_chart(fetched_types.types))
 
-    run = SyncRun(
+    run = _record_run(
+        session,
+        result,
         started_at=started_at,
         finished_at=clock(),
-        status=SyncStatus.SUCCEEDED,
         fetched=len(fetched.pokemon),
-        inserted=result.inserted,
-        updated=result.updated,
-        unchanged=result.unchanged,
-        removed=result.removed,
-        restored=result.restored,
-        failed=sorted(failed),
+        failed=failed,
     )
-    session.add(run)
-    session.flush()
-    session.add_all(
-        PokemonChange(
-            pokemon_id=change.pokemon_id,
-            sync_run_id=run.id,
-            detected_at=started_at,
-            kind=change.kind,
-            before=change.before,
-            after=change.after,
-        )
-        for change in result.changes
-    )
-    session.flush()
-
     return SyncReport(
         run_id=run.id,
         fetched=run.fetched,
@@ -112,6 +93,45 @@ def _normalize_all(fetched: Iterable[PokeApiPokemon]) -> tuple[list[Pokemon], li
             logger.warning("Skipping %s: %s", raw.name, error)
             unusable.append(raw.name)
     return sorted(normalized.values(), key=lambda pokemon: pokemon.id), unusable
+
+
+def _record_run(
+    session: Session,
+    result: StoreResult,
+    *,
+    started_at: datetime,
+    finished_at: datetime,
+    fetched: int,
+    failed: list[str],
+) -> SyncRun:
+    """Record a sync that succeeded, and every change to a Pokémon it found."""
+    run = SyncRun(
+        started_at=started_at,
+        finished_at=finished_at,
+        status=SyncStatus.SUCCEEDED,
+        fetched=fetched,
+        inserted=result.inserted,
+        updated=result.updated,
+        unchanged=result.unchanged,
+        removed=result.removed,
+        restored=result.restored,
+        failed=sorted(failed),
+    )
+    session.add(run)
+    session.flush()
+    session.add_all(
+        PokemonChange(
+            pokemon_id=change.pokemon_id,
+            sync_run_id=run.id,
+            detected_at=started_at,
+            kind=change.kind,
+            before=change.before,
+            after=change.after,
+        )
+        for change in result.changes
+    )
+    session.flush()
+    return run
 
 
 def record_failed_sync(
