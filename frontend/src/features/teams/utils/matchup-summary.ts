@@ -3,6 +3,7 @@ import { displayName } from '@/components/pokemon/format'
 import { andList, formatList } from '@/lib/lists'
 import { m } from '@/paraglide/messages.js'
 
+import { beats, matchupAgainst } from './matchups'
 import type { WeakSpots } from './weak-spots'
 
 // Ratings from best to worst.
@@ -78,8 +79,7 @@ export function threatsSummary(threats: Challenger[], members: Pokemon[]) {
  * a good answer", or "Nothing here clearly beats Charizard", naming those that don't.
  */
 export function coverage(picks: Challenger[], opponents: Pokemon[]) {
-  const answered = new Set(picks.flatMap((pick) => opponentsRated(Rating.GOOD, pick.matchups)))
-  const unanswered = opponents.filter((opponent) => !answered.has(opponent.id))
+  const unanswered = opponents.filter((opponent) => !picks.some((pick) => beats(pick, opponent)))
   if (unanswered.length === 0) return m.team_matchup_covered()
   return m.team_matchup_uncovered({ names: andList(names(unanswered)) })
 }
@@ -88,7 +88,7 @@ export function coverage(picks: Challenger[], opponents: Pokemon[]) {
 export function bestAnswer(picks: Challenger[], opponentId: number) {
   let best: { pokemon: Pokemon; matchup: Matchup } | undefined
   for (const pick of picks) {
-    const matchup = pick.matchups.find((each) => each.opponent_id === opponentId)
+    const matchup = matchupAgainst(pick, opponentId)
     if (matchup && (!best || matchup.score > best.matchup.score)) {
       best = { pokemon: pick.pokemon, matchup }
     }

@@ -1,5 +1,7 @@
 import { type Challenger, type Pokemon, type PokemonType, Rating } from '@/api'
 
+import { beats } from './matchups'
+
 // How many weak spots are named, at most.
 const MOST_NAMED = 3
 
@@ -34,13 +36,6 @@ export function weakSpots(threats: Challenger[], members: Pokemon[]): WeakSpots 
     unnamed: Math.max(allExposed.length - MOST_NAMED, 0),
     commonType: common && common.count * 2 > threats.length ? common.item : null,
   }
-}
-
-/** Whether `threat` beats `member`: its matchup against the member, from its own side, is good. */
-export function beats(threat: Challenger, member: Pokemon) {
-  return threat.matchups.some(
-    (matchup) => matchup.opponent_id === member.id && matchup.rating === Rating.GOOD,
-  )
 }
 
 // The type a threat beats members with; undefined if it beats none.

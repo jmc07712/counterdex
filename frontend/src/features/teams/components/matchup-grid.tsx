@@ -5,6 +5,7 @@ import { displayName } from '@/components/pokemon/format'
 import { cn } from '@/lib/utils'
 
 import { asMember } from '../utils/as-member'
+import { matchupAgainst } from '../utils/matchups'
 import { MemberThumb } from './member-thumb'
 
 type MatchupGridProps = {
@@ -67,7 +68,7 @@ export function MatchupGrid({
               </span>
             </th>
             {members.map((member) => {
-              const matchup = row.matchups.find((each) => each.opponent_id === member.pokemon.id)
+              const matchup = matchupAgainst(row, member.pokemon.id)
               return <td key={member.pokemon.id}>{matchup && cell(row, member, matchup)}</td>
             })}
           </tr>

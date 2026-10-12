@@ -8,7 +8,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { asMember } from '../utils/as-member'
 import { threatReason, threatWithoutWins } from '../utils/matchup-summary'
-import { beats } from '../utils/weak-spots'
+import { beats } from '../utils/matchups'
 import { MemberThumb } from './member-thumb'
 
 type ThreatsListProps = {
