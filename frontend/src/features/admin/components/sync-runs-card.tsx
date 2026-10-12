@@ -2,7 +2,7 @@ import { History, SearchX } from 'lucide-react'
 import { useId } from 'react'
 import { Link } from 'react-router'
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -68,15 +68,7 @@ function PageOfRuns({ runs, page, titleId }: PageOfRunsProps) {
 
   if (runs.isError) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>{m.admin_runs_load_failed()}</AlertTitle>
-        <AlertDescription>{m.common_check_connection()}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => void runs.refetch()}>
-            {m.common_try_again()}
-          </Button>
-        </AlertAction>
-      </Alert>
+      <LoadFailedAlert title={m.admin_runs_load_failed()} onRetry={() => void runs.refetch()} />
     )
   }
 

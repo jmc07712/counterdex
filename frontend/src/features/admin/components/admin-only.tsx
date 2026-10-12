@@ -2,7 +2,7 @@ import { ShieldX } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,15 +22,10 @@ export function AdminOnly({ children }: { children: ReactNode }) {
 
   if (currentUser.isError) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>{m.admin_session_check_failed()}</AlertTitle>
-        <AlertDescription>{m.common_check_connection()}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => void currentUser.refetch()}>
-            {m.common_try_again()}
-          </Button>
-        </AlertAction>
-      </Alert>
+      <LoadFailedAlert
+        title={m.admin_session_check_failed()}
+        onRetry={() => void currentUser.refetch()}
+      />
     )
   }
 

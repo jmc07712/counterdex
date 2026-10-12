@@ -5,8 +5,8 @@ import { ListingStatus, type Pokemon } from '@/api'
 import { DealtInItem, DealtInList } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
 import { ResultsStatus } from '@/components/lists/results-status'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { PokemonCard } from '@/components/pokemon/pokemon-card'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -52,17 +52,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
   }
 
   if (query.isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>{m.pokedex_load_failed()}</AlertTitle>
-        <AlertDescription>{m.common_check_connection()}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-            {m.common_try_again()}
-          </Button>
-        </AlertAction>
-      </Alert>
-    )
+    return <LoadFailedAlert title={m.pokedex_load_failed()} onRetry={() => void query.refetch()} />
   }
 
   const { pages } = query.data
