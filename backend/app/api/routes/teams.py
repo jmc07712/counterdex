@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 
 from app.accounts.constants import USERNAME_PATTERN
+from app.accounts.exceptions import UserNotFoundError
 from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
 from app.api.tags import TEAM_MEMBERS, TEAMS
@@ -18,7 +19,6 @@ from app.teams.exceptions import (
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
-    UserNotFoundError,
 )
 from app.teams.schemas import (
     NewMember,

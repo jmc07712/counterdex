@@ -9,10 +9,6 @@ class NotTeamOwnerError(Exception):
     """The team is someone else's, and only its owner can change it."""
 
 
-class UserNotFoundError(Exception):
-    """No user has this username, in any combination of upper and lower case."""
-
-
 class MemberNotFoundError(Exception):
     """The Pokémon isn't on the team."""
 

@@ -35,6 +35,8 @@ from sqlalchemy.orm import Session, aliased
 from sqlalchemy.orm.util import AliasedClass
 
 from app.accounts import models as accounts_models
+from app.accounts.exceptions import UserNotFoundError
+from app.accounts.queries import find_user, has_username
 from app.core.db import violates_unique
 from app.pokemon import models as pokemon_models
 from app.pokemon.constants import MAX_TEAM_SIZE
@@ -48,7 +50,6 @@ from app.teams.exceptions import (
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
-    UserNotFoundError,
 )
 from app.teams.models import FAMILY_ON_TEAM, SLOT
 
@@ -84,9 +85,7 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
     if query.owner is None:
         statement = statement.where(exists().where(models.TeamMember.team_id == models.Team.id))
     else:
-        statement = statement.where(
-            func.lower(accounts_models.User.username) == query.owner.lower()
-        )
+        statement = statement.where(has_username(query.owner))
     if query.q is not None:
         # Escaped, so a % or _ in the search matches itself rather than acting as a wildcard.
         # A Pokémon is matched in a subquery, so a team with several matches is listed once.
@@ -134,16 +133,12 @@ def list_user_teams(session: Session, username: str) -> list[schemas.Team]:
 
     Raises UserNotFoundError if no user has the username, whatever its case.
     """
-    user_id = session.scalar(
-        select(accounts_models.User.id).where(
-            func.lower(accounts_models.User.username) == username.lower()
-        )
-    )
-    if user_id is None:
+    user = find_user(session, username)
+    if user is None:
         raise UserNotFoundError(username)
     teams = session.execute(
         _with_owners()
-        .where(models.Team.user_id == user_id)
+        .where(models.Team.user_id == user.id)
         .order_by(models.Team.updated_at.desc(), models.Team.created_at.desc())
     ).all()
     return _shown(session, teams)

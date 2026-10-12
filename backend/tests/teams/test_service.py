@@ -6,6 +6,7 @@ from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.accounts import service as accounts
+from app.accounts.exceptions import UserNotFoundError
 from app.accounts.types import SignedIn
 from app.pokemon.constants import RECENTLY_CHANGED
 from app.pokemon.enums import PokemonType
@@ -19,7 +20,6 @@ from app.teams.exceptions import (
     TeamConflictError,
     TeamNotFoundError,
     UnknownPokemonError,
-    UserNotFoundError,
 )
 from app.teams.schemas import NewTeam, TeamOwner, TeamPage, TeamsQuery
 from tests.support.accounts import BROCK
