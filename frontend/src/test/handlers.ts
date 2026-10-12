@@ -10,7 +10,6 @@ import {
   type PokemonChange,
   type PokemonDetails,
   type PokemonPage,
-  Rating,
   type SyncOverview,
   type SyncRunDetails,
   type SyncRunPage,
@@ -532,9 +531,8 @@ export function serveTeamThreats({
 
 /**
  * Stands in for the API's matchups between two teams: answers with each of our Pokémon, from
- * `catalog`, and its `matchup` against each of theirs, and our best answer to each of theirs, the
- * first on a tie; or, given `refuse`, with that status instead. Returns each request's query
- * string, in the order they came.
+ * `catalog`, and its `matchup` against each of theirs; or, given `refuse`, with that status
+ * instead. Returns each request's query string, in the order they came.
  */
 export function serveMatchups({
   catalog = [],
@@ -551,19 +549,7 @@ export function serveMatchups({
         .getAll('pokemon_id')
         .flatMap((id) => catalog.find((pokemon) => pokemon.id === Number(id)) ?? [])
       const theirs = query.getAll('opponent_id').map(Number)
-      const members = challengers(ours, theirs, matchup)
-      const answers = theirs.map((opponentId) => {
-        const scored = members.map((member) => ({
-          pokemon_id: member.pokemon.id,
-          matchup: matchup(member.pokemon, opponentId),
-        }))
-        return scored.reduce((best, each) => (each.matchup.score > best.matchup.score ? each : best))
-      })
-      const answer: TeamMatchups = {
-        members,
-        answers,
-        every_opponent_answered: answers.every((each) => each.matchup.rating === Rating.GOOD),
-      }
+      const answer: TeamMatchups = { members: challengers(ours, theirs, matchup) }
       return HttpResponse.json(answer)
     }),
   )

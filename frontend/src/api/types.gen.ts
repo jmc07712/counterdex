@@ -5,24 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * Answer
- *
- * Our best answer to one of their Pokémon.
- */
-export type Answer = {
-    /**
-     * Pokemon Id
-     *
-     * The `id` of our Pokémon with the best score against it; the first in our order, on a tie.
-     */
-    pokemon_id: number;
-    /**
-     * That Pokémon's matchup against it.
-     */
-    matchup: Matchup;
-};
-
-/**
  * Attack
  *
  * A Pokémon's most effective type against its opponent: of its own types, the one whose
@@ -992,18 +974,6 @@ export type TeamMatchups = {
      * Our Pokémon, in the order given, each with its matchup against each of theirs.
      */
     members: Array<Challenger>;
-    /**
-     * Answers
-     *
-     * Our best answer to each of their Pokémon, in their order.
-     */
-    answers: Array<Answer>;
-    /**
-     * Every Opponent Answered
-     *
-     * Whether every one of their Pokémon has an answer rated `good`.
-     */
-    every_opponent_answered: boolean;
 };
 
 /**

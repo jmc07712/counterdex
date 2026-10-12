@@ -345,9 +345,8 @@ export const listTeamThreats = <ThrowOnError extends boolean = false>(options: O
  * Score a team against another
  *
  * Our team scored against theirs, the way Find a counter team scores its picks: each of our
- * Pokémon against each of theirs, in the orders given, and our best answer to each of theirs,
- * with whether every one of theirs has a `good` answer. For a team being edited against the
- * team it's meant to counter.
+ * Pokémon against each of theirs, in the orders given. For a team being edited against the team
+ * it's meant to counter.
  *
  * Either team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,
  * or with no Pokémon, is a 422. The same Pokémon may be on both teams.
