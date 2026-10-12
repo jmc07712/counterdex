@@ -202,6 +202,24 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(tiles[2]).toHaveTextContent('Holds its own against Charizard, Pikachu and Gengar')
   })
 
+  it('explains how it chooses its picks and scores a matchup, folded away to begin', async () => {
+    serveTheirs()
+    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
+    const { user } = renderTeam()
+
+    const section = await findSection()
+    const choosing = within(section).getByRole('list', { name: 'Choosing the picks' })
+    expect(choosing).not.toBeVisible()
+
+    await user.click(within(section).getByText('How it works'))
+
+    expect(choosing).toBeVisible()
+    expect(choosing).toHaveTextContent('The counter is built one pick at a time.')
+    expect(within(section).getByRole('list', { name: 'Scoring a matchup' })).toHaveTextContent(
+      'A score of 0.75 or more is Good, −0.75 or less is Bad',
+    )
+  })
+
   it('names those of theirs that no pick clearly beats', async () => {
     serveTheirs()
     serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
@@ -634,6 +652,22 @@ describe('TeamPage, how to beat someone else’s team', () => {
 })
 
 describe('TeamPage, threats to your own team', () => {
+  it('explains how it chooses the top 12, folded away to begin', async () => {
+    serveTheirs({ viewer: ASH })
+    serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
+    const { user } = renderTeam()
+
+    const section = await findThreats()
+    const choosing = within(section).getByRole('list', { name: 'Choosing the top 12' })
+    expect(choosing).not.toBeVisible()
+
+    await user.click(within(section).getByText('How it works'))
+
+    expect(choosing).toHaveTextContent('The threats are the 12 with the highest totals')
+    expect(choosing).toHaveTextContent('A weak spot is one of your Pokémon')
+    expect(within(section).getByRole('list', { name: 'Scoring a matchup' })).toBeVisible()
+  })
+
   it('shows its top threats below its party, with where the team is weak to them', async () => {
     serveTheirs({ viewer: ASH })
     serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })

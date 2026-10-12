@@ -28,6 +28,16 @@ export function HowToBeatTeam({ team }: { team: Team }) {
     <MatchupSection
       title={m.team_counter_title()}
       description={m.team_counter_description()}
+      howItWorks={{
+        title: m.team_counter_how_title(),
+        points: [
+          m.team_counter_how_one_at_a_time(),
+          m.team_counter_how_weaknesses(),
+          m.team_counter_how_families(),
+          m.team_counter_how_order(),
+          m.team_counter_how_limits(),
+        ],
+      }}
       pool={pool}
       onPoolChange={setPool}
     >

@@ -7,23 +7,27 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import type { MatchupPool } from '../types'
+import { type HowItWorksPart, MatchupHowItWorks } from './matchup-how-it-works'
 import { MatchupPoolToggles } from './matchup-pool-toggles'
 
 type MatchupSectionProps = {
   title: string
   description: string
+  // How the section chooses its Pokémon, in its How it works.
+  howItWorks: HowItWorksPart
   pool: MatchupPool
   onPoolChange: (pool: MatchupPool) => void
   children: ReactNode
 }
 
 /**
- * A section under a team's party on Pokémon picked against it, with toggles for what they're
- * picked from. Its contents lay out by the section's own width.
+ * A section under a team's party on Pokémon picked against it, with how it works folded away, and
+ * toggles for what they're picked from. Its contents lay out by the section's own width.
  */
 export function MatchupSection({
   title,
   description,
+  howItWorks,
   pool,
   onPoolChange,
   children,
@@ -38,6 +42,7 @@ export function MatchupSection({
           </h2>
           <p className="mt-1 text-muted-foreground">{description}</p>
         </div>
+        <MatchupHowItWorks choosing={howItWorks} />
         <MatchupPoolToggles pool={pool} onChange={onPoolChange} />
       </div>
       {children}

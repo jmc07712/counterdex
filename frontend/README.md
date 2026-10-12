@@ -129,6 +129,9 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   sections can also pick from alternate forms and legendaries, kept in the URL
   (`?alternate_forms=true&legendaries=true`, apart from the Pokédex filters' `?forms=`) so
   signing in to build a counter comes back to the same one.
+  Under each section's description, How it works, folded away to begin, says how it chooses its
+  Pokémon and how a matchup is scored (`components/matchup-how-it-works.tsx`). Its words repeat the
+  API's weights in `backend/app/counter/constants.py`, so a change there needs them changed too.
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
   (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
   pinned at the left, with its name to rename, the same line above the slots, and its slots, each

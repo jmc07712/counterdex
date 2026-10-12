@@ -33,6 +33,15 @@ export function TeamThreats({ team, onOpenPokemon }: TeamThreatsProps) {
     <MatchupSection
       title={m.team_threats_title()}
       description={m.team_threats_description()}
+      howItWorks={{
+        title: m.team_threats_how_title(),
+        points: [
+          m.team_threats_how_score(),
+          m.team_threats_how_top(),
+          m.team_threats_how_families(),
+          m.team_threats_how_weak_spots(),
+        ],
+      }}
       pool={pool}
       onPoolChange={setPool}
     >
