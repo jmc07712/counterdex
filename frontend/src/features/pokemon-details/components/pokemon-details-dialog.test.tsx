@@ -1,5 +1,4 @@
 import { screen, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +8,7 @@ import { servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemo
 import { CHARIZARD, makeDetails } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { failOnce } from '@/test/server'
 
 import { PokemonDetailsDialog } from './pokemon-details-dialog'
 
@@ -171,12 +170,7 @@ describe('PokemonDetailsDialog', () => {
   it('offers a retry when the Pokémon can’t load', async () => {
     servePokemonDetails()
     servePokemonChanges()
-    // Added last, so it answers first: the first request fails, and the retry gets the details.
-    server.use(
-      http.get('/api/pokemon/:pokemonId', () => new HttpResponse(null, { status: 500 }), {
-        once: true,
-      }),
-    )
+    failOnce('/api/pokemon/:pokemonId', 500)
     const { user } = renderWithProviders(
       <PokemonDetailsDialog pokemonId={6} onSelect={vi.fn()} onClose={vi.fn()} />,
     )

@@ -51,3 +51,11 @@ export function holdRequests(
   )
   return { release, arrived: () => arrived }
 }
+
+/**
+ * Answers the next GET request to `path` with an error `status`, then hands later ones on to the
+ * next handler that matches, such as a stand-in. Call it after that handler, so it comes first.
+ */
+export function failOnce(path: string, status: number) {
+  server.use(http.get(path, () => refusal(status), { once: true }))
+}

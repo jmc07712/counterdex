@@ -10,7 +10,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
-import { holdRequests, server } from '@/test/server'
+import { failOnce, holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
@@ -353,10 +353,7 @@ describe('PokedexPage', () => {
 
   it('offers a retry when the Pokédex can’t load', async () => {
     servePokemon()
-    // Added last, so it answers first: the first request fails, and the retry gets the page.
-    server.use(
-      http.get('/api/pokemon', () => new HttpResponse(null, { status: 500 }), { once: true }),
-    )
+    failOnce('/api/pokemon', 500)
     const { user } = renderWithProviders(<PokedexPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Try again' }))
@@ -645,12 +642,7 @@ describe('PokedexPage', () => {
 
     it('offers to try again when your teams can’t load', async () => {
       serveAsh([makeTeam({ name: 'Rain Squad' })])
-      // Added last, so it answers first: the first request fails, and the retry gets the teams.
-      server.use(
-        http.get('/api/users/:username/teams', () => new HttpResponse(null, { status: 500 }), {
-          once: true,
-        }),
-      )
+      failOnce('/api/users/:username/teams', 500)
       browse([pikachu])
       const { user } = renderPokedex()
 

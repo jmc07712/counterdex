@@ -1,5 +1,4 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { SyncStatus } from '@/api'
@@ -7,7 +6,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncRuns } from '@/test/handlers/sync'
 import { cellsByRow, termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { holdRequests, server } from '@/test/server'
+import { failOnce, holdRequests } from '@/test/server'
 import { makeSyncRun, makeSyncRuns } from '@/test/sync-runs'
 import { ASH, OAK } from '@/test/users'
 
@@ -329,10 +328,7 @@ describe('AdminPage, sync runs', () => {
 
   it('says when the runs couldn’t load, and tries again', async () => {
     serveSyncRuns({ runs: [makeSyncRun()] })
-    // Added last, so it answers first: the first request fails, and the retry gets the runs.
-    server.use(
-      http.get('/api/sync/runs', () => new HttpResponse(null, { status: 500 }), { once: true }),
-    )
+    failOnce('/api/sync/runs', 500)
     const { user } = renderAdmin()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t load the sync runs')

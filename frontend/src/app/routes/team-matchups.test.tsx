@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { http } from 'msw'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
@@ -26,7 +26,7 @@ import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { makeDetails } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
-import { holdRequests, server } from '@/test/server'
+import { failOnce, holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -529,14 +529,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('dims its needs-sync message while a toggle’s counter loads, then reads it out', async () => {
     serveTheirs()
     serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    // Added last, so it answers the first request; the stand-in answers the next.
-    server.use(
-      http.get(
-        '/api/counter-team',
-        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/counter-team', 503)
     const { user } = renderTeam()
     const section = await findSection()
     const message = await within(section).findByText('Counter teams need a Pokédex sync first')
@@ -559,14 +552,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('asks again when building, once the Pokédex may have synced since it said it hadn’t', async () => {
     const api = serveTheirs()
     const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    // Added last, so it answers the first request; the stand-in answers the next.
-    server.use(
-      http.get(
-        '/api/counter-team',
-        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/counter-team', 503)
     const { user, router } = renderTeam()
     const section = await findSection()
     await within(section).findByText('Counter teams need a Pokédex sync first')
@@ -583,14 +569,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('says when the counter couldn’t load, and tries again', async () => {
     serveTheirs()
     const counters = serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    // Added last, so it answers the first request; the stand-in answers the next.
-    server.use(
-      http.get(
-        '/api/counter-team',
-        () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/counter-team', 500)
     const { user } = renderTeam()
 
     const section = await findSection()
@@ -886,14 +865,7 @@ describe('TeamPage, threats to your own team', () => {
   it('asks again for threats it was told needed a sync, when they’re shown again', async () => {
     serveTheirs({ viewer: ASH })
     const threats = serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
-    // Added last, so it answers the first request; the stand-in answers the next.
-    server.use(
-      http.get(
-        '/api/team-threats',
-        () => HttpResponse.json({ detail: 'Not synced.' }, { status: 503 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/team-threats', 503)
     const { user } = renderTeam()
     const section = await findThreats()
     await within(section).findByText('Threats need a Pokédex sync first')
@@ -911,13 +883,7 @@ describe('TeamPage, threats to your own team', () => {
   it('says when threats couldn’t load, and tries again', async () => {
     serveTheirs({ viewer: ASH })
     const threats = serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
-    server.use(
-      http.get(
-        '/api/team-threats',
-        () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/team-threats', 500)
     const { user } = renderTeam()
 
     const section = await findThreats()

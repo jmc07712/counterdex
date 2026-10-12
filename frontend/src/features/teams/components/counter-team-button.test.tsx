@@ -1,5 +1,4 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
@@ -9,7 +8,7 @@ import { serveCounterTeam } from '@/test/handlers/counter'
 import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { renderWithProviders } from '@/test/render'
-import { holdRequests, server } from '@/test/server'
+import { failOnce, holdRequests } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -147,14 +146,7 @@ describe('CounterTeamButton, signed in', () => {
   it('says when it couldn’t find a counter, makes no team, and tries again', async () => {
     const api = serveAsh()
     const counters = serveCounterTeam({ catalog: PICKS })
-    // Added last, so it answers the first request; the stand-in answers the next.
-    server.use(
-      http.get(
-        '/api/counter-team',
-        () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 }),
-        { once: true },
-      ),
-    )
+    failOnce('/api/counter-team', 500)
     const { user, router } = renderButton(RAIN)
 
     await user.click(await screen.findByRole('button', { name: 'Build a counter to Rain' }))
