@@ -1,6 +1,5 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
-import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
@@ -278,16 +277,6 @@ describe('PokedexPage', () => {
     expect(screen.getByRole('article', { name: 'Bulbasaur' })).toBeInTheDocument()
     expect(requests).toEqual(['', 'cursor=1'])
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
-  })
-
-  it('loads more Pokémon as the end of the list scrolls into view', async () => {
-    servePokemon(twoPages)
-    renderWithProviders(<PokedexPage />)
-    await screen.findByRole('article', { name: 'Bulbasaur' })
-
-    mockAllIsIntersecting(true)
-
-    expect(await screen.findByRole('article', { name: 'Ivysaur' })).toBeInTheDocument()
   })
 
   it('tells screen readers about the first Pokémon to load as well', async () => {

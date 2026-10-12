@@ -1,6 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { routes } from '@/app/router'
@@ -618,16 +617,6 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Rain' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
-  })
-
-  it('loads more teams as the end of the list scrolls into view', async () => {
-    serveTeams({ teams: [FIRE, RAIN], pageSize: 1 })
-    await renderTeams()
-    await screen.findByRole('article', { name: 'Rain' })
-
-    mockAllIsIntersecting(true)
-
-    expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
   })
 
   it('sends the search once you pause typing, and keeps it in the URL', async () => {

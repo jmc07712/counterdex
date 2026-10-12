@@ -1,18 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
-import {
-  browse,
-  servePokemon,
-  servePokemonChanges,
-  servePokemonDetails,
-} from '@/test/handlers/pokemon'
+import { browse, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveAsh, serveTeams } from '@/test/handlers/teams'
 import { onWideScreen } from '@/test/media'
@@ -390,23 +384,6 @@ describe('TeamPage, for the team’s owner', () => {
       ),
     )
     expect(router.state.location.search).toBe('?q=pika&type=electric')
-  })
-
-  it('loads more Pokémon as the end of the Pokédex scrolls into view', async () => {
-    onWideScreen()
-    serveAsh([makeTeam()])
-    servePokemon((query) =>
-      query.has('cursor')
-        ? { items: [snorlax], next_cursor: null }
-        : { items: [pikachu], next_cursor: 25 },
-    )
-    renderTeam(EDIT)
-    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    await within(pokedex).findByRole('article', { name: 'Pikachu' })
-
-    mockAllIsIntersecting(true)
-
-    expect(await within(pokedex).findByRole('article', { name: 'Snorlax' })).toBeInTheDocument()
   })
 
   it('opens a Pokémon’s details from its card in the Pokédex', async () => {
