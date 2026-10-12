@@ -53,6 +53,12 @@ def counter_team(contenders: Sequence[Contender], size: int) -> list[Contender]:
     They're chosen one at a time: each is the contender that raises the team's score (see
     _Standing.score) most. Ties go to the higher total score against their Pokémon, then the
     higher base stat total, then the lower id.
+
+    They're chosen one at a time because finding the very best six would mean scoring every set
+    of six, which is about 1.6 quadrillion from the 1,024 default forms. This looks at each
+    contender once per pick, gives the same team every time, and every pick has a reason a person
+    can follow (the opponents it adds a good answer for). The downside is that it can miss a six
+    that's only better as a whole.
     """
     team: list[Contender] = []
     standing = _Standing.empty(len(contenders[0].matchups))

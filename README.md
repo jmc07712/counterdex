@@ -102,7 +102,43 @@ The data has no moves, so instead of simulating battles, Counterdex scores match
 - **Every pick is explained.** Each matchup comes with its score breakdown, which the app turns
   into a plain-English reason.
 
-The details and weights are in the [backend guide](backend/README.md#counter-teams).
+### Why it's scored this way
+
+The data has each Pokémon's types and base stats, but no moves, abilities or items. So Counterdex
+can't simulate a battle. It scores each matchup instead, using what it has.
+
+The numbers were picked by hand to follow a few simple rules. They weren't fitted to battle
+results, because there's no battle data to fit them to. Each one was then checked against the real
+Pokédex of 1,024 Pokémon (default forms only).
+
+| Part | Points | Why |
+| --- | --- | --- |
+| Its best type against them | 2× effective is +1 and 4× is +2. ½× is −1, ¼× is −2, and no effect is −3. | Type multipliers multiply, so a double weakness is 2 × 2 = 4×. Counting in steps lets them add up instead. A double weakness counts twice, and a resistance cancels out a weakness. No effect is one step worse than ¼×, but not so bad that it outweighs everything else. |
+| Their best type against it | The same points, taken away | Both Pokémon attack, so a good pick has to take a hit as well as land one. It also means the other Pokémon's score is always the exact opposite, so the same scoring finds both threats and counters. |
+| Base stat total | +0.25 for every 100 points more, and −0.25 for every 100 fewer | Types should decide most matchups. Half of all pairs of Pokémon differ by less than 110 points (about 0.27), and 90% by less than 263 (about 0.66). A stat gap beats a whole type step only when it's 400 points or more, which happens in 0.6% of pairs. Stats still decide between Pokémon with the same type edge. The total is used because, without moves, there's no way to know which attack stat a Pokémon would use. |
+| Speed | +0.25 if faster, and −0.25 if slower | Going first matters, but here it's only faster or slower. So it counts the same as 100 stat points. Ties are rare, at 2.5% of pairs. |
+
+**Good, even and bad.** A score of 0.75 or more is Good, and −0.75 or less is Bad. Everything in
+between is Even. That's three quarters of a type step. So a clear type advantage still counts as
+Good when the other Pokémon has up to 100 more stat points, if they're equally fast. Without a type
+advantage, a Pokémon needs 200 more stat points and to be faster to count as Good. The cut-offs
+are the same distance either side of zero, so flipping a matchup around turns Good into Bad. That's
+how the threats grid shows each threat from your Pokémon's side.
+
+**Building a counter one pick at a time.** Finding the very best six would mean checking every
+possible set of six Pokémon, which is about 1.6 quadrillion. Instead, Counterdex adds one Pokémon
+at a time, always the one that helps most against the team. This is instant, gives the same team
+every time, and every pick comes with a reason. It also takes off a point for each of their types
+that three or more picks are weak to, because one Pokémon could then beat half the team. The
+downside is that it can miss a team of six that's only better as a whole.
+
+**The top 12 threats** are the Pokémon with the highest total score against your team. There's at
+most one from each evolution family, and none from your own team's families. Twelve is two teams'
+worth. That's enough to see a pattern in your team's weak spots, and the grid stays easy to read.
+
+All the numbers are in [`backend/app/counter/constants.py`](backend/app/counter/constants.py), with
+the same reasons written next to each one. The [backend guide](backend/README.md#counter-teams) has
+more detail.
 
 ## Key design decisions
 
