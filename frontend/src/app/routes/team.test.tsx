@@ -401,20 +401,6 @@ describe('TeamPage, for the team’s owner', () => {
     expect(router.state.location.search).toBe('?pokemon=6')
   })
 
-  it('opens a member’s details from its slot', async () => {
-    serveAsh([makeTeam({ pokemon: [charmander, charizard] })])
-    browse([])
-    servePokemonDetails()
-    servePokemonChanges()
-    const { user, router } = renderTeam(EDIT)
-
-    await screen.findByRole('heading', { level: 1, name: 'Team 1' })
-    await user.click(within(slotRows()[1]).getByRole('button', { name: 'Charizard' }))
-
-    expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
-    expect(router.state.location.search).toBe('?pokemon=6')
-  })
-
   it('removes a Pokémon at once, before the API answers', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
@@ -594,8 +580,10 @@ describe('TeamPage, choosing a Pokémon to replace a member', () => {
     browse([pikachu, snorlax])
     const { user, router, queryClient } = renderTeam(REPLACE)
 
+    // Once, above the Pokédex beside the team, rather than in the team's column.
     expect(await screen.findByText('Choose a Pokémon to replace Charmander')).toBeInTheDocument()
     const pokedex = screen.getByRole('complementary', { name: 'Add Pokémon' })
+    expect(within(pokedex).getByText('Choose a Pokémon to replace Charmander')).toBeInTheDocument()
     expect(
       await within(pokedex).findByRole('button', { name: 'Pikachu is on the team' }),
     ).toBeInTheDocument()
@@ -638,17 +626,6 @@ describe('TeamPage, choosing a Pokémon to replace a member', () => {
     await user.click(blocked)
 
     expect(api.requests).toEqual([])
-  })
-
-  it('asks above the Pokédex beside the team, rather than in the team’s column', async () => {
-    onWideScreen()
-    serveAsh([TEAM])
-    browse([snorlax])
-    renderTeam(REPLACE)
-
-    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    expect(within(pokedex).getByText('Choose a Pokémon to replace Charmander')).toBeInTheDocument()
-    expect(screen.getAllByText('Choose a Pokémon to replace Charmander')).toHaveLength(1)
   })
 
   it('stops replacing on Cancel, with focus on the Pokédex', async () => {
@@ -920,12 +897,13 @@ describe('TeamPage, putting a team in a new order', () => {
     browse([])
     servePokemonDetails()
     servePokemonChanges()
-    const { user } = renderTeam(EDIT)
+    const { user, router } = renderTeam(EDIT)
 
     await screen.findByRole('button', { name: 'Move Charizard' })
     await user.click(within(slotRows()[1]).getByRole('button', { name: 'Charizard' }))
 
     expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?pokemon=6')
     expect(api.requests).toEqual([])
   })
 })

@@ -90,7 +90,7 @@ describe('TeamEditPage, against the team in ?against', () => {
   it('shows their team, why each of ours is there, our best answer to each of theirs, and what’s covered', async () => {
     onWideScreen()
     serveAsh()
-    serveMatchups({ catalog: CATALOG, matchup: matchupOf })
+    const requests = serveMatchups({ catalog: CATALOG, matchup: matchupOf })
     renderEdit()
 
     const against = await panel()
@@ -100,6 +100,9 @@ describe('TeamEditPage, against the team in ?against', () => {
     expect(
       await within(against).findByText('No pick clearly beats Gengar', ON_SCREEN),
     ).toBeInTheDocument()
+    // Asked for with our Pokémon, then theirs, each in battle order; and read out once loaded.
+    expect(requests).toEqual([query([charmander, pikachu], [gengar, lapras])])
+    expect(within(against).getByRole('status')).toHaveTextContent('No pick clearly beats Gengar')
     const picks = within(against).getByRole('list', { name: 'Your picks' })
     expect(within(picks).getAllByRole('listitem').map((pick) => pick.textContent)).toEqual([
       'CharmanderHolds its own against Gengar',
@@ -130,16 +133,6 @@ describe('TeamEditPage, against the team in ?against', () => {
     )
   })
 
-  it('asks for our Pokémon, then theirs, each in battle order', async () => {
-    onWideScreen()
-    serveAsh()
-    const requests = serveMatchups({ catalog: CATALOG, matchup: matchupOf })
-    renderEdit()
-
-    await panel()
-    await waitFor(() => expect(requests).toEqual([query([charmander, pikachu], [gengar, lapras])]))
-  })
-
   it('matches up the team as it is changed', async () => {
     onWideScreen()
     serveAsh()
@@ -158,20 +151,6 @@ describe('TeamEditPage, against the team in ?against', () => {
     expect(within(picks).getAllByRole('listitem').map((pick) => pick.textContent)).toEqual([
       'CharmanderHolds its own against Gengar',
     ])
-  })
-
-  it('reads out what’s covered once the matchups load', async () => {
-    onWideScreen()
-    serveAsh()
-    serveMatchups({ catalog: CATALOG, matchup: matchupOf })
-    renderEdit()
-
-    const against = await panel()
-    await waitFor(() =>
-      expect(within(against).getByRole('status')).toHaveTextContent(
-        'No pick clearly beats Gengar',
-      ),
-    )
   })
 
   it('asks for Pokémon while the team has none, without asking for matchups', async () => {
