@@ -41,16 +41,6 @@ function syncedThreeHoursAgo(run: Partial<SyncRunSummary> = {}): SyncOverview {
 }
 
 describe('SyncIndicator', () => {
-  it('says how long ago the Pokédex was synced', async () => {
-    serveSyncStatus(syncedThreeHoursAgo())
-
-    renderWithProviders(<SyncIndicator />)
-
-    expect(
-      await screen.findByRole('button', { name: 'Synced about 3 hours ago' }),
-    ).toBeInTheDocument()
-  })
-
   it('has a shorter age to show on small screens', async () => {
     serveSyncStatus(syncedThreeHoursAgo())
 

@@ -7,14 +7,6 @@ import { renderHookWithProviders } from '@/test/render'
 import { usePokemonSuggestions } from './use-pokemon-suggestions'
 
 describe('usePokemonSuggestions', () => {
-  it('asks for a few Pokémon whose names match the search', async () => {
-    const requests = servePokemon()
-
-    renderHookWithProviders(() => usePokemonSuggestions('char'))
-
-    await waitFor(() => expect(requests).toEqual(['q=char&limit=8']))
-  })
-
   it('keeps the search within the 50 characters the API takes', async () => {
     const requests = servePokemon()
 

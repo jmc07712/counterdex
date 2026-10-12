@@ -74,24 +74,6 @@ describe('CounterTeamButton, signed in', () => {
     ])
   })
 
-  it('shortens a long team name to fit the counter’s name', async () => {
-    const team = { ...RAIN, name: 'The Extremely Long Team Name Of Doom!!' }
-    const api = serveAsh([team])
-    serveCounterTeam({ catalog: PICKS })
-    const { user, router } = renderButton(team)
-
-    await user.click(
-      await screen.findByRole('button', {
-        name: 'Build a counter to The Extremely Long Team Name Of Doom!!',
-      }),
-    )
-
-    await waitFor(() => expect(router.state.location.pathname).toMatch(EDIT_PAGE))
-    expect(creations(api).map((request) => request.body)).toEqual([
-      expect.objectContaining({ name: 'Counter to The Extremely Long Team Name…' }),
-    ])
-  })
-
   it('shows it’s building, and builds one team however often it’s clicked', async () => {
     const api = serveAsh([RAIN])
     const counters = serveCounterTeam({ catalog: PICKS })

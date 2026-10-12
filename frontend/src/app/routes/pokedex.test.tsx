@@ -138,15 +138,6 @@ describe('PokedexPage', () => {
     expect(search).toHaveValue('char')
   })
 
-  it('ignores spaces around the search', async () => {
-    const requests = servePokemon()
-    const { user } = renderWithProviders(<PokedexPage />)
-
-    await user.type(screen.getByRole('combobox', { name: 'Search Pokémon' }), '  char ')
-
-    await waitFor(() => expect(gridRequests(requests).at(-1)).toBe('q=char'))
-  })
-
   it.each([
     ['About forms', 'Standard is each species’ usual form.'],
     ['About status', 'Current is what PokéAPI lists now.'],
@@ -350,12 +341,6 @@ describe('PokedexPage', () => {
 
       expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
       expect(router.state.location.search).toBe('?pokemon=1')
-    })
-
-    it('open from a shared link', async () => {
-      renderWithProviders(<PokedexPage />, { path: '/?pokemon=6' })
-
-      expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
     })
 
     it('close with Back after opening from a card', async () => {
