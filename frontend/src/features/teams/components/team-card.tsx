@@ -6,7 +6,7 @@ import { displayName } from '@/components/pokemon/format'
 import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { formatDate } from '@/lib/dates'
-import { formatList } from '@/lib/lists'
+import { formatTypes } from '@/lib/lists'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -78,7 +78,7 @@ export function TeamCard({ to, name, members, note, action }: TeamCardProps) {
         {types.length > 0 && (
           <>
             <p className="sr-only">
-              {m.team_types({ types: formatList(types.map((type) => m.pokemon_type({ type }))) })}
+              {m.team_types({ types: formatTypes(types) })}
             </p>
             {/* Hidden like the tiles: a list's label would stand in for its types in the link's
                 name, so the line above names them. */}
