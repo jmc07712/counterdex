@@ -1,5 +1,5 @@
 import { type SyncOverview, type SyncRunSummary, SyncStatus } from '@/api'
-import { formatList } from '@/lib/lists'
+import { andList } from '@/lib/lists'
 import { m } from '@/paraglide/messages.js'
 
 // How long a sync's changes count as recent, as the API's RECENTLY_CHANGED.
@@ -35,9 +35,4 @@ export function changesSentence(run: SyncRunSummary) {
 
 function changedCount(run: SyncRunSummary) {
   return run.inserted + run.updated + run.removed + run.restored
-}
-
-function andList(items: string[]) {
-  if (items.length === 1) return items[0]
-  return m.common_list_and({ items: formatList(items.slice(0, -1)), last: items[items.length - 1] })
 }
