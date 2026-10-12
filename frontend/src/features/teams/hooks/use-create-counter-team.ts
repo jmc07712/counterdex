@@ -25,7 +25,7 @@ type CounterTo = {
  * cached and fresh, or a new one from the API, created as a new team named after `team`, with the
  * counter's Pokémon in its battle order. If the API finds no counter, no team is created.
  */
-export function useBuildCounterTeam() {
+export function useCreateCounterTeam() {
   const queryClient = useQueryClient()
   const createTeam = useCreateTeam()
   return useMutation({

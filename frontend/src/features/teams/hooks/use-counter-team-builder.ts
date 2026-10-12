@@ -7,7 +7,7 @@ import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import type { MatchupPool } from '../types'
-import { PokedexNotSyncedError, useBuildCounterTeam } from './use-build-counter-team'
+import { PokedexNotSyncedError, useCreateCounterTeam } from './use-create-counter-team'
 
 /**
  * Builds a counter to `team`, picked from `pool`, when `build` is called, then opens it to edit,
@@ -15,7 +15,7 @@ import { PokedexNotSyncedError, useBuildCounterTeam } from './use-build-counter-
  * help. Calls while it's building are ignored.
  */
 export function useCounterTeamBuilder(team: Team, pool: MatchupPool) {
-  const mutation = useBuildCounterTeam()
+  const mutation = useCreateCounterTeam()
   const navigate = useNavigate()
   // One id for every try, so trying again after an answer that never came gets the team the API
   // already made, not a second one.
