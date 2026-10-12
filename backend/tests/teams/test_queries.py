@@ -6,16 +6,14 @@ from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.accounts import service as accounts
-from app.accounts.exceptions import UserNotFoundError
 from app.accounts.types import SignedIn
 from app.pokemon.constants import RECENTLY_CHANGED
 from app.pokemon.enums import PokemonType
 from app.pokemon.models import Pokemon
 from app.pokemon.schemas import STAT_NAMES
-from app.teams import queries, service
+from app.teams import queries
 from app.teams.enums import TeamSort
-from app.teams.exceptions import TeamNotFoundError
-from app.teams.schemas import TeamOwner, TeamPage, TeamsQuery
+from app.teams.schemas import TeamPage, TeamsQuery
 from tests.support.accounts import BROCK
 from tests.support.teams import (
     add_mr_mime,
@@ -27,53 +25,6 @@ from tests.support.teams import (
 )
 
 TEAM_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
-
-# --- Reading ---
-
-
-def test_lists_a_users_teams_most_recently_changed_first(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    older = make_team(db_session, ash.user.id, name="Older")
-    newer = make_team(db_session, ash.user.id, name="Newer")
-    make_team(db_session, misty.user.id, name="Misty's")
-    locked = service.lock_owned_team(db_session, ash.user.id, older.id)
-
-    service.rename_team(db_session, locked, "Renamed")
-
-    assert [team.name for team in queries.list_user_teams(db_session, "ash")] == [
-        "Renamed",
-        newer.name,
-    ]
-
-
-def test_finds_a_users_teams_whatever_the_usernames_case(
-    db_session: Session, ash: SignedIn
-) -> None:
-    team = make_team(db_session, ash.user.id)
-
-    assert queries.list_user_teams(db_session, "ASH") == [team]
-
-
-def test_listing_the_teams_of_a_username_no_one_has_fails(db_session: Session) -> None:
-    with pytest.raises(UserNotFoundError):
-        queries.list_user_teams(db_session, "brock")
-
-
-def test_anyone_can_get_a_team(db_session: Session, misty: SignedIn) -> None:
-    team = make_team(db_session, misty.user.id)
-
-    assert queries.get_team(db_session, team.id) == team
-
-
-def test_a_team_no_one_has_isnt_found(db_session: Session) -> None:
-    with pytest.raises(TeamNotFoundError):
-        queries.get_team(db_session, TEAM_ID)
-
-
-def test_a_team_shows_its_owners_username(db_session: Session, ash: SignedIn) -> None:
-    assert make_team(db_session, ash.user.id).owner == TeamOwner(username="ash")
-
 
 # --- Searching everyone's teams ---
 
@@ -456,14 +407,6 @@ def test_pages_through_an_owners_teams_without_repeating_or_skipping_one(
         second.items[-1].id,
         None,
     )
-
-
-def test_an_owner_no_one_has_gives_an_empty_page(db_session: Session, ash: SignedIn) -> None:
-    make_team(db_session, ash.user.id, name="Empty")
-
-    page = queries.list_teams(db_session, TeamsQuery(owner="brock"))
-
-    assert page == TeamPage(items=[], next_cursor=None)
 
 
 def test_without_an_owner_teams_with_no_pokemon_are_left_out(

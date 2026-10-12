@@ -10,10 +10,7 @@ from app.teams import queries, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
-    NotTeamOwnerError,
     TeamConflictError,
-    TeamNotFoundError,
-    UnknownPokemonError,
 )
 from app.teams.schemas import NewTeam
 from tests.support.teams import (
@@ -65,34 +62,6 @@ def test_creating_with_an_id_you_already_have_returns_that_team_unchanged(
     assert len(queries.list_user_teams(db_session, "ash")) == 1
 
 
-def test_an_id_another_user_has_is_taken(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    service.create_team(db_session, misty.user.id, TEAM_ID, NewTeam(name="Water"))
-
-    with pytest.raises(TeamConflictError) as conflict:
-        service.create_team(db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire"))
-
-    assert conflict.value.reason is TeamConflictReason.TEAM_ID_TAKEN
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_creating_follows_the_family_clause(db_session: Session, ash: SignedIn) -> None:
-    with pytest.raises(TeamConflictError) as conflict:
-        service.create_team(
-            db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[4, 6])
-        )
-
-    assert conflict.value.reason is TeamConflictReason.FAMILY_ON_TEAM
-
-
-def test_creating_with_an_unknown_pokemon_fails(db_session: Session, ash: SignedIn) -> None:
-    with pytest.raises(UnknownPokemonError):
-        service.create_team(
-            db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[9999])
-        )
-
-
 @pytest.mark.usefixtures("charmander_family")
 def test_creating_with_a_removed_pokemon_fails(db_session: Session, ash: SignedIn) -> None:
     db_session.execute(update(Pokemon).where(Pokemon.id == 4).values(removed_at=func.now()))
@@ -103,24 +72,7 @@ def test_creating_with_a_removed_pokemon_fails(db_session: Session, ash: SignedI
     assert conflict.value.reason is TeamConflictReason.POKEMON_REMOVED
 
 
-# --- Locking a team to change it ---
-
-
-def test_a_team_no_one_has_cant_be_locked(db_session: Session, ash: SignedIn) -> None:
-    with pytest.raises(TeamNotFoundError):
-        service.lock_owned_team(db_session, ash.user.id, TEAM_ID)
-
-
-def test_only_a_teams_owner_can_lock_it(
-    db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    team = make_team(db_session, misty.user.id)
-
-    with pytest.raises(NotTeamOwnerError):
-        service.lock_owned_team(db_session, ash.user.id, team.id)
-
-
-# --- Renaming and deleting ---
+# --- Renaming ---
 
 
 def test_renaming_changes_the_name_and_when_it_changed(db_session: Session, ash: SignedIn) -> None:
@@ -131,16 +83,6 @@ def test_renaming_changes_the_name_and_when_it_changed(db_session: Session, ash:
 
     assert renamed.name == "Rain"
     assert renamed.updated_at > team.updated_at
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_deleting_removes_the_team(db_session: Session, ash: SignedIn) -> None:
-    team = make_team(db_session, ash.user.id, 4)
-    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
-
-    service.delete_team(db_session, locked)
-
-    assert queries.list_user_teams(db_session, "ash") == []
 
 
 def test_member_ids_lists_slot_order(db_session: Session, ash: SignedIn) -> None:

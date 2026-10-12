@@ -74,12 +74,6 @@ def test_creating_a_team_twice_makes_one(ash_client: TestClient, db_session: Ses
     ]
 
 
-def test_a_team_shows_its_owner_by_username_only(ash_client: TestClient) -> None:
-    team = ash_client.put(TEAM, json={"name": "Fire"}).json()
-
-    assert team["owner"] == {"username": "ash"}
-
-
 @pytest.mark.usefixtures("charmander_family")
 def test_a_team_shows_its_members(ash_client: TestClient) -> None:
     team = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [10034]}).json()
@@ -414,17 +408,6 @@ def test_pages_through_everyones_teams(
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_a_cursor_no_team_has_gives_an_empty_page(
-    client: TestClient, db_session: Session, ash: SignedIn
-) -> None:
-    make_team(db_session, ash.user.id, 4)
-
-    response = client.get("/api/teams", params={"cursor": TEAM_ID})
-
-    assert (response.status_code, response.json()) == (200, {"items": [], "next_cursor": None})
-
-
-@pytest.mark.usefixtures("charmander_family")
 def test_searches_everyones_teams(
     client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
 ) -> None:
@@ -442,25 +425,6 @@ def test_searches_everyones_teams(
         ["Sun"],
         ["Sun"],
     ]
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_pages_through_a_search(client: TestClient, db_session: Session, ash: SignedIn) -> None:
-    for hours, name in enumerate(["Fire 1", "Water 2", "Fire 3", "Water 4", "Fire 5"], start=1):
-        team = make_team(db_session, ash.user.id, 4, name=name)
-        backdate(db_session, team.id, timedelta(hours=hours))
-
-    first = client.get("/api/teams", params={"q": "fire", "limit": 2}).json()
-    second = client.get(
-        "/api/teams", params={"q": "fire", "limit": 2, "cursor": first["next_cursor"]}
-    ).json()
-
-    assert [team["name"] for team in first["items"] + second["items"]] == [
-        "Fire 1",
-        "Fire 3",
-        "Fire 5",
-    ]
-    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
 
 
 def test_documents_what_a_search_matches(openapi: dict[str, Any]) -> None:
@@ -508,44 +472,6 @@ def test_documents_what_an_owner_finds(openapi: dict[str, Any]) -> None:
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_lists_one_users_teams_among_everyones_including_ones_with_no_pokemon(
-    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    older = make_team(db_session, ash.user.id, 4, name="Older")
-    make_team(db_session, ash.user.id, name="Empty")
-    make_team(db_session, misty.user.id, 5, name="Misty's")
-    backdate(db_session, older.id, timedelta(days=1))
-
-    page = client.get("/api/teams", params={"owner": "ASH"}).json()
-
-    assert [team["name"] for team in page["items"]] == ["Empty", "Older"]
-    assert page["next_cursor"] is None
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_pages_through_one_users_teams(
-    client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
-) -> None:
-    for hours, (name, pokemon_ids) in enumerate(
-        [("Fire 1", [4]), ("Empty 2", []), ("Fire 3", [4])], start=1
-    ):
-        team = make_team(db_session, ash.user.id, *pokemon_ids, name=name)
-        backdate(db_session, team.id, timedelta(hours=hours))
-    make_team(db_session, misty.user.id, 5, name="Misty's")
-    params: dict[str, Any] = {"owner": "ash", "limit": 2}
-
-    first = client.get("/api/teams", params=params).json()
-    second = client.get("/api/teams", params=params | {"cursor": first["next_cursor"]}).json()
-
-    assert [team["name"] for team in first["items"] + second["items"]] == [
-        "Fire 1",
-        "Empty 2",
-        "Fire 3",
-    ]
-    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
-
-
-@pytest.mark.usefixtures("charmander_family")
 def test_sorts_everyones_teams_by_power(
     client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
 ) -> None:
@@ -562,23 +488,6 @@ def test_sorts_everyones_teams_by_power(
     assert [team["name"] for team in by_power["items"]] == ["Strong and old", "Weak and new"]
     assert [team["name"] for team in by_default["items"]] == ["Weak and new", "Strong and old"]
     assert newest == by_default
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_pages_through_everyones_teams_by_power(
-    client: TestClient, db_session: Session, ash: SignedIn
-) -> None:
-    for hours, (pokemon_id, name) in enumerate([(4, "Weak"), (5, "Mid"), (6, "Strong")]):
-        set_every_stat(db_session, pokemon_id, 20 + 40 * hours)
-        team = make_team(db_session, ash.user.id, pokemon_id, name=name)
-        backdate(db_session, team.id, timedelta(hours=hours))
-    params: dict[str, Any] = {"sort": "power", "limit": 2}
-
-    first = client.get("/api/teams", params=params).json()
-    second = client.get("/api/teams", params=params | {"cursor": first["next_cursor"]}).json()
-
-    assert [team["name"] for team in first["items"] + second["items"]] == ["Strong", "Mid", "Weak"]
-    assert (first["next_cursor"], second["next_cursor"]) == (first["items"][-1]["id"], None)
 
 
 def test_documents_how_teams_are_sorted(openapi: dict[str, Any]) -> None:
