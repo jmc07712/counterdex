@@ -67,14 +67,14 @@ def client_for(handler: Handler, *, concurrency: int = 20, retry_delay: float = 
     return PokeApiClient(http, concurrency=concurrency, retry_delay=retry_delay)
 
 
-def fake_pokeapi(
+def fake_pokeapi_handler(
     *,
     failing: Collection[str] = (),
     speeds: Mapping[int, int] | None = None,
     extra_urls: Sequence[str] = (),
     requested: list[str] | None = None,
     edit: Callable[[str, dict[str, Any]], None] | None = None,
-) -> PokeApiClient:
+) -> Handler:
     """PokéAPI listing Charizard (6) and Pikachu (25) and their evolution families' species, and
     serving every type the app knows.
 
@@ -113,4 +113,9 @@ def fake_pokeapi(
             edit(path, data)
         return httpx2.Response(200, json=data)
 
-    return client_for(handler)
+    return handler
+
+
+def fake_pokeapi(**options: Any) -> PokeApiClient:
+    """A real PokeApiClient talking to fake_pokeapi_handler(**options)."""
+    return client_for(fake_pokeapi_handler(**options))

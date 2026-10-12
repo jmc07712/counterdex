@@ -55,13 +55,15 @@ async def sync_pokemon(client: PokeApiClient, sessions: Callable[[], Session]) -
     return 0
 
 
-async def main() -> int:
+async def main(transport: httpx2.AsyncBaseTransport | None = None) -> int:
+    """Sync from PokéAPI over `transport`, which demo_changes replaces; by default, the network."""
     async with httpx2.AsyncClient(
         base_url=POKEAPI_BASE_URL,
         timeout=REQUEST_TIMEOUT_SECONDS,
         headers={"User-Agent": USER_AGENT},
         # Never follow redirects: they could lead outside PokéAPI.
         follow_redirects=False,
+        transport=transport,
     ) as http:
         return await sync_pokemon(PokeApiClient(http), lambda: Session(get_engine()))
 
