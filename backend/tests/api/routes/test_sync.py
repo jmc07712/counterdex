@@ -4,8 +4,11 @@ from typing import Any
 import httpx2
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.accounts.models import User
+from app.accounts.types import SignedIn
 from app.api.constants import SYNC_STATUS_CACHE_CONTROL
 from app.sync.enums import SyncStatus
 from tests.support.sync import add_sync_run
@@ -236,6 +239,16 @@ def test_turns_away_who_is_not_an_admin(ash_client: TestClient, db_session: Sess
 
     assert response.status_code == 403
     assert response.json() == {"detail": "Only admins can see this."}
+
+
+def test_taking_admin_away_works_at_once(
+    oak_client: TestClient, db_session: Session, oak: SignedIn
+) -> None:
+    assert oak_client.get("/api/sync/runs").status_code == 200
+
+    db_session.execute(update(User).where(User.id == oak.user.id).values(is_admin=False))
+
+    assert oak_client.get("/api/sync/runs").status_code == 403
 
 
 def test_the_runs_are_never_cached(oak_client: TestClient) -> None:
