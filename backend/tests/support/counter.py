@@ -3,11 +3,9 @@
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
-from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.counter.types import Profile, TypeChart
-from app.pokemon import models
 from app.pokemon.enums import PokemonType
 from app.sync.normalize import normalize_type_chart
 from app.sync.pokeapi import PokeApiType
@@ -130,13 +128,6 @@ def add_real_pokemon(session: Session, *ids: int) -> None:
             is_legendary=pokemon_id in LEGENDARY,
             is_mythical=pokemon_id in MYTHICAL,
         )
-
-
-def remove_pokemon(session: Session, pokemon_id: int) -> None:
-    """Marks the Pokémon as no longer listed by PokéAPI, as a sync would."""
-    session.execute(
-        update(models.Pokemon).where(models.Pokemon.id == pokemon_id).values(removed_at=func.now())
-    )
 
 
 def profile(**fields: Any) -> Profile:

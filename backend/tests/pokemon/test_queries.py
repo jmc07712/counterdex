@@ -3,7 +3,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-from app.pokemon import models
 from app.pokemon.enums import EvolutionTrigger, FormFilter, ListingStatus, PokemonType
 from app.pokemon.queries import cdn_sprite_url, get_pokemon_details, list_pokemon
 from app.pokemon.schemas import (
@@ -18,9 +17,11 @@ from tests.support.pokemon import (
     GYARADOS_SPRITE,
     LEVEL_16,
     LEVEL_36,
+    REMOVED_AT,
     add_pokemon,
     add_species,
     make_pokemon,
+    remove_pokemon,
 )
 
 
@@ -69,13 +70,9 @@ def test_lists_pokemon_in_pokedex_order(db_session: Session) -> None:
 def test_lists_pokemon_by_whether_pokeapi_still_lists_them(
     db_session: Session, query: PokemonQuery, expected_ids: list[int]
 ) -> None:
-    db_session.add_all(
-        [
-            make_pokemon(id=25, name="pikachu"),
-            make_pokemon(id=6, name="charizard", removed_at=datetime(2026, 10, 9, tzinfo=UTC)),
-        ]
-    )
+    db_session.add_all([make_pokemon(id=25, name="pikachu"), make_pokemon(id=6, name="charizard")])
     db_session.flush()
+    remove_pokemon(db_session, 6)
 
     assert ids(list_pokemon(db_session, query)) == expected_ids
 
@@ -187,8 +184,6 @@ def test_pages_through_filtered_results(db_session: Session) -> None:
 
 # --- One Pokémon's details ---
 
-REMOVED_AT = datetime(2026, 10, 11, tzinfo=UTC)
-
 # A stage of an evolution family as (species, its Pokémon's id, methods, what it evolves into).
 Outline = tuple[str, int | None, list[EvolutionMethod], list["Outline"]]
 
@@ -196,13 +191,6 @@ Outline = tuple[str, int | None, list[EvolutionMethod], list["Outline"]]
 def outline(stage: EvolutionStage) -> Outline:
     pokemon_id = stage.pokemon.id if stage.pokemon else None
     return (stage.species.name, pokemon_id, stage.methods, [outline(e) for e in stage.evolves_to])
-
-
-def remove(session: Session, pokemon_id: int) -> None:
-    pokemon = session.get(models.Pokemon, pokemon_id)
-    assert pokemon is not None
-    pokemon.removed_at = REMOVED_AT
-    session.flush()
 
 
 def details(session: Session, pokemon_id: int) -> PokemonDetails:
@@ -213,14 +201,14 @@ def details(session: Session, pokemon_id: int) -> PokemonDetails:
 
 @pytest.mark.usefixtures("charmander_family")
 def test_leaves_out_forms_pokeapi_no_longer_lists(db_session: Session) -> None:
-    remove(db_session, 10034)
+    remove_pokemon(db_session, 10034)
 
     assert [form.id for form in details(db_session, 6).forms] == [6]
 
 
 @pytest.mark.usefixtures("charmander_family")
 def test_gets_a_pokemon_pokeapi_no_longer_lists(db_session: Session) -> None:
-    remove(db_session, 6)
+    remove_pokemon(db_session, 6)
 
     assert details(db_session, 6).removed_at == REMOVED_AT
 
@@ -276,7 +264,7 @@ def test_branches_where_a_species_evolves_into_more_than_one(db_session: Session
 
 @pytest.mark.usefixtures("charmander_family")
 def test_shows_a_stage_pokeapi_no_longer_lists_without_its_pokemon(db_session: Session) -> None:
-    remove(db_session, 5)
+    remove_pokemon(db_session, 5)
 
     evolution = details(db_session, 6).evolution
 

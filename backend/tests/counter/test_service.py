@@ -5,7 +5,8 @@ from app.counter.enums import Rating
 from app.counter.schemas import Challenger, MatchupsQuery, TeamMatchupQuery
 from app.counter.service import find_counter_team, list_team_threats, score_teams
 from app.pokemon.enums import PokemonType
-from tests.support.counter import REAL_POKEMON, remove_pokemon
+from tests.support.counter import REAL_POKEMON
+from tests.support.pokemon import remove_pokemon
 
 CHARIZARD, VENUSAUR, BLASTOISE, SNORLAX = 6, 3, 9, 143
 

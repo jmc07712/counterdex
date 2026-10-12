@@ -5,8 +5,8 @@ from app.counter.queries import candidates, profiles, type_chart
 from app.counter.types import Profile
 from app.pokemon import models
 from app.pokemon.enums import PokemonType
-from tests.support.counter import TYPE_CHART, add_real_pokemon, add_type_chart, remove_pokemon
-from tests.support.pokemon import make_pokemon
+from tests.support.counter import TYPE_CHART, add_real_pokemon, add_type_chart
+from tests.support.pokemon import make_pokemon, remove_pokemon
 
 MACHAMP, MEGA_MACHAMP, MEWTWO, MEW = 68, 10200, 150, 151
 

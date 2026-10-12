@@ -2,19 +2,18 @@ import uuid
 from datetime import timedelta
 
 import pytest
-from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.accounts import service as accounts
 from app.accounts.types import SignedIn
 from app.pokemon.constants import RECENTLY_CHANGED
 from app.pokemon.enums import PokemonType
-from app.pokemon.models import Pokemon
 from app.pokemon.schemas import STAT_NAMES
 from app.teams import queries
 from app.teams.enums import TeamSort
 from app.teams.schemas import TeamPage, TeamsQuery
 from tests.support.accounts import BROCK
+from tests.support.pokemon import change_recently, remove_pokemon
 from tests.support.teams import (
     add_mr_mime,
     add_species_pokemon,
@@ -211,13 +210,6 @@ def add_teams_to_filter(session: Session, ash: SignedIn) -> None:
     water = make_team(session, ash.user.id, 201, name="Water")
     backdate(session, fire.id, timedelta(hours=1))
     backdate(session, water.id, timedelta(hours=2))
-
-
-def change_recently(session: Session, pokemon_id: int, age: timedelta = timedelta(0)) -> None:
-    """Makes it look as if a sync changed the Pokémon `age` ago."""
-    session.execute(
-        update(Pokemon).where(Pokemon.id == pokemon_id).values(last_changed_at=func.now() - age)
-    )
 
 
 @pytest.mark.parametrize(
@@ -549,7 +541,7 @@ def test_a_removed_pokemons_stats_still_count_toward_power(
     make_team(db_session, ash.user.id, 203, name="Newer")
     with_removed = make_team(db_session, ash.user.id, 201, 202, name="With a removed Pokémon")
     backdate(db_session, with_removed.id, timedelta(hours=1))
-    db_session.execute(update(Pokemon).where(Pokemon.id == 201).values(removed_at=func.now()))
+    remove_pokemon(db_session, 201)
 
     page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
 

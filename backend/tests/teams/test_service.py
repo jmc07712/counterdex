@@ -1,11 +1,11 @@
 import uuid
 
 import pytest
-from sqlalchemy import func, update
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.accounts.types import SignedIn
-from app.pokemon.models import Pokemon, SpeciesVariety
+from app.pokemon.models import SpeciesVariety
 from app.teams import queries, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
@@ -13,6 +13,7 @@ from app.teams.exceptions import (
     TeamConflictError,
 )
 from app.teams.schemas import NewTeam
+from tests.support.pokemon import remove_pokemon
 from tests.support.teams import (
     add_eevee_family,
     add_species_pokemon,
@@ -64,7 +65,7 @@ def test_creating_with_an_id_you_already_have_returns_that_team_unchanged(
 
 @pytest.mark.usefixtures("charmander_family")
 def test_creating_with_a_removed_pokemon_fails(db_session: Session, ash: SignedIn) -> None:
-    db_session.execute(update(Pokemon).where(Pokemon.id == 4).values(removed_at=func.now()))
+    remove_pokemon(db_session, 4)
 
     with pytest.raises(TeamConflictError) as conflict:
         service.create_team(db_session, ash.user.id, TEAM_ID, NewTeam(name="Fire", pokemon_ids=[4]))

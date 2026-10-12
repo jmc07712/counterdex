@@ -5,7 +5,7 @@ from unittest.mock import ANY
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, func, update
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.accounts import service as accounts
@@ -13,10 +13,10 @@ from app.accounts.types import SignedIn
 from app.api.main import app
 from app.api.routes.teams import conflict_detail
 from app.api.session_cookie import session_cookie_name
-from app.pokemon.models import Pokemon
 from app.teams import service
 from app.teams.enums import TeamConflictReason
 from tests.support.accounts import ASH
+from tests.support.pokemon import change_recently
 from tests.support.teams import (
     add_eevee_family,
     add_species_pokemon,
@@ -431,7 +431,7 @@ def test_filters_everyones_teams_by_type_and_recent_changes(
     add_species_pokemon(db_session, 201)
     make_team(db_session, ash.user.id, 4, 201, name="Fire and water")
     make_team(db_session, ash.user.id, 4, name="Fire")
-    db_session.execute(update(Pokemon).where(Pokemon.id == 201).values(last_changed_at=func.now()))
+    change_recently(db_session, 201)
 
     by_types = client.get("/api/teams", params={"type": ["fire", "water"]}).json()
     by_changes = client.get("/api/teams", params={"changed": "true"}).json()

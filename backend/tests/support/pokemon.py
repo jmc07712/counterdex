@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
@@ -21,6 +21,9 @@ PIKACHU = schemas.Pokemon(
     sprite_url="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
     is_default=True,
 )
+
+# When remove_pokemon says PokéAPI stopped listing a Pokémon.
+REMOVED_AT = datetime(2026, 10, 11, tzinfo=UTC)
 
 # How Charmander evolves into Charmeleon, and Charmeleon into Charizard.
 LEVEL_16 = schemas.EvolutionMethod(trigger=EvolutionTrigger.LEVEL_UP, min_level=16)
@@ -104,3 +107,19 @@ def stored_varieties(session: Session) -> dict[int, int]:
         select(models.SpeciesVariety.pokemon_id, models.SpeciesVariety.species_id)
     )
     return dict(rows.all())
+
+
+def remove_pokemon(session: Session, pokemon_id: int) -> None:
+    """Marks the Pokémon as no longer listed by PokéAPI, as a sync would, at REMOVED_AT."""
+    session.execute(
+        update(models.Pokemon).where(models.Pokemon.id == pokemon_id).values(removed_at=REMOVED_AT)
+    )
+
+
+def change_recently(session: Session, pokemon_id: int, age: timedelta = timedelta(0)) -> None:
+    """Makes it look as if a sync changed the Pokémon `age` ago."""
+    session.execute(
+        update(models.Pokemon)
+        .where(models.Pokemon.id == pokemon_id)
+        .values(last_changed_at=func.now() - age)
+    )
