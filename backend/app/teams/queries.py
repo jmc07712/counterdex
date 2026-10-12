@@ -25,7 +25,7 @@ from app.accounts import models as accounts_models
 from app.accounts.exceptions import UserNotFoundError
 from app.accounts.queries import find_user, has_username
 from app.pokemon import models as pokemon_models
-from app.pokemon.queries import changed_recently, pokemon_from_columns
+from app.pokemon.queries import changed_recently, pokemon_from_columns, stat_total
 from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
 from app.teams.enums import TeamSort
@@ -162,16 +162,8 @@ def _team_powers() -> Subquery:
     removed Pokémon included, worked out from the stats as they are now.
     """
     pokemon = pokemon_models.Pokemon
-    stats = (
-        pokemon.hp
-        + pokemon.attack
-        + pokemon.defense
-        + pokemon.sp_attack
-        + pokemon.sp_defense
-        + pokemon.speed
-    )
     return (
-        select(models.TeamMember.team_id, func.sum(stats).label("power"))
+        select(models.TeamMember.team_id, func.sum(stat_total()).label("power"))
         .select_from(models.TeamMember)
         .join(pokemon, pokemon.id == models.TeamMember.pokemon_id)
         .group_by(models.TeamMember.team_id)

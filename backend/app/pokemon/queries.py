@@ -1,6 +1,8 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from functools import reduce
+from operator import add
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, exists, func, select
@@ -51,6 +53,12 @@ def changed_recently() -> ColumnElement[bool]:
     again.
     """
     return models.Pokemon.last_changed_at >= func.now() - RECENTLY_CHANGED
+
+
+def stat_total() -> ColumnElement[int]:
+    """A Pokémon's base stat total: its six base stats added up."""
+    stats: list[ColumnElement[int]] = [getattr(models.Pokemon, stat) for stat in schemas.STAT_NAMES]
+    return reduce(add, stats)
 
 
 def pokemon_exists(session: Session, pokemon_id: int) -> bool:
