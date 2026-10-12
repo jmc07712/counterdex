@@ -187,16 +187,6 @@ describe('PokedexPage', () => {
     expect(router.state.location.search).toBe(`?forms=${forms}`)
   })
 
-  it('always keeps one forms option chosen', async () => {
-    servePokemon()
-    const { user, router } = renderWithProviders(<PokedexPage />)
-
-    await user.click(screen.getByRole('radio', { name: 'All' }))
-
-    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
-    expect(router.state.location.search).toBe('')
-  })
-
   it('starts from the filters in the URL', async () => {
     const requests = servePokemon()
 

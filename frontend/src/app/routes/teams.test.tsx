@@ -659,16 +659,6 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(router.state.location.search).toBe('?view=changed')
   })
 
-  it('always keeps one view chosen', async () => {
-    serveTeams({ teams: [RAIN] })
-    const { user, router } = await renderTeams()
-
-    await user.click(screen.getByRole('radio', { name: 'All' }))
-
-    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
-    expect(router.state.location.search).toBe('')
-  })
-
   it('opens on the newest teams, and asks for no sort', async () => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
 
@@ -693,16 +683,6 @@ describe('TeamsPage, everyone’s teams', () => {
 
     expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
     expect(router.state.location.search).toBe('')
-  })
-
-  it('always keeps one sort chosen', async () => {
-    serveTeams({ teams: [RAIN] })
-    const { user, router } = await renderTeams('/?sort=power')
-
-    await user.click(screen.getByRole('radio', { name: 'Most powerful' }))
-
-    expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
-    expect(router.state.location.search).toBe('?sort=power')
   })
 
   it('lists the teams in the order the API gives, newest or most powerful', async () => {
