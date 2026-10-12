@@ -1,7 +1,8 @@
 import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query'
 
-import { type Challenger, findCounterTeam, type TeamMember } from '@/api'
+import { findCounterTeam, type TeamMember } from '@/api'
 import { findCounterTeamQueryKey } from '@/api/@tanstack/react-query.gen'
+import { dataOrNull } from '@/lib/queries'
 
 import type { MatchupPool } from '../types'
 import { matchupQuery, matchupStaleTime } from '../utils/matchup-query'
@@ -14,12 +15,7 @@ export function counterTeamQueryOptions(members: TeamMember[], pool: MatchupPool
   const query = matchupQuery(members, pool)
   return queryOptions({
     queryKey: findCounterTeamQueryKey({ query }),
-    queryFn: async ({ signal }): Promise<Challenger[] | null> => {
-      const { data, response } = await findCounterTeam({ query, signal })
-      if (response?.status === 503) return null
-      if (data === undefined) throw new Error(`GET /api/counter-team failed: ${response?.status}`)
-      return data
-    },
+    queryFn: ({ signal }) => dataOrNull(findCounterTeam({ query, signal }), 503),
     staleTime: matchupStaleTime,
   })
 }

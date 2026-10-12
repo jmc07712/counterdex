@@ -1,7 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { scoreTeams, type TeamMatchups, type TeamMember } from '@/api'
+import { scoreTeams, type TeamMember } from '@/api'
 import { scoreTeamsQueryKey } from '@/api/@tanstack/react-query.gen'
+import { dataOrNull } from '@/lib/queries'
 
 import { matchupStaleTime } from '../utils/matchup-query'
 
@@ -17,12 +18,7 @@ export function useTeamMatchups(ours: TeamMember[], theirs: TeamMember[]) {
   }
   return useQuery({
     queryKey: scoreTeamsQueryKey({ query }),
-    queryFn: async ({ signal }): Promise<TeamMatchups | null> => {
-      const { data, response } = await scoreTeams({ query, signal })
-      if (response?.status === 503) return null
-      if (data === undefined) throw new Error(`GET /api/matchups failed: ${response?.status}`)
-      return data
-    },
+    queryFn: ({ signal }) => dataOrNull(scoreTeams({ query, signal }), 503),
     staleTime: matchupStaleTime,
     placeholderData: keepPreviousData,
     enabled: ours.length > 0 && theirs.length > 0,

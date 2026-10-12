@@ -1,7 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { type Challenger, listTeamThreats, type TeamMember } from '@/api'
+import { listTeamThreats, type TeamMember } from '@/api'
 import { listTeamThreatsQueryKey } from '@/api/@tanstack/react-query.gen'
+import { dataOrNull } from '@/lib/queries'
 
 import type { MatchupPool } from '../types'
 import { matchupQuery, matchupStaleTime } from '../utils/matchup-query'
@@ -15,12 +16,7 @@ export function useTeamThreats(members: TeamMember[], pool: MatchupPool) {
   const query = matchupQuery(members, pool)
   return useQuery({
     queryKey: listTeamThreatsQueryKey({ query }),
-    queryFn: async ({ signal }): Promise<Challenger[] | null> => {
-      const { data, response } = await listTeamThreats({ query, signal })
-      if (response?.status === 503) return null
-      if (data === undefined) throw new Error(`GET /api/team-threats failed: ${response?.status}`)
-      return data
-    },
+    queryFn: ({ signal }) => dataOrNull(listTeamThreats({ query, signal }), 503),
     staleTime: matchupStaleTime,
     placeholderData: keepPreviousData,
   })
