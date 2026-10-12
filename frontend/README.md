@@ -113,7 +113,8 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   /api/counter-team`: our picks in battle order, each with a line on why it's there, whether every
   one of theirs has a good answer, and a table of each pick against each of theirs, where choosing
   a matchup explains it in one sentence (`utils/matchup-sentence.ts`). Where the table doesn't fit,
-  a list gives our best pick against each of theirs. Build this counter saves the counter shown.
+  a list gives our best pick against each of theirs. Build this counter saves the counter shown,
+  and opens it in Edit matched up against this team, as Counter beside the team's name does.
 - **Under your own team**, "Threats to this team" lists up to 12 Pokémon from
   `GET /api/team-threats`, each saying which members it beats, and each opening its details. Both
   sections can also pick from alternate forms and legendaries, kept in the URL
@@ -122,12 +123,19 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
 - **Its owner** also gets a View / Edit toggle, and a Replace link on each removed member. Edit
   (`/teams/:teamId/edit`) puts the team beside the Pokédex. From `lg` up, the team is a column
   pinned at the left, with its name to rename, the same line above the slots, and its slots, each
-  changed member's change on one line and a button to remove each member; the Pokédex fills the
-  rest, with the Pokédex page's filters, kept in the URL, and cards. Each card's button adds its
-  Pokémon, puts it in the place of the member from its evolution family, or says why it can't
-  join: it's on the team, or the team is full. A Replace link opens Edit with `?replace=<id>`, and
-  each card's button then replaces that member. Tapping a card or a slot opens its details. Every
-  change saves at once, so the toggle back to View is the way out.
+  changed member's change on one line, a button to remove each member and a Replace link on each
+  removed one; the Pokédex fills the rest, with the Pokédex page's filters, kept in the URL, and
+  cards. Each card's button adds its Pokémon, puts it in the place of the member from its
+  evolution family, or says why it can't join: it's on the team, or the team is full. A Replace
+  link sets `?replace=<id>`: a box above the Pokédex asks for the Pokémon, and each card's button
+  then replaces that member. A member's slot can be dragged to another's, with a mouse, a finger
+  (at once on its handle, or held still for a moment elsewhere on the slot), or its handle and the
+  keyboard (Space, the arrow keys, Space), which puts the team in a new order; the first is the
+  lead. With `?against=<team id>`, as building a
+  counter opens it, a panel below the slots matches the team up against that one as it's changed:
+  whether each of theirs has a good answer, why each of ours is there, and our best answer to
+  each of theirs, explained in a sentence when pressed. Tapping a card or a slot opens its
+  details. Every change saves at once, so the toggle back to View is the way out.
 
 ## The admin page
 
@@ -145,7 +153,11 @@ Every page has to work at phone width.
   `data-floating-button`), they sit above that too.
 - Below `lg`, the header's sync status is just its light and a short age, or "Failed", though
   the full words are still read out. Edit shows the team first, and its floating Add Pokémon
-  button opens the Pokédex in a sheet as tall as the screen.
+  button opens the Pokédex in a sheet as tall as the screen, which also opens by itself when a
+  member is to be replaced. The box asking for that Pokémon is above the slots and in the sheet,
+  and the `?against` panel's picks and answers start folded away.
+- In Edit, slots narrower than 34rem, as in its column and on phones, leave out their Pokédex
+  numbers and base stat totals, and a Replace link is just its icon. View's party keeps them.
 
 ## Tests
 
