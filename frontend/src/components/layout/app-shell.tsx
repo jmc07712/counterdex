@@ -71,9 +71,11 @@ const apiDocs = { href: '/api/docs', label: m.nav_api, icon: BookOpenText }
 type AppShellProps = {
   // Shown in the header beside the theme switch on every page, such as the data's sync status.
   status?: ReactNode
+  // Shown under the header on every page, such as what the latest sync changed.
+  banner?: ReactNode
 }
 
-export function AppShell({ status }: AppShellProps) {
+export function AppShell({ status, banner }: AppShellProps) {
   // The phone tab bar hides while scrolling down the page and comes back on any scroll up,
   // like the toolbars in mobile browsers.
   const scrollDirection = useScrollDirection()
@@ -136,6 +138,7 @@ export function AppShell({ status }: AppShellProps) {
           </div>
         </div>
       </header>
+      {banner}
 
       <main
         id="main"

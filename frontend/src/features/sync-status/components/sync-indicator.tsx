@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Info } from 'lucide-react'
+import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { SyncStatus } from '@/api'
 import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
+import { ChangedIcon } from '@/components/pokemon/changed-mark'
 import { LiveStatusLight, StatusLight } from '@/components/sync/status-light'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,20 +19,27 @@ import {
 import { formatAge, formatDateTime, formatShortAge } from '@/lib/dates'
 import { m } from '@/paraglide/messages.js'
 
+import { recentChanges } from '../utils/recent-changes'
+import { CHANGED_POKEMON_HREF } from './sync-changes-banner'
+
 export function SyncIndicator() {
   const { data } = useQuery(syncStatusOptions())
+  const [open, setOpen] = useState(false)
 
   if (!data?.last_synced_at) return null
   const syncedAt = new Date(data.last_synced_at)
   const age = formatAge(syncedAt)
   const run = data.latest_run
   const failed = run?.status === SyncStatus.FAILED
+  const changed = recentChanges(data) !== null
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="shrink-0 rounded-full">
           {failed ? <StatusLight failed /> : <LiveStatusLight />}
+          {/* Marks a sync with changes in the last week; the banner under the header says what. */}
+          {changed && <ChangedIcon />}
           {/* Below lg the header only has room for the light and a word or a short age. The full
               words are still read out. */}
           <span className="max-lg:sr-only">
@@ -61,6 +71,16 @@ export function SyncIndicator() {
             <Count label={m.sync_restored()} value={run.restored} />
             <Count label={m.sync_failed()} value={run.failed} />
           </dl>
+        )}
+        {changed && (
+          <Link
+            to={CHANGED_POKEMON_HREF}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-1.5 rounded-sm text-sm font-semibold underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <ChangedIcon />
+            {m.sync_changes_link()}
+          </Link>
         )}
       </PopoverContent>
     </Popover>

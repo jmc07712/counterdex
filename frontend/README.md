@@ -97,6 +97,15 @@ A team saves each change as it's made, so several can be on their way at once. `
 
 The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-races).
 
+## The sync status
+
+The header's sync status says how long ago the Pokédex was synced, and opens what the latest sync
+counted. When the latest sync succeeded in the last week and added, updated, removed or restored
+any Pokémon, the status also shows the history icon, its popover links to the changed Pokémon, and
+a strip under the header says what changed, with the same link: the Pokédex's Changed view
+(`/pokedex?status=changed`). Dismissing the strip hides it in this browser until a later sync
+changes more (`features/sync-status`).
+
 ## The team views
 
 - **Teams** (`/`) lists everyone's teams, with each card saying whose it is, or, for someone
