@@ -417,6 +417,18 @@
   "team_threats_loading": "Finding threats to this team",
   "team_threats_needs_sync": "Threats need a Pokédex sync first",
   "team_threats_load_failed": "Couldn’t find threats to this team",
+  "team_against_title": "Against {team}",
+  "team_against_team_load_failed": "Couldn’t load the team to match up against",
+  "team_against_close": "Stop matching up against {team}",
+  "team_against_their_team": "Their team",
+  "team_against_empty": "Add Pokémon to see how they match up",
+  "team_against_loading": "Matching up the teams",
+  "team_against_needs_sync": "Matchups need a Pokédex sync first",
+  "team_against_load_failed": "Couldn’t match up the teams",
+  "team_against_details": "Picks and best answers",
+  "team_against_picks": "Your picks",
+  "team_against_answers": "Your best answer to each of theirs",
+  "team_against_answer": "Best answer: {name}",
   "team_added": "Added {name} to {team}",
   "team_problem": [
     {

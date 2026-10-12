@@ -17,8 +17,9 @@ export function matchupQuery(members: TeamMember[], { forms, legendaries }: Matc
 }
 
 /**
- * How long a counter or threats stay fresh: as long as the app's other answers, except the API's
- * "not synced yet" (null), which is never fresh, so a sync since shows the next time it's asked.
+ * How long a counter, threats or two teams' matchups stay fresh: as long as the app's other
+ * answers, except the API's "not synced yet" (null), which is never fresh, so a sync since shows
+ * the next time it's asked.
  */
 export function matchupStaleTime({ state }: { state: { data: unknown } }) {
   return state.data === null ? 0 : queryDefaults.queries.staleTime

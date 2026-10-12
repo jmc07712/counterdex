@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { type ReactNode, useRef } from 'react'
+import type { ReactNode, RefObject } from 'react'
 
 import type { TeamMember } from '@/api'
 import { displayName } from '@/components/pokemon/format'
@@ -19,6 +19,8 @@ type TeamBuilderProps = {
   back: ReactNode
   // Beside the BackLink, such as a menu with Delete.
   actions?: ReactNode
+  // The list of slots, which focus can be moved to.
+  slotsRef: RefObject<HTMLOListElement | null>
   // Opens a member's details.
   onOpenPokemon: (pokemonId: number) => void
   // Where a member removed from the Pokédex links to be replaced.
@@ -37,6 +39,7 @@ export function TeamBuilder({
   editor,
   back,
   actions,
+  slotsRef,
   onOpenPokemon,
   replaceTo,
   replacing,
@@ -44,7 +47,6 @@ export function TeamBuilder({
 }: TeamBuilderProps) {
   const { team } = editor
   const [ordered, showOrder] = useDroppedOrder(team)
-  const slots = useRef<HTMLOListElement>(null)
 
   function reorder(pokemonIds: number[]) {
     showOrder(pokemonIds)
@@ -54,7 +56,7 @@ export function TeamBuilder({
   function cancelReplacing() {
     onCancelReplacing()
     // Cancel leaves with its box, so focus would fall to the page.
-    slots.current?.focus()
+    slotsRef.current?.focus()
   }
 
   return (
@@ -71,7 +73,7 @@ export function TeamBuilder({
         <ReplaceBanner member={replacing} onCancel={cancelReplacing} className="mb-3" />
       )}
       <SortableMembers members={ordered.members} onReorder={reorder}>
-        <TeamSlots ref={slots}>
+        <TeamSlots ref={slotsRef}>
           {ordered.members.map((member) => (
             <SortableTeamSlot
               key={member.pokemon.id}

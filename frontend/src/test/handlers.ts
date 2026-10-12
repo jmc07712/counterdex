@@ -10,11 +10,13 @@ import {
   type PokemonChange,
   type PokemonDetails,
   type PokemonPage,
+  Rating,
   type SyncOverview,
   type SyncRunDetails,
   type SyncRunPage,
   type Team,
   TeamConflictReason,
+  type TeamMatchups,
   type TeamMember,
   type User,
 } from '@/api'
@@ -485,6 +487,46 @@ export function serveTeamThreats({
       const theirs = query.getAll('pokemon_id').map(Number)
       const listed = threats.filter((pokemon) => !theirs.includes(pokemon.id)).slice(0, 12)
       const answer: ListTeamThreatsResponse = challengers(listed, theirs, matchup)
+      return HttpResponse.json(answer)
+    }),
+  )
+  return requests
+}
+
+/**
+ * Stands in for the API's matchups between two teams: answers with each of our Pokémon, from
+ * `catalog`, and its `matchup` against each of theirs, and our best answer to each of theirs, the
+ * first on a tie; or, given `refuse`, with that status instead. Returns each request's query
+ * string, in the order they came.
+ */
+export function serveMatchups({
+  catalog = [],
+  matchup = evenMatchup,
+  refuse,
+}: { catalog?: Pokemon[]; matchup?: MatchupOf; refuse?: number } = {}) {
+  const requests: string[] = []
+  server.use(
+    http.get('/api/matchups', ({ request }) => {
+      const query = new URL(request.url).searchParams
+      requests.push(query.toString())
+      if (refuse) return refusal(refuse)
+      const ours = query
+        .getAll('pokemon_id')
+        .flatMap((id) => catalog.find((pokemon) => pokemon.id === Number(id)) ?? [])
+      const theirs = query.getAll('opponent_id').map(Number)
+      const members = challengers(ours, theirs, matchup)
+      const answers = theirs.map((opponentId) => {
+        const scored = members.map((member) => ({
+          pokemon_id: member.pokemon.id,
+          matchup: matchup(member.pokemon, opponentId),
+        }))
+        return scored.reduce((best, each) => (each.matchup.score > best.matchup.score ? each : best))
+      })
+      const answer: TeamMatchups = {
+        members,
+        answers,
+        every_opponent_answered: answers.every((each) => each.matchup.rating === Rating.GOOD),
+      }
       return HttpResponse.json(answer)
     }),
   )
