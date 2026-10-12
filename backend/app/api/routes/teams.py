@@ -11,7 +11,7 @@ from app.api.dependencies import NOT_SIGNED_IN, CurrentUser, SessionDep
 from app.api.errors import ConflictError
 from app.api.tags import TEAM_MEMBERS, TEAMS
 from app.pokemon.constants import MAX_POKEMON_ID
-from app.teams import models, service
+from app.teams import models, queries, service
 from app.teams.enums import TeamConflictReason
 from app.teams.exceptions import (
     MemberNotFoundError,
@@ -125,7 +125,7 @@ def list_teams(session: SessionDep, query: Annotated[TeamsQuery, Query()]) -> Te
     To get the next page, pass the response's `next_cursor` as `cursor`, keeping the same
     filters and `sort`; it's `null` on the last page.
     """
-    return service.list_teams(session, query)
+    return queries.list_teams(session, query)
 
 
 @router.get(
@@ -138,7 +138,7 @@ def list_user_teams(session: SessionDep, username: Username) -> list[Team]:
     Teams with no Pokémon yet are listed too.
     """
     with team_errors():
-        return service.list_user_teams(session, username)
+        return queries.list_user_teams(session, username)
 
 
 @router.put(
@@ -175,7 +175,7 @@ def create_team(
 def get_team(session: SessionDep, team_id: TeamId) -> Team:
     """A team, with its owner and its Pokémon in slot order."""
     with team_errors():
-        return service.get_team(session, team_id)
+        return queries.get_team(session, team_id)
 
 
 @router.patch(

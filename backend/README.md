@@ -57,7 +57,7 @@ Each file in a domain has one job:
 - `schemas`: the shapes the API takes and serves.
 - `types`: internal data.
 - `enums`, `constants` and `exceptions`.
-- `queries`: read-only lookups (teams keeps its reads in `service`).
+- `queries`: read-only lookups.
 - `service`: the domain's operations.
 
 The sync adds:

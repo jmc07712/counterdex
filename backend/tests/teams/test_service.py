@@ -12,7 +12,7 @@ from app.pokemon.constants import RECENTLY_CHANGED
 from app.pokemon.enums import PokemonType
 from app.pokemon.models import Pokemon, SpeciesVariety
 from app.pokemon.schemas import STAT_NAMES
-from app.teams import service
+from app.teams import queries, service
 from app.teams.enums import TeamConflictReason, TeamSort
 from app.teams.exceptions import (
     MemberNotFoundError,
@@ -73,7 +73,7 @@ def test_creating_with_an_id_you_already_have_returns_that_team_unchanged(
 
     assert created is False
     assert again == first
-    assert len(service.list_user_teams(db_session, "ash")) == 1
+    assert len(queries.list_user_teams(db_session, "ash")) == 1
 
 
 def test_an_id_another_user_has_is_taken(
@@ -127,7 +127,7 @@ def test_lists_a_users_teams_most_recently_changed_first(
 
     service.rename_team(db_session, locked, "Renamed")
 
-    assert [team.name for team in service.list_user_teams(db_session, "ash")] == [
+    assert [team.name for team in queries.list_user_teams(db_session, "ash")] == [
         "Renamed",
         newer.name,
     ]
@@ -138,23 +138,23 @@ def test_finds_a_users_teams_whatever_the_usernames_case(
 ) -> None:
     team = make_team(db_session, ash.user.id)
 
-    assert service.list_user_teams(db_session, "ASH") == [team]
+    assert queries.list_user_teams(db_session, "ASH") == [team]
 
 
 def test_listing_the_teams_of_a_username_no_one_has_fails(db_session: Session) -> None:
     with pytest.raises(UserNotFoundError):
-        service.list_user_teams(db_session, "brock")
+        queries.list_user_teams(db_session, "brock")
 
 
 def test_anyone_can_get_a_team(db_session: Session, misty: SignedIn) -> None:
     team = make_team(db_session, misty.user.id)
 
-    assert service.get_team(db_session, team.id) == team
+    assert queries.get_team(db_session, team.id) == team
 
 
 def test_a_team_no_one_has_isnt_found(db_session: Session) -> None:
     with pytest.raises(TeamNotFoundError):
-        service.get_team(db_session, TEAM_ID)
+        queries.get_team(db_session, TEAM_ID)
 
 
 def test_a_team_shows_its_owners_username(db_session: Session, ash: SignedIn) -> None:
@@ -194,7 +194,7 @@ def test_a_search_matches_a_teams_name_its_owner_or_a_pokemon_on_it(
 ) -> None:
     add_teams_to_search(db_session, ash)
 
-    page = service.list_teams(db_session, TeamsQuery(q=q))
+    page = queries.list_teams(db_session, TeamsQuery(q=q))
 
     assert (team_names(page), page.next_cursor) == (found, None)
 
@@ -215,7 +215,7 @@ def test_a_search_with_spaces_matches_a_pokemons_hyphenated_name(
     make_team(db_session, ash.user.id, 10034, name="Zard")
     make_team(db_session, ash.user.id, 4, name="Fire")
 
-    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+    assert team_names(queries.list_teams(db_session, TeamsQuery(q=q))) == found
 
 
 @pytest.mark.parametrize(
@@ -231,7 +231,7 @@ def test_a_search_ignores_case(
 ) -> None:
     add_teams_to_search(db_session, ash)
 
-    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+    assert team_names(queries.list_teams(db_session, TeamsQuery(q=q))) == found
 
 
 @pytest.mark.parametrize(
@@ -248,7 +248,7 @@ def test_wildcards_in_a_search_match_themselves(
     for name in ["100% sure", "fire_team", "plain"]:
         make_team(db_session, ash.user.id, 201, name=name)
 
-    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+    assert team_names(queries.list_teams(db_session, TeamsQuery(q=q))) == found
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -257,7 +257,7 @@ def test_a_team_with_two_matching_pokemon_is_found_once(db_session: Session, ash
     make_team(db_session, ash.user.id, 201, 202, name="Pair")
     make_team(db_session, ash.user.id, 4, name="Other")
 
-    page = service.list_teams(db_session, TeamsQuery(q="pokemon-20"))
+    page = queries.list_teams(db_session, TeamsQuery(q="pokemon-20"))
 
     assert (team_names(page), page.next_cursor) == (["Pair"], None)
 
@@ -266,7 +266,7 @@ def test_a_team_with_two_matching_pokemon_is_found_once(db_session: Session, ash
 def test_a_search_nothing_matches_gives_an_empty_page(db_session: Session, ash: SignedIn) -> None:
     add_teams_to_search(db_session, ash)
 
-    page = service.list_teams(db_session, TeamsQuery(q="squirtle"))
+    page = queries.list_teams(db_session, TeamsQuery(q="squirtle"))
 
     assert page == TeamPage(items=[], next_cursor=None)
 
@@ -286,7 +286,7 @@ def test_a_search_never_finds_a_team_with_no_pokemon(
     make_team(db_session, misty.user.id, 201, name="Rain full")
     make_team(db_session, misty.user.id, 201, name="Sun")
 
-    assert team_names(service.list_teams(db_session, TeamsQuery(q=q))) == found
+    assert team_names(queries.list_teams(db_session, TeamsQuery(q=q))) == found
 
 
 def test_pages_through_a_search_without_repeating_or_skipping_a_team(
@@ -299,9 +299,9 @@ def test_pages_through_a_search_without_repeating_or_skipping_a_team(
         team = make_team(db_session, ash.user.id, 201, name=name)
         backdate(db_session, team.id, timedelta(hours=hours))
 
-    first = service.list_teams(db_session, TeamsQuery(q="fire", limit=2))
-    second = service.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=first.next_cursor))
-    third = service.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=second.next_cursor))
+    first = queries.list_teams(db_session, TeamsQuery(q="fire", limit=2))
+    second = queries.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=first.next_cursor))
+    third = queries.list_teams(db_session, TeamsQuery(q="fire", limit=2, cursor=second.next_cursor))
 
     assert [team_names(page) for page in (first, second, third)] == [
         ["Fire 1h", "Fire 3h"],
@@ -321,7 +321,7 @@ def test_a_search_with_a_cursor_no_team_has_gives_an_empty_page(
     add_species_pokemon(db_session, 201)
     make_team(db_session, ash.user.id, 201, name="Rain")
 
-    page = service.list_teams(db_session, TeamsQuery(q="rain", cursor=TEAM_ID))
+    page = queries.list_teams(db_session, TeamsQuery(q="rain", cursor=TEAM_ID))
 
     assert page == TeamPage(items=[], next_cursor=None)
 
@@ -369,7 +369,7 @@ def test_types_find_teams_with_a_pokemon_of_each(
 ) -> None:
     add_teams_to_filter(db_session, ash)
 
-    page = service.list_teams(db_session, TeamsQuery(types=types))
+    page = queries.list_teams(db_session, TeamsQuery(types=types))
 
     assert (team_names(page), page.next_cursor) == (found, None)
 
@@ -389,7 +389,7 @@ def test_changed_finds_teams_with_a_pokemon_a_sync_changed_in_the_last_week(
     # Pokémon 201 is on "Fire and water" and "Water"; Charmander has never changed.
     change_recently(db_session, 201, age)
 
-    page = service.list_teams(db_session, TeamsQuery(changed=True))
+    page = queries.list_teams(db_session, TeamsQuery(changed=True))
 
     assert team_names(page) == found
 
@@ -409,7 +409,7 @@ def test_filters_combine_with_each_other_and_a_search(
     add_teams_to_filter(db_session, ash)
     change_recently(db_session, 201)
 
-    assert team_names(service.list_teams(db_session, query)) == ["Fire and water"]
+    assert team_names(queries.list_teams(db_session, query)) == ["Fire and water"]
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -425,11 +425,11 @@ def test_pages_through_filtered_teams_without_repeating_or_skipping_one(
         backdate(db_session, team.id, timedelta(hours=hours))
     fire = (PokemonType.FIRE,)
 
-    first = service.list_teams(db_session, TeamsQuery(types=fire, limit=2))
-    second = service.list_teams(
+    first = queries.list_teams(db_session, TeamsQuery(types=fire, limit=2))
+    second = queries.list_teams(
         db_session, TeamsQuery(types=fire, limit=2, cursor=first.next_cursor)
     )
-    third = service.list_teams(
+    third = queries.list_teams(
         db_session, TeamsQuery(types=fire, limit=2, cursor=second.next_cursor)
     )
 
@@ -462,7 +462,7 @@ def test_an_owner_finds_their_teams_including_ones_with_no_pokemon(
 ) -> None:
     add_teams_of_two_owners(db_session, ash, misty)
 
-    page = service.list_teams(db_session, TeamsQuery(owner="ash"))
+    page = queries.list_teams(db_session, TeamsQuery(owner="ash"))
 
     assert (team_names(page), page.next_cursor) == (
         ["Fire and water", "Fire", "Water", "Fire plans"],
@@ -474,7 +474,7 @@ def test_an_owner_is_found_whatever_the_usernames_case(db_session: Session) -> N
     brock = accounts.sign_up(db_session, BROCK)
     make_team(db_session, brock.user.id, name="Rocks")
 
-    assert team_names(service.list_teams(db_session, TeamsQuery(owner="bROCK"))) == ["Rocks"]
+    assert team_names(queries.list_teams(db_session, TeamsQuery(owner="bROCK"))) == ["Rocks"]
 
 
 @pytest.mark.parametrize(
@@ -508,7 +508,7 @@ def test_an_owner_combines_with_the_other_filters(
     # Pokémon 201 is on a team of Misty's too, which none of these finds.
     change_recently(db_session, 201)
 
-    assert team_names(service.list_teams(db_session, query)) == found
+    assert team_names(queries.list_teams(db_session, query)) == found
 
 
 def test_pages_through_an_owners_teams_without_repeating_or_skipping_one(
@@ -524,11 +524,11 @@ def test_pages_through_an_owners_teams_without_repeating_or_skipping_one(
         backdate(db_session, ashs.id, timedelta(hours=hours))
         backdate(db_session, mistys.id, timedelta(hours=hours, minutes=30))
 
-    first = service.list_teams(db_session, TeamsQuery(owner="ash", limit=2))
-    second = service.list_teams(
+    first = queries.list_teams(db_session, TeamsQuery(owner="ash", limit=2))
+    second = queries.list_teams(
         db_session, TeamsQuery(owner="ash", limit=2, cursor=first.next_cursor)
     )
-    third = service.list_teams(
+    third = queries.list_teams(
         db_session, TeamsQuery(owner="ash", limit=2, cursor=second.next_cursor)
     )
 
@@ -547,7 +547,7 @@ def test_pages_through_an_owners_teams_without_repeating_or_skipping_one(
 def test_an_owner_no_one_has_gives_an_empty_page(db_session: Session, ash: SignedIn) -> None:
     make_team(db_session, ash.user.id, name="Empty")
 
-    page = service.list_teams(db_session, TeamsQuery(owner="brock"))
+    page = queries.list_teams(db_session, TeamsQuery(owner="brock"))
 
     assert page == TeamPage(items=[], next_cursor=None)
 
@@ -559,7 +559,7 @@ def test_without_an_owner_teams_with_no_pokemon_are_left_out(
     make_team(db_session, ash.user.id, name="Empty")
     make_team(db_session, misty.user.id, 201, name="Full")
 
-    assert team_names(service.list_teams(db_session, TeamsQuery())) == ["Full"]
+    assert team_names(queries.list_teams(db_session, TeamsQuery())) == ["Full"]
 
 
 # --- Sorting everyone's teams ---
@@ -594,7 +594,7 @@ def test_power_sorts_teams_by_the_sum_of_their_members_stats_highest_first(
 ) -> None:
     add_teams_to_sort(db_session, ash, misty)
 
-    page = service.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
+    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
 
     assert (team_names(page), page.next_cursor) == (
         ["Misty's strong", "Strong water", "Fire", "Weak water"],
@@ -612,7 +612,7 @@ def test_every_base_stat_counts_toward_power(db_session: Session, ash: SignedIn,
     older = make_team(db_session, ash.user.id, 202, name="Older but stronger")
     backdate(db_session, older.id, timedelta(hours=1))
 
-    page = service.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
+    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
 
     assert team_names(page) == ["Older but stronger", "Newer"]
 
@@ -624,11 +624,11 @@ def test_power_follows_the_pokemons_current_stats(db_session: Session, ash: Sign
     make_team(db_session, ash.user.id, 201, name="Was stronger")
     make_team(db_session, ash.user.id, 202, name="Was weaker")
     query = TeamsQuery(sort=TeamSort.POWER)
-    before = team_names(service.list_teams(db_session, query))
+    before = team_names(queries.list_teams(db_session, query))
 
     set_every_stat(db_session, 202, 150)
 
-    assert (before, team_names(service.list_teams(db_session, query))) == (
+    assert (before, team_names(queries.list_teams(db_session, query))) == (
         ["Was stronger", "Was weaker"],
         ["Was weaker", "Was stronger"],
     )
@@ -651,7 +651,7 @@ def test_teams_of_equal_power_are_sorted_newest_first_then_by_id(
     backdate(db_session, two_hours.id, timedelta(hours=2))
     backdate(db_session, one_hour.id, timedelta(hours=1))
 
-    page = service.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
+    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
 
     by_id = [team.name for team in sorted(tied, key=lambda team: team.id, reverse=True)]
     assert team_names(page) == [
@@ -674,7 +674,7 @@ def test_teams_with_no_pokemon_have_no_power_and_come_last(
     backdate(db_session, old_empty.id, timedelta(hours=2))
     backdate(db_session, full.id, timedelta(days=1))
 
-    page = service.list_teams(db_session, TeamsQuery(owner="ash", sort=TeamSort.POWER))
+    page = queries.list_teams(db_session, TeamsQuery(owner="ash", sort=TeamSort.POWER))
 
     assert team_names(page) == ["Full", "Empty now", "Empty 2h"]
 
@@ -691,7 +691,7 @@ def test_a_removed_pokemons_stats_still_count_toward_power(
     backdate(db_session, with_removed.id, timedelta(hours=1))
     db_session.execute(update(Pokemon).where(Pokemon.id == 201).values(removed_at=func.now()))
 
-    page = service.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
+    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER))
 
     assert team_names(page) == ["With a removed Pokémon", "Newer"]
 
@@ -715,10 +715,10 @@ def test_pages_through_teams_by_power_without_repeating_or_skipping_one(
     backdate(db_session, low_two_hours.id, timedelta(hours=2))
     query = TeamsQuery(sort=TeamSort.POWER, limit=2)
 
-    first = service.list_teams(db_session, query)
-    second = service.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
-    third = service.list_teams(db_session, query.model_copy(update={"cursor": second.next_cursor}))
-    fourth = service.list_teams(db_session, query.model_copy(update={"cursor": third.next_cursor}))
+    first = queries.list_teams(db_session, query)
+    second = queries.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
+    third = queries.list_teams(db_session, query.model_copy(update={"cursor": second.next_cursor}))
+    fourth = queries.list_teams(db_session, query.model_copy(update={"cursor": third.next_cursor}))
 
     mid_by_id = [team.name for team in sorted(mid_tied, key=lambda team: team.id, reverse=True)]
     assert [team_names(page) for page in (first, second, third, fourth)] == [
@@ -751,9 +751,9 @@ def test_pages_through_filtered_teams_by_power_without_repeating_or_skipping_one
         backdate(db_session, team.id, timedelta(hours=hours))
     query = TeamsQuery(types=(PokemonType.FIRE,), sort=TeamSort.POWER, limit=2)
 
-    first = service.list_teams(db_session, query)
-    second = service.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
-    third = service.list_teams(db_session, query.model_copy(update={"cursor": second.next_cursor}))
+    first = queries.list_teams(db_session, query)
+    second = queries.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
+    third = queries.list_teams(db_session, query.model_copy(update={"cursor": second.next_cursor}))
 
     assert [team_names(page) for page in (first, second, third)] == [
         ["3h", "7h"],
@@ -780,8 +780,8 @@ def test_pages_through_an_owners_teams_by_power_across_ones_with_no_pokemon(
     backdate(db_session, empty_two_hours.id, timedelta(hours=2))
     query = TeamsQuery(owner="ash", sort=TeamSort.POWER, limit=3)
 
-    first = service.list_teams(db_session, query)
-    second = service.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
+    first = queries.list_teams(db_session, query)
+    second = queries.list_teams(db_session, query.model_copy(update={"cursor": first.next_cursor}))
 
     assert [team_names(page) for page in (first, second)] == [
         ["Strong", "Weak", "Empty 1h"],
@@ -796,7 +796,7 @@ def test_a_power_sort_with_a_cursor_no_team_has_gives_an_empty_page(
     add_species_pokemon(db_session, 201)
     make_team(db_session, ash.user.id, 201, name="Rain")
 
-    page = service.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER, cursor=TEAM_ID))
+    page = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.POWER, cursor=TEAM_ID))
 
     assert page == TeamPage(items=[], next_cursor=None)
 
@@ -845,7 +845,7 @@ def test_sorting_by_power_combines_with_the_filters(
     change_recently(db_session, 4)
     change_recently(db_session, 202)
 
-    assert team_names(service.list_teams(db_session, query)) == found
+    assert team_names(queries.list_teams(db_session, query)) == found
 
 
 @pytest.mark.usefixtures("charmander_family")
@@ -854,9 +854,9 @@ def test_sorting_by_newest_ignores_power(
 ) -> None:
     add_teams_to_sort(db_session, ash, misty)
 
-    newest = service.list_teams(db_session, TeamsQuery(sort=TeamSort.NEWEST))
+    newest = queries.list_teams(db_session, TeamsQuery(sort=TeamSort.NEWEST))
 
-    assert newest == service.list_teams(db_session, TeamsQuery())
+    assert newest == queries.list_teams(db_session, TeamsQuery())
     assert team_names(newest) == ["Weak water", "Strong water", "Fire", "Misty's strong"]
 
 
@@ -897,7 +897,7 @@ def test_deleting_removes_the_team(db_session: Session, ash: SignedIn) -> None:
 
     service.delete_team(db_session, locked)
 
-    assert service.list_user_teams(db_session, "ash") == []
+    assert queries.list_user_teams(db_session, "ash") == []
 
 
 def test_member_ids_lists_slot_order(db_session: Session, ash: SignedIn) -> None:
@@ -1129,5 +1129,5 @@ def test_members_follow_their_pokemon_to_another_species_family(
 
     assert [
         (member.pokemon.id, member.pokemon.species_id, member.pokemon.family_id)
-        for member in service.get_team(db_session, team.id).members
+        for member in queries.get_team(db_session, team.id).members
     ] == [(201, 202, 1202), (203, 203, 1203)]
