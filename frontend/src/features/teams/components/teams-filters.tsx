@@ -1,11 +1,9 @@
-import { type Ref, useId } from 'react'
+import type { Ref } from 'react'
 
-import { ChoiceToggle, ChoiceToggles } from '@/components/filters/choice-toggles'
 import { FilterBar } from '@/components/filters/filter-bar'
-import { FilterGroup } from '@/components/filters/filter-group'
+import { OptionFilter } from '@/components/filters/option-filter'
 import { SearchInput } from '@/components/filters/search-input'
 import { TypeFilter } from '@/components/filters/type-filter'
-import { parseOption } from '@/lib/search-params'
 import { m } from '@/paraglide/messages.js'
 
 import {
@@ -24,10 +22,6 @@ type TeamsFiltersProps = {
 }
 
 export function TeamsFilters({ filters, onChange, showScope, searchRef }: TeamsFiltersProps) {
-  const scopeId = useId()
-  const viewId = useId()
-  const sortId = useId()
-
   return (
     <FilterBar
       search={
@@ -42,70 +36,34 @@ export function TeamsFilters({ filters, onChange, showScope, searchRef }: TeamsF
       choices={
         <>
           {showScope && (
-            <FilterGroup
-              id={scopeId}
+            <OptionFilter
               label={m.teams_scope_label()}
               infoLabel={m.teams_scope_info_label()}
               info={m.teams_scope_info()}
-            >
-              <ChoiceToggles
-                labelledBy={scopeId}
-                value={filters.scope}
-                onChange={(value) => {
-                  const scope = parseOption(TEAMS_SCOPES, value)
-                  if (scope) onChange({ ...filters, scope })
-                }}
-              >
-                {TEAMS_SCOPES.map((scope) => (
-                  <ChoiceToggle key={scope} value={scope}>
-                    {m.teams_scope_option({ scope })}
-                  </ChoiceToggle>
-                ))}
-              </ChoiceToggles>
-            </FilterGroup>
+              options={TEAMS_SCOPES}
+              optionLabel={(scope) => m.teams_scope_option({ scope })}
+              value={filters.scope}
+              onChange={(scope) => onChange({ ...filters, scope })}
+            />
           )}
-          <FilterGroup
-            id={viewId}
+          <OptionFilter
             label={m.teams_view_label()}
             infoLabel={m.teams_view_info_label()}
             info={m.teams_view_info()}
-          >
-            <ChoiceToggles
-              labelledBy={viewId}
-              value={filters.view}
-              onChange={(value) => {
-                const view = parseOption(TEAMS_VIEWS, value)
-                if (view) onChange({ ...filters, view })
-              }}
-            >
-              {TEAMS_VIEWS.map((view) => (
-                <ChoiceToggle key={view} value={view}>
-                  {m.teams_view_option({ view })}
-                </ChoiceToggle>
-              ))}
-            </ChoiceToggles>
-          </FilterGroup>
-          <FilterGroup
-            id={sortId}
+            options={TEAMS_VIEWS}
+            optionLabel={(view) => m.teams_view_option({ view })}
+            value={filters.view}
+            onChange={(view) => onChange({ ...filters, view })}
+          />
+          <OptionFilter
             label={m.teams_sort_label()}
             infoLabel={m.teams_sort_info_label()}
             info={m.teams_sort_info()}
-          >
-            <ChoiceToggles
-              labelledBy={sortId}
-              value={filters.sort}
-              onChange={(value) => {
-                const sort = parseOption(TEAMS_SORTS, value)
-                if (sort) onChange({ ...filters, sort })
-              }}
-            >
-              {TEAMS_SORTS.map((sort) => (
-                <ChoiceToggle key={sort} value={sort}>
-                  {m.teams_sort_option({ sort })}
-                </ChoiceToggle>
-              ))}
-            </ChoiceToggles>
-          </FilterGroup>
+            options={TEAMS_SORTS}
+            optionLabel={(sort) => m.teams_sort_option({ sort })}
+            value={filters.sort}
+            onChange={(sort) => onChange({ ...filters, sort })}
+          />
         </>
       }
     >
