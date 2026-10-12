@@ -1,5 +1,6 @@
 import type { Team } from '@/api'
 import { ResultsStatus } from '@/components/lists/results-status'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { m } from '@/paraglide/messages.js'
 
 import { useMatchupPool } from '../hooks/use-matchup-pool'
@@ -8,7 +9,6 @@ import type { MatchupPool } from '../types'
 import { threatsSummary, weakSpotsLine } from '../utils/matchup-summary'
 import { weakSpots } from '../utils/weak-spots'
 import {
-  MatchupLoadFailed,
   MatchupNeedsSync,
   MatchupResults,
   MatchupSection,
@@ -73,7 +73,7 @@ function Threats({ team, pool, onOpenPokemon }: TeamThreatsProps & { pool: Match
     return (
       <>
         {status}
-        <MatchupLoadFailed
+        <LoadFailedAlert
           title={m.team_threats_load_failed()}
           onRetry={() => void threats.refetch()}
         />

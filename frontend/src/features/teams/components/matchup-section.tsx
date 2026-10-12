@@ -1,10 +1,8 @@
 import { type ReactNode, useId } from 'react'
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages.js'
 
 import type { MatchupPool } from '../types'
 import { type HowItWorksPart, MatchupHowItWorks } from './matchup-how-it-works'
@@ -92,22 +90,6 @@ export function MatchupNeedsSync({ children }: { children: string }) {
   return (
     <Alert>
       <AlertTitle>{children}</AlertTitle>
-    </Alert>
-  )
-}
-
-type MatchupLoadFailedProps = { title: string; onRetry: () => void }
-
-export function MatchupLoadFailed({ title, onRetry }: MatchupLoadFailedProps) {
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{m.common_check_connection()}</AlertDescription>
-      <AlertAction>
-        <Button variant="outline" size="sm" onClick={onRetry}>
-          {m.common_try_again()}
-        </Button>
-      </AlertAction>
     </Alert>
   )
 }

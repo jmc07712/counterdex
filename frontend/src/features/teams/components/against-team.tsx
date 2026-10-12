@@ -3,6 +3,7 @@ import { useId } from 'react'
 
 import type { Challenger, Pokemon, TeamMember } from '@/api'
 import { ResultsStatus } from '@/components/lists/results-status'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { displayName } from '@/components/pokemon/format'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,7 +14,7 @@ import { useTeamMatchups } from '../hooks/use-team-matchups'
 import { asMember } from '../utils/as-member'
 import { bestAnswer, coverage, pickReason } from '../utils/matchup-summary'
 import { MatchupButton } from './matchup-rating'
-import { MatchupLoadFailed, MatchupNeedsSync, MatchupResults } from './matchup-section'
+import { MatchupNeedsSync, MatchupResults } from './matchup-section'
 import { MemberThumb } from './member-thumb'
 
 type AgainstTeamProps = {
@@ -38,7 +39,7 @@ export function AgainstTeam({ members, teamId, defaultOpen, onStop }: AgainstTea
   if (theirs.isError) {
     return (
       <div className="mt-6">
-        <MatchupLoadFailed
+        <LoadFailedAlert
           title={m.team_against_team_load_failed()}
           onRetry={() => void theirs.refetch()}
         />
@@ -117,7 +118,7 @@ function Matchups({ ours, theirs, defaultOpen }: MatchupsProps) {
     return (
       <>
         {status}
-        <MatchupLoadFailed
+        <LoadFailedAlert
           title={m.team_against_load_failed()}
           onRetry={() => void matchups.refetch()}
         />

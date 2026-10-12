@@ -1,5 +1,6 @@
 import type { Team } from '@/api'
 import { ResultsStatus } from '@/components/lists/results-status'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { m } from '@/paraglide/messages.js'
 
 import { useCounterTeam } from '../hooks/use-counter-team'
@@ -10,7 +11,6 @@ import { CounterPicks } from './counter-picks'
 import { BuildThisCounter } from './counter-team-button'
 import { MatchupList } from './matchup-list'
 import {
-  MatchupLoadFailed,
   MatchupNeedsSync,
   MatchupResults,
   MatchupSection,
@@ -69,7 +69,7 @@ function CounterPlan({ team, pool }: { team: Team; pool: MatchupPool }) {
     return (
       <>
         {status}
-        <MatchupLoadFailed
+        <LoadFailedAlert
           title={m.team_counter_load_failed()}
           onRetry={() => void counter.refetch()}
         />
