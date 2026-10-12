@@ -48,6 +48,18 @@ describe('AppShell navigation', () => {
       expect(link).toHaveAttribute('target', '_blank')
     }
   })
+
+  it('credits its author in the footer, with a link to the source on GitHub', () => {
+    renderWithProviders(<AppShell />)
+
+    const footer = screen.getByRole('contentinfo')
+    expect(footer).toHaveTextContent('Made with ❤️ by Jared Chester')
+    const source = within(footer).getByRole('link', {
+      name: 'Source on GitHub (opens in a new tab)',
+    })
+    expect(source).toHaveAttribute('href', 'https://github.com/jmc07712/counterdex/tree/main')
+    expect(source).toHaveAttribute('target', '_blank')
+  })
 })
 
 describe('AppShell account', () => {

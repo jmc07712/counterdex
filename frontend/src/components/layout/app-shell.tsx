@@ -67,6 +67,10 @@ const TAB_BAR_HIDES_AFTER = 56
 
 // Served by the API, not this app.
 const apiDocs = { href: '/api/docs', label: m.nav_api, icon: BookOpenText }
+const sourceCode = {
+  href: 'https://github.com/jmc07712/counterdex/tree/main',
+  label: m.footer_source,
+}
 
 type AppShellProps = {
   // Shown in the header beside the theme switch on every page, such as the data's sync status.
@@ -144,10 +148,27 @@ export function AppShell({ status, banner }: AppShellProps) {
         id="main"
         ref={main}
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 outline-none sm:px-6 md:pb-16"
+        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-12 outline-none sm:px-6 md:pb-16"
       >
         <Outlet />
       </main>
+
+      {/* Below md its bottom padding keeps it clear of the fixed tab bar. */}
+      <footer className="border-t pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted-foreground sm:px-6">
+          <p>{m.footer_credit()}</p>
+          <a
+            href={sourceCode.href}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-1 rounded-sm font-medium underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {sourceCode.label()}
+            <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            <NewTabNote />
+          </a>
+        </div>
+      </footer>
 
       <nav
         aria-label={m.nav_primary()}
