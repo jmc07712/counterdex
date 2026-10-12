@@ -10,9 +10,9 @@ import type { MatchupPool } from '../types'
 import { PokedexNotSyncedError, useBuildCounterTeam } from './use-build-counter-team'
 
 /**
- * Builds a counter to `team`, picked from `pool`, when `build` is called, then opens it to edit.
- * If it can't, a toast says why, with Try again when trying again could help. Calls while it's
- * building are ignored.
+ * Builds a counter to `team`, picked from `pool`, when `build` is called, then opens it to edit,
+ * matched up against `team`. If it can't, a toast says why, with Try again when trying again could
+ * help. Calls while it's building are ignored.
  */
 export function useCounterTeamBuilder(team: Team, pool: MatchupPool) {
   const mutation = useBuildCounterTeam()
@@ -30,7 +30,8 @@ export function useCounterTeamBuilder(team: Team, pool: MatchupPool) {
     mutation.mutate(
       { id, team, pool },
       {
-        onSuccess: (counter) => void navigate(paths.teamEdit.getHref(counter.id)),
+        onSuccess: (counter) =>
+          void navigate(paths.teamEdit.getHref(counter.id, { against: team.id })),
         onError: (error) => {
           building.current = false
           if (error instanceof PokedexNotSyncedError) {

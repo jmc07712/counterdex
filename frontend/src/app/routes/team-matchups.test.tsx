@@ -19,6 +19,7 @@ import {
   holdTeamThreats,
   type MatchupOf,
   serveCounterTeam,
+  serveMatchups,
   servePokemon,
   servePokemonChanges,
   servePokemonDetails,
@@ -122,9 +123,11 @@ function renderTeam(path = VIEW) {
   )
 }
 
-// Ash's team, with `viewer` signed in: Misty unless given, or Ash, or nobody.
+// Ash's team, with `viewer` signed in: Misty unless given, or Ash, or nobody. A counter built to
+// it opens matched up against it.
 function serveTheirs({ viewer = MISTY, team = THEIRS }: { viewer?: User | null; team?: Team } = {}) {
   serveSession({ signedIn: viewer })
+  serveMatchups({ catalog: CATALOG, matchup: matchupOf })
   return serveTeams({ teams: [team], catalog: CATALOG, signedIn: viewer })
 }
 
@@ -329,6 +332,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await user.click(within(section).getByRole('button', { name: 'Build this counter' }))
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(EDIT_PAGE))
+    expect(router.state.location.search).toBe(`?against=${TEAM_ID}`)
     const [, teamId] = EDIT_PAGE.exec(router.state.location.pathname) ?? []
     // The counter shown, so not asked for again.
     expect(counters).toEqual([
@@ -381,6 +385,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await user.click(screen.getByRole('button', { name: 'Build a counter to Team 1' }))
 
     await waitFor(() => expect(router.state.location.pathname).toMatch(EDIT_PAGE))
+    expect(router.state.location.search).toBe(`?against=${TEAM_ID}`)
     expect(counters).toHaveLength(1)
     expect(counters[0]).toMatch(/&forms=true$/)
     expect(api.teams()[0].members.map((member) => member.pokemon.id)).toEqual(

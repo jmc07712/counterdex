@@ -13,6 +13,7 @@ import {
   holdTeamChanges,
   holdTeamFetches,
   serveCounterTeam,
+  serveMatchups,
   servePokemon,
   servePokemonChanges,
   servePokemonDetails,
@@ -1082,6 +1083,7 @@ describe('TeamPage, to counter someone else’s team', () => {
       signedIn: MISTY,
     })
     const counters = serveCounterTeam({ catalog: [lapras, snorlax, gengar] })
+    serveMatchups({ catalog: CATALOG })
     browse([])
     const { user, router } = renderTeam()
 
@@ -1092,6 +1094,8 @@ describe('TeamPage, to counter someone else’s team', () => {
       'Counter to Team 1',
     )
     expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/)
+    expect(router.state.location.search).toBe(`?against=${TEAM_ID}`)
+    expect(await screen.findByRole('region', { name: 'Against Team 1' })).toBeInTheDocument()
     expect(counters).toEqual([`pokemon_id=${charmander.id}&pokemon_id=${pikachu.id}`])
     expect(memberIds(api.teams()[0])).toEqual([lapras.id, snorlax.id])
   })
