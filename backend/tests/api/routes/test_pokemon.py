@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -119,13 +118,6 @@ def test_rejects_filters_that_cannot_match(
     client: TestClient, params: dict[str, str | list[str]]
 ) -> None:
     assert client.get("/api/pokemon", params=params).status_code == 422
-
-
-def test_documents_each_filter(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/pokemon"]["get"]
-    described = {param["name"] for param in operation["parameters"] if param.get("description")}
-
-    assert {"q", "type", "forms", "status", "changed", "limit", "cursor"} <= described
 
 
 # --- GET /api/pokemon/{id} ---

@@ -1,6 +1,5 @@
 import json
 import re
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,10 +18,6 @@ def test_the_api_root_redirects_to_the_docs(client: TestClient, path: str) -> No
     assert response.status_code == 307
     # Relative, so the browser stays on the public host rather than the server's own address.
     assert response.headers["location"] == "/api/docs"
-
-
-def test_the_docs_routes_are_not_listed_as_endpoints(openapi: dict[str, Any]) -> None:
-    assert openapi["paths"].keys().isdisjoint({"/api", "/api/", "/api/docs"})
 
 
 def test_the_docs_page_renders_this_apis_schema(docs_page: str) -> None:

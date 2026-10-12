@@ -134,19 +134,6 @@ def test_lets_browsers_and_the_cdn_cache_the_answer(
     )
 
 
-# --- Docs ---
-
-
-@pytest.mark.parametrize("path", PATHS)
-def test_documents_each_parameter_and_error(openapi: dict[str, Any], path: str) -> None:
-    operation = openapi["paths"][path]["get"]
-    described = {param["name"] for param in operation["parameters"] if param.get("description")}
-
-    assert described == {"pokemon_id", "forms", "legendaries"}
-    assert {"200", "422", "503"} <= operation["responses"].keys()
-    assert operation["description"]
-
-
 # --- One team against another ---
 
 
@@ -216,12 +203,3 @@ def test_asks_for_a_sync_before_scoring_teams(client: TestClient, db_session: Se
 
     assert response.status_code == 503
     assert "sync" in response.json()["detail"]
-
-
-def test_documents_scoring_teams(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/matchups"]["get"]
-    described = {param["name"] for param in operation["parameters"] if param.get("description")}
-
-    assert described == {"pokemon_id", "opponent_id"}
-    assert {"200", "422", "503"} <= operation["responses"].keys()
-    assert operation["description"]

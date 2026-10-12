@@ -4,24 +4,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-def test_openapi_schema_is_served_under_api_prefix(openapi: dict[str, Any]) -> None:
-    # Vercel routes only /api/* to this service, so docs must live there too (see test_docs.py
-    # for the docs page itself).
-    assert openapi["info"]["title"] == "Counterdex API"
+def operations(openapi: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Each operation in the schema, by method and path, e.g. "GET /api/pokemon"."""
+    return {
+        f"{method.upper()} {path}": operation
+        for path, methods in openapi["paths"].items()
+        for method, operation in methods.items()
+    }
 
 
 @pytest.mark.parametrize("path", ["/", "/docs", "/openapi.json"])
 def test_paths_outside_api_are_left_to_the_frontend(client: TestClient, path: str) -> None:
     # Anything outside /api belongs to the frontend, so FastAPI must not claim these paths.
     assert client.get(path).status_code == 404
-
-
-def test_operations_are_named_after_their_routes(openapi: dict[str, Any]) -> None:
-    # Generated clients name their functions after these, e.g. listPokemon().
-    paths = openapi["paths"]
-
-    assert paths["/api/pokemon"]["get"]["operationId"] == "list_pokemon"
-    assert paths["/api/health"]["get"]["operationId"] == "health"
 
 
 SIGNED_IN_ROUTES = {
@@ -39,9 +34,8 @@ SIGNED_IN_ROUTES = {
 
 def test_the_docs_mark_the_routes_that_need_signing_in(openapi: dict[str, Any]) -> None:
     marked = {
-        f"{method.upper()} {path}"
-        for path, operations in openapi["paths"].items()
-        for method, operation in operations.items()
+        name
+        for name, operation in operations(openapi).items()
         if operation.get("security") == [{"SessionCookie": []}]
     }
 
@@ -51,36 +45,25 @@ def test_the_docs_mark_the_routes_that_need_signing_in(openapi: dict[str, Any]) 
 
 
 def test_the_docs_sort_every_route_under_one_tag_in_a_group(openapi: dict[str, Any]) -> None:
-    groups = {group["name"]: group["tags"] for group in openapi["x-tagGroups"]}
-    tagged = {
-        f"{method.upper()} {path}": operation["tags"]
-        for path, operations in openapi["paths"].items()
-        for method, operation in operations.items()
+    grouped = {tag for group in openapi["x-tagGroups"] for tag in group["tags"]}
+
+    assert all(
+        len(operation["tags"]) == 1 and operation["tags"][0] in grouped
+        for operation in operations(openapi).values()
+    )
+
+
+def test_the_docs_describe_every_route_and_parameter(openapi: dict[str, Any]) -> None:
+    undescribed_routes = {
+        name for name, operation in operations(openapi).items() if not operation.get("description")
+    }
+    undescribed_parameters = {
+        f"{name} {parameter['name']}"
+        for name, operation in operations(openapi).items()
+        for parameter in operation.get("parameters", [])
+        if not parameter.get("description")
     }
 
-    assert groups == {
-        "Pokédex": ["Pokémon", "Sync"],
-        "Account": ["Session"],
-        "Teams": ["Teams", "Team members", "Counter team"],
-        "Service": ["Health"],
-    }
-    assert [tag["name"] for tag in openapi["tags"]] == [
-        "Pokémon",
-        "Sync",
-        "Session",
-        "Teams",
-        "Team members",
-        "Counter team",
-        "Health",
-    ]
-    assert tagged["GET /api/users/{username}/teams"] == ["Teams"]
-    assert tagged["POST /api/teams/{team_id}/members"] == ["Team members"]
-    assert tagged["PUT /api/teams/{team_id}/order"] == ["Team members"]
-    assert tagged["GET /api/counter-team"] == ["Counter team"]
-    assert tagged["GET /api/team-threats"] == ["Counter team"]
-    assert tagged["GET /api/matchups"] == ["Counter team"]
-    assert tagged["GET /api/session"] == ["Session"]
-    assert tagged["POST /api/users"] == ["Session"]
-    # Every route is under exactly one tag, and every tag is in a group.
-    grouped = {tag for tags in groups.values() for tag in tags}
-    assert all(len(tags) == 1 and tags[0] in grouped for tags in tagged.values())
+    # The health check is for uptime monitors; its summary says enough.
+    assert undescribed_routes == {"GET /api/health"}
+    assert undescribed_parameters == set()

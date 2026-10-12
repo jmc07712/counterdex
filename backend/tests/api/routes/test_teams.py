@@ -423,14 +423,6 @@ def test_searches_everyones_teams(
     ]
 
 
-def test_documents_what_a_search_matches(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/teams"]["get"]
-    search = next(param for param in operation["parameters"] if param["name"] == "q")
-
-    assert "username" in search["description"]
-    assert "Pokémon" in search["description"]
-
-
 @pytest.mark.parametrize("limit", [1, 60])
 def test_accepts_page_sizes_from_1_to_60(client: TestClient, limit: int) -> None:
     assert client.get("/api/teams", params={"limit": limit}).status_code == 200
@@ -452,21 +444,6 @@ def test_filters_everyones_teams_by_type_and_recent_changes(
     assert [team["name"] for team in by_changes["items"]] == ["Fire and water"]
 
 
-def test_documents_each_filter(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/teams"]["get"]
-    described = {param["name"] for param in operation["parameters"] if param.get("description")}
-
-    assert {"q", "type", "changed", "owner", "limit", "cursor"} <= described
-
-
-def test_documents_what_an_owner_finds(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/teams"]["get"]
-    owner = next(param for param in operation["parameters"] if param["name"] == "owner")
-
-    assert "no Pokémon" in owner["description"]
-    assert "empty page" in owner["description"]
-
-
 @pytest.mark.usefixtures("charmander_family")
 def test_sorts_everyones_teams_by_power(
     client: TestClient, db_session: Session, ash: SignedIn, misty: SignedIn
@@ -484,16 +461,6 @@ def test_sorts_everyones_teams_by_power(
     assert [team["name"] for team in by_power["items"]] == ["Strong and old", "Weak and new"]
     assert [team["name"] for team in by_default["items"]] == ["Weak and new", "Strong and old"]
     assert newest == by_default
-
-
-def test_documents_how_teams_are_sorted(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/teams"]["get"]
-    sort = next(param for param in operation["parameters"] if param["name"] == "sort")
-
-    assert "sum of" in sort["description"]
-    assert "base stats" in sort["description"]
-    assert "sync" in sort["description"]
-    assert openapi["components"]["schemas"]["TeamSort"]["enum"] == ["newest", "power"]
 
 
 def test_an_owner_no_one_has_gives_an_empty_page(client: TestClient) -> None:

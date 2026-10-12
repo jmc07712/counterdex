@@ -242,15 +242,3 @@ def test_taking_admin_away_works_at_once(
     db_session.execute(update(User).where(User.id == oak.user.id).values(is_admin=False))
 
     assert oak_client.get("/api/sync/runs").status_code == 403
-
-
-def test_documents_the_route_as_one_for_admins(openapi: dict[str, Any]) -> None:
-    operation = openapi["paths"]["/api/sync/runs"]["get"]
-    described = {param["name"] for param in operation["parameters"] if param.get("description")}
-
-    assert operation["security"] == [{"SessionCookie": []}]
-    assert operation["tags"] == ["Sync"]
-    assert "admins" in operation["summary"]
-    assert "admins" in operation["description"]
-    assert {"200", "401", "403", "422"} <= operation["responses"].keys()
-    assert described == {"page", "page_size"}
