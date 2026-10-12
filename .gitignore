@@ -20,6 +20,7 @@ dist/
 
 # Tooling
 .vercel/
+.claude/
 .omc/
 .playwright-mcp/
 playwright-report/
