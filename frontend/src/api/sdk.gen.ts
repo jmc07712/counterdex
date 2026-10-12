@@ -331,8 +331,10 @@ export const findCounterTeam = <ThrowOnError extends boolean = false>(options: O
  *
  * Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,
  * each with its matchup against each of the team's Pokémon. The highest total score comes
- * first, and each evolution family appears once, by its best. Each matchup is scored from the
- * threat's side, so a threat's `good` rating is good for the threat and bad for the team.
+ * first, and each evolution family appears once, by its best. Pokémon from the team's own
+ * evolution families are left out, including the family of one of its Pokémon that PokéAPI no
+ * longer lists. Each matchup is scored from the threat's side, so a threat's `good` rating is
+ * good for the threat and bad for the team.
  *
  * Alternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`
  * given twice, or with no Pokémon, is a 422.

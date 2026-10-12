@@ -1414,7 +1414,7 @@
           "Counter team"
         ],
         "summary": "List the threats to a team",
-        "description": "Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,\neach with its matchup against each of the team's Pokémon. The highest total score comes\nfirst, and each evolution family appears once, by its best. Each matchup is scored from the\nthreat's side, so a threat's `good` rating is good for the threat and bad for the team.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`\ngiven twice, or with no Pokémon, is a 422.",
+        "description": "Up to 12 Pokémon that match up best against a team, scored as in Find a counter team,\neach with its matchup against each of the team's Pokémon. The highest total score comes\nfirst, and each evolution family appears once, by its best. Pokémon from the team's own\nevolution families are left out, including the family of one of its Pokémon that PokéAPI no\nlonger lists. Each matchup is scored from the threat's side, so a threat's `good` rating is\ngood for the threat and bad for the team.\n\nAlternate forms, and legendary and mythical Pokémon, are left out unless asked for. An `id`\ngiven twice, or with no Pokémon, is a 422.",
         "operationId": "list_team_threats",
         "parameters": [
           {

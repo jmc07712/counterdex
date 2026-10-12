@@ -145,6 +145,30 @@ def test_lists_one_threat_from_each_evolution_family(db_session: Session) -> Non
     assert len(set(families)) == len(families)
 
 
+GYARADOS, LAPRAS, JOLTEON, SYLVEON = 130, 131, 135, 700
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_leaves_the_teams_own_evolution_families_out_of_its_threats(db_session: Session) -> None:
+    # Jolteon threatens Gyarados and Lapras, and is from Sylveon's family, Eevee's.
+    assert JOLTEON in ids(list_team_threats(db_session, query(GYARADOS, LAPRAS)))
+
+    threats = list_team_threats(db_session, query(GYARADOS, LAPRAS, SYLVEON))
+
+    team_families = {REAL_POKEMON[member].family for member in (GYARADOS, LAPRAS, SYLVEON)}
+    assert team_families.isdisjoint(threat.pokemon.family_id for threat in threats)
+
+
+@pytest.mark.usefixtures("pokedex")
+def test_leaves_a_removed_members_family_out_of_its_threats(db_session: Session) -> None:
+    # Sylveon is still on the team after PokéAPI stops listing it, so Eevee's family stays out.
+    remove_pokemon(db_session, SYLVEON)
+
+    threats = list_team_threats(db_session, query(GYARADOS, LAPRAS, SYLVEON))
+
+    assert JOLTEON not in ids(threats)
+
+
 # --- One team against another ---
 
 GOLEM = 76

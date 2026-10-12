@@ -42,11 +42,15 @@ def list_team_threats(
     session: Session, query: schemas.TeamMatchupQuery
 ) -> list[schemas.Challenger]:
     """Up to MAX_THREATS Pokémon that match up best against the team (see search.threats),
-    each with its matchup against each of the team's Pokémon.
+    each with its matchup against each of the team's Pokémon. None is from the evolution family
+    of one of the team's Pokémon, listed or not.
 
     Raises UnknownPokemonError and TypeChartMissingError as find_counter_team does.
     """
-    threats = search.threats(_contenders(session, query), MAX_THREATS)
+    contenders = _contenders(session, query)
+    families = {each.family_id for each in queries.pokemon(session, query.pokemon_ids).values()}
+    others = [each for each in contenders if each.candidate.family_id not in families]
+    threats = search.threats(others, MAX_THREATS)
     return _challengers(session, threats, query.pokemon_ids)
 
 

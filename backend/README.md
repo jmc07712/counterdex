@@ -181,8 +181,10 @@ every set of six from the whole Pokédex. It's quick, it gives the same answer e
 pick can be explained by its matchups.
 
 **The threats** are the 12 Pokémon with the highest total score against the team, each evolution
-family once, by its best. **Matchups** scores each of ours against each of theirs, names our best
-answer to each of theirs, and says whether every one of theirs has a `good` answer.
+family once, by its best. Pokémon from the team's own evolution families are left out, a removed
+member's too, so the team's Pokémon and their evolutions never come back as threats to it.
+**Matchups** scores each of ours against each of theirs, names our best answer to each of theirs,
+and says whether every one of theirs has a `good` answer.
 
 **Worked out on request.** A team is any one to six of about 1,350 Pokémon, teams that aren't saved
 need answers too, and a sync can change the stats and types they're scored from, so nothing is
