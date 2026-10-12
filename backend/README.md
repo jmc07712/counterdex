@@ -1,16 +1,17 @@
 # Counterdex API
 
-Counterdex's backend is a FastAPI app. It keeps a copy of PokéAPI's data in Postgres, serves it,
-and stores accounts and teams. This guide covers working on it, and the
-[root README](../README.md) explains why it's built this way.
+Counterdex's backend is a FastAPI app. It keeps a copy of PokéAPI's data in Postgres, serves that
+data, and stores accounts and teams. This guide is for working on the backend. The
+[root README](../README.md) explains why it's built the way it is.
 
-**Contents**
+## Contents
 
 - [Running it](#running-it) and [Settings](#settings)
 - [Layout](#layout) and [Conventions](#conventions)
 - [Data model](#data-model) and [API at a glance](#api-at-a-glance)
 - [Teams](#teams) and [Atomicity and races](#atomicity-and-races)
-- [Counter teams](#counter-teams) and [the type chart and legendary flags](#the-type-chart-and-legendary-flags)
+- [Counter teams](#counter-teams) and
+  [the type chart and legendary flags](#the-type-chart-and-legendary-flags)
 - [How the sync works](#how-the-sync-works), including [the team follow-up](#the-team-follow-up)
   and [demoing a change](#demoing-a-change)
 - [Migrations](#migrations), [Tests and checks](#tests-and-checks) and
@@ -18,14 +19,16 @@ and stores accounts and teams. This guide covers working on it, and the
 
 ## Running it
 
-You need uv and Docker. First, from the repo root, create `.env` and start Postgres:
+You'll need uv and Docker. Start in the repository's root folder, where these two commands create
+your `.env` file and start Postgres.
 
 ```bash
 cp .env.example .env
 docker compose up -d --wait
 ```
 
-Then, from `backend/`, install, migrate, sync and serve:
+Then move to the `backend/` folder. These commands install the dependencies, create the tables,
+load PokéAPI's data and start the server.
 
 ```bash
 uv sync
@@ -35,45 +38,48 @@ uv run --env-file ../.env uvicorn app.api.main:app --port 3000 --reload
 ```
 
 The third command fills the database from PokéAPI, as [How the sync works](#how-the-sync-works)
-explains. The interactive docs are then at http://localhost:3000/api/docs.
+explains. Once the server is running, the interactive API docs are at
+http://localhost:3000/api/docs.
 
-**Port 3000.** The frontend's Vite server sends `/api` requests to port 3000. Instead of uvicorn,
-you can run `vercel dev` from the repo root, after `vercel link`. It serves the API and the app
-together, routed as in production. Run only one, since both want the port.
+The server uses port 3000 because the frontend's Vite dev server forwards `/api` requests there.
+Instead of uvicorn, you can run `vercel dev` from the repository root, after running `vercel link`
+once. It serves the API and the app together, routed the same way as in production. Only run one
+of the two, because both want port 3000.
 
 ### Jobs
 
-Each job is a module, run from `backend/` with `uv run --env-file ../.env python -m`:
+Each job is a Python module. You run one from `backend/` by putting its name after
+`uv run --env-file ../.env python -m`.
 
 | Job | What it does |
 | --- | --- |
 | `app.jobs.sync_pokemon` | Brings the database in line with PokéAPI and records what changed. See [How the sync works](#how-the-sync-works). |
-| `app.jobs.make_admin USERNAME [--revoke]` | Makes a user an admin, or with `--revoke` takes admin away. |
-| `app.jobs.seed_teams USERNAME` | Adds 28 teams to browse, spread over about four weeks: 7 for `USERNAME`, who must already exist, and 21 for 13 users it makes up. Running it again adds nothing. |
-| `app.jobs.demo_changes [--not-local]` | Syncs as if PokéAPI had changed, so teams show what changed. See [Demoing a change](#demoing-a-change). |
+| `app.jobs.make_admin USERNAME [--revoke]` | Makes a user an admin. With `--revoke`, it takes admin away instead. |
+| `app.jobs.seed_teams USERNAME` | Adds 28 teams to browse, spread over about four weeks. Seven belong to `USERNAME`, who must already have an account, and the other 21 belong to 13 users that the job makes up. Running it again adds nothing. |
+| `app.jobs.demo_changes [--not-local]` | Runs a sync as if PokéAPI had changed, so teams show what changed. See [Demoing a change](#demoing-a-change). |
 
-The last two make up data, so they're guarded:
-- **Local only.** They refuse a `DATABASE_URL` that isn't on this machine (`app/jobs/local.py`).
-  Only `demo_changes` can skip the check, with `--not-local`.
-- **No sign-ins.** The users `seed_teams` makes get random passwords nobody knows, so no one can
-  sign in as them.
+The last two jobs make up data, so they have guards. They refuse to run against a `DATABASE_URL`
+that isn't on this machine (the check is in `app/jobs/local.py`), and only `demo_changes` can skip
+that check, with `--not-local`. The users that `seed_teams` creates get random passwords that
+nobody knows, so no one can sign in as them.
 
 ## Settings
 
-The app reads environment variables only, never `.env` itself. Locally, `--env-file` passes in the
-repo root's `.env`. On Vercel, they're the project's environment variables.
+The app only reads environment variables. It never reads the `.env` file itself. Locally,
+`--env-file` passes in the variables from the `.env` file in the repository root. On Vercel, they
+come from the project's environment variables.
 
 | Variable | What it does |
 | --- | --- |
 | `DATABASE_URL` | The Postgres URL. Plain `postgres://` URLs from Neon and Vercel work too. |
-| `DATABASE_URL_UNPOOLED` | Neon's direct URL, which bypasses its PgBouncer pooler (a proxy that shares a few database connections among many clients). Migrations use it when it's set, because schema changes shouldn't go through the pooler. |
-| `CACHE_RESPONSES` | `false` sends `no-store` on every response, so changes made by hand show at once. Defaults to `true`. |
-| `SECURE_COOKIES` | `false` makes the session a plain cookie named `session`, because Chrome and Safari refuse a `Secure` cookie with a `__Host-` name over http://localhost. Defaults to `true`. |
+| `DATABASE_URL_UNPOOLED` | Neon's direct URL, which bypasses its PgBouncer pooler (a proxy that shares a few database connections among many clients). When it's set, migrations use it, because schema changes shouldn't go through the pooler. |
+| `CACHE_RESPONSES` | Set it to `false` to send `no-store` on every response, so changes you make by hand show up at once. It defaults to `true`. |
+| `SECURE_COOKIES` | Set it to `false` to make the session a plain cookie named `session`. You need this locally, because Chrome and Safari refuse a `Secure` cookie with a `__Host-` name over http://localhost. It defaults to `true`. |
 
 ## Layout
 
 The code is split into domains, which hold the logic, and two entrypoints, `api` and `jobs`, which
-call them.
+call the domains.
 
 ```
 app/
@@ -90,12 +96,14 @@ tests/         mirrors app/, with shared fixtures in tests/conftest.py
   support/     builders and the fake PokéAPI
 ```
 
-**Import rules.** Domains know nothing about how they're called. `uv run lint-imports` checks
-these rules:
-- **Layers.** `core` is at the bottom, and `pokemon` and `accounts` build on it. `sync`, `teams`
-  and `counter` build on those, without importing each other.
-- **No framework in domains.** Domains never import FastAPI or the entrypoints.
-- **Separate entrypoints.** `api` and `jobs` don't import each other.
+### Import rules
+
+Domains know nothing about how they're called. Running `uv run lint-imports` checks three rules.
+
+- `core` is the bottom layer, and `pokemon` and `accounts` build on it. `sync`, `teams` and
+  `counter` build on those two, and they don't import each other.
+- Domains never import FastAPI or the entrypoints.
+- `api` and `jobs` don't import each other.
 
 ```mermaid
 flowchart TD
@@ -108,48 +116,53 @@ flowchart TD
     end
 ```
 
-**One job per file.** Each file in a domain has one job. The last four are the sync's alone.
+### What each file holds
+
+Each file in a domain has a single purpose, and its name tells you what that is. The last four
+files in this table only exist in the sync domain.
 
 | File | What it holds |
 | --- | --- |
 | `models` | Tables |
-| `schemas` | The shapes the API takes and serves |
+| `schemas` | The shapes the API accepts and sends back |
 | `types` | Internal data |
 | `enums`, `constants`, `exceptions` | What their names say |
 | `queries` | Read-only lookups |
 | `service` | The domain's operations |
 | `client` | The PokéAPI client |
-| `pokeapi` | PokéAPI's response shapes |
-| `normalize` | Turning those shapes into ours |
-| `store` | Writing them |
+| `pokeapi` | The shapes of PokéAPI's responses |
+| `normalize` | Turning PokéAPI's shapes into ours |
+| `store` | Writing them to the database |
 
 ## Conventions
 
-These rules hold across the codebase.
+These rules apply across the whole codebase.
 
-- **Shared rules.** A rule the API and the database share, such as base stats of 1–255, is one
-  constant. Both the validator and the table's CHECK use it.
-- **Enums as text.** Enums are `StrEnum`s, stored as text with a CHECK (`text_enum()`). Postgres
-  ENUM types aren't used, because they can't drop values.
-- **Named constraints.** A naming convention names every constraint, so migrations refer to them
-  predictably. When a service needs to know which constraint a write broke, it checks the name
-  with `violates_unique` (`app/core/db.py`) against the same constant the table is declared with,
-  such as `FAMILY_ON_TEAM` in `app/teams/models.py`. So the two can't drift apart.
-- **Errors.** Routes declare their error responses next to the route and turn domain exceptions into
-  `HTTPException`s. Responses that several routes share are named once, such as `OWNERS_ONLY` and
-  `CONFLICTS` for the teams routes and `NOT_SYNCED` for the counter routes. Every error's `detail`
-  says in a sentence what's wrong and, where it helps, what to do. A team's 409 also gives a
-  `reason` code, such as `family_on_team`, for clients to act on.
-- **No NUL characters.** Postgres can't store NUL, so the API refuses text containing it with a
-  422. Put `NO_NUL` (`app/core/text.py`) after a string's other constraints.
-- **Caching.** Every response is `no-store` (the `NoStoreByDefault` middleware) unless its route
+- A rule that the API and the database share, such as base stats being between 1 and 255, lives
+  in one constant. The validator and the table's CHECK constraint both use it.
+- Enums are `StrEnum`s, stored as text with a CHECK constraint (`text_enum()`). Postgres ENUM
+  types aren't used, because you can't drop values from them.
+- A naming convention gives every constraint a predictable name, so migrations can refer to them.
+  When a service needs to know which constraint a write broke, it passes `violates_unique`
+  (`app/core/db.py`) the same constant the table is declared with, such as `FAMILY_ON_TEAM` in
+  `app/teams/models.py`. That way the two can't drift apart.
+- Routes declare their error responses right next to the route, and they turn domain exceptions
+  into `HTTPException`s. Error responses that several routes share are defined once, such as
+  `OWNERS_ONLY` and `CONFLICTS` for the teams routes and `NOT_SYNCED` for the counter routes.
+  Every error's `detail` is a sentence that says what's wrong and, where it helps, what to do
+  about it. A 409 from the teams routes also includes a `reason` code, such as `family_on_team`,
+  that clients can act on.
+- Postgres can't store the NUL character, so the API refuses any text that contains it with a 422.
+  To get this check, put `NO_NUL` (`app/core/text.py`) after a string's other constraints.
+- Every response is sent with `no-store` (by the `NoStoreByDefault` middleware) unless its route
   calls `cache_publicly`.
-- **No suppressions.** No `# noqa` or `# type: ignore`.
-- **Settled dependencies.** Take only dependency releases that are at least two weeks old.
+- The code has no `# noqa` or `# type: ignore` comments.
+- A new dependency release is only taken once it's at least two weeks old.
 
 ## Data model
 
-The tables come in two halves, PokéAPI's and users', which meet in `team_members`.
+The tables come in two halves, PokéAPI's data and users' data, and the halves meet in
+`team_members`.
 
 ```mermaid
 erDiagram
@@ -227,15 +240,17 @@ erDiagram
     }
 ```
 
-- **PokéAPI's half.** The sync writes PokéAPI's data (`pokemon`, `species`, `species_varieties`,
-  `type_matchups`) and its history (`pokemon_changes`, `sync_runs`).
-- **Users' half.** The API writes `users`, `user_sessions`, `teams` and `team_members`, and so do
-  the `make_admin` and local seed jobs.
-- **Where they meet.** Each member stores its `species_id` and its `family_id` (its species'
-  `evolution_chain_id`). Composite foreign keys (foreign keys over two columns together) tie the
-  species to the Pokémon (`species_varieties`) and the family to the species (`species`). So a
-  sync that moves a Pokémon carries its team members along (see
-  [The team follow-up](#the-team-follow-up)).
+The sync writes PokéAPI's half. That's the data itself (`pokemon`, `species`, `species_varieties`
+and `type_matchups`) and its history (`pokemon_changes` and `sync_runs`).
+
+The API writes the users' half, which is `users`, `user_sessions`, `teams` and `team_members`. The
+`make_admin` job and the local seed job write to it too.
+
+Each row in `team_members` stores the member's `species_id` and its `family_id`, which is its
+species' `evolution_chain_id`. Composite foreign keys (foreign keys over two columns together) tie
+the species to the Pokémon, through `species_varieties`, and the family to the species, through
+`species`. So when a sync moves a Pokémon, its team members move along with it (see
+[The team follow-up](#the-team-follow-up)).
 
 ## API at a glance
 
@@ -255,177 +270,214 @@ each route's parameters, responses and errors.
 
 Anyone can see a team, but only its owner can change it.
 
-- **Owner checks.** Every route that changes an existing team depends on `require_team_owner`. It
-  answers 404 or 403, or locks the team's row. [Atomicity and races](#atomicity-and-races)
-  explains why.
-- **Conflicts.** The service checks the team's rules first, such as one Pokémon per evolution
-  family. A broken rule raises `TeamConflictError`, whose reason becomes the 409's `reason`.
+Every route that changes an existing team depends on `require_team_owner`. It answers 404 if the
+team doesn't exist and 403 if it belongs to someone else. Otherwise it locks the team's row, and
+[Atomicity and races](#atomicity-and-races) explains why.
 
-**Listing everyone's teams.** `GET /api/teams` lists everyone's teams that have a Pokémon, newest
-first, a page at a time. Its filters combine:
+Before making a change, the service checks the team's rules, such as allowing only one Pokémon
+from each evolution family. If a change breaks a rule, the service raises `TeamConflictError`, and
+that error's reason becomes the `reason` in the 409 response.
+
+### Listing everyone's teams
+
+`GET /api/teams` lists everyone's teams that have at least one Pokémon, newest first, one page at a
+time. You can combine its filters.
 
 | Parameter | What it does |
 | --- | --- |
 | `q` | Matches a team's name, its owner's username or a member's name, ignoring case. |
-| `type` | Requires a member of that type. Repeat it to require one of each. |
-| `changed` | Requires a member that a sync changed in the last week. |
-| `owner` | Keeps one user's teams, including any with no Pokémon yet, unless another filter needs a Pokémon. |
-| `sort=power` | Orders by the sum of the members' base stats instead. |
+| `type` | Keeps teams with a member of that type. Repeat it to require a member of each type. |
+| `changed` | Keeps teams with a member that a sync changed in the last week. |
+| `owner` | Keeps one user's teams. This includes teams with no Pokémon yet, unless another filter needs a Pokémon. |
+| `sort=power` | Orders teams by the sum of their members' base stats instead. |
 
-Power is worked out on read from current stats, using `stat_total()` in `app/pokemon/queries.py`.
-So no index serves it, and each page reads every matching team.
+Power is worked out from current stats each time the teams are read, using `stat_total()` in
+`app/pokemon/queries.py`. That means no index can serve it, so each page reads every matching team.
 
 ## Atomicity and races
 
-Each change to a team runs in one database transaction. The route commits it only once the change
-is complete, so it's saved whole or not at all.
+Each change to a team runs in a single database transaction. The route only commits it once the
+change is complete, so the change is saved whole or not at all.
 
-**Two changes to one team.** Before the route reads the team, `require_team_owner` locks its row
-with `lock_owned_team`, a `SELECT … FOR UPDATE`. The lock holds until the request commits. A
-second change to the same team waits for the first, then reads the team the first left. Changes
-to different teams don't wait for each other.
+The sync works the same way. Each run is one transaction, held under an advisory lock (a lock on a
+number the app picks, rather than on a row). So a run is saved whole or not at all, and two runs
+never write at the same time. [How the sync works](#how-the-sync-works) has the details.
 
-**Rules checked after the lock.** The service reads the team only once it holds the lock, so its
-checks see the latest members:
-- **Full team.** A team of six refuses another Pokémon (409 `team_full`).
-- **Family on the team.** A team refuses a second Pokémon from one family (409 `family_on_team`).
-- **Out-of-date order.** A reorder must list exactly the current members. So a reorder made
-  before someone else's removal is refused (409 `order_out_of_date`), not applied to a team it
-  never saw.
+### Two changes to one team
 
-**The database as the backstop.** Constraints keep the rules even for a write that skips the
-service:
-- **One per family.** A unique `(team_id, family_id)` allows one Pokémon per evolution family.
-  `_guarded` turns a violation into the same 409 `family_on_team`.
-- **Six slots.** A CHECK keeps `position` between 0 and 5, and a unique `(team_id, position)`
-  gives each slot one member. So a team can't pass six.
-- **Slots checked at commit.** The slot rule is a deferred constraint, which Postgres checks at
-  commit rather than after each statement. Deferral lets a reorder, replacement or removal move
-  members through each other's slots. Each change that moves members ends with `_check_slots`,
-  which checks the rule at once and defers it again. So a clash surfaces inside the change.
+Before the route reads the team, `require_team_owner` locks the team's row with `lock_owned_team`,
+which runs a `SELECT … FOR UPDATE`. The lock holds until the request commits. If a second change
+to the same team arrives in the meantime, it waits for the first to finish and then reads the team
+as the first change left it. Changes to different teams don't wait for each other.
 
-**Creating a team.** The client picks the team's UUID and sends `PUT /api/teams/{id}`:
-- **Safe to repeat.** If the same request arrives twice, from a retry or a double click, the
-  second gets the team the first made.
-- **Taken ids.** If another user has the id, the answer is 409 `team_id_taken`. The insert runs in
-  a savepoint (a part of a transaction that can be rolled back alone), so the refusal doesn't
-  abort the request.
-- **No half-made teams.** The new team's Pokémon are added in the same transaction, so a refused
-  Pokémon leaves no team behind.
+The service only reads the team once it holds the lock, so its checks always see the latest
+members. Three rules depend on this.
 
-**The sync.** Each run is one transaction under an advisory lock (a lock on a number the app
-picks, not on a row). So a run is saved whole or not at all, and two runs never write at once.
-[How the sync works](#how-the-sync-works) has the details.
+- A team of six refuses another Pokémon (409 `team_full`).
+- A team refuses a second Pokémon from the same family (409 `family_on_team`).
+- A reorder must list exactly the current members. So if someone else removed a member after you
+  made your reorder, your reorder is refused (409 `order_out_of_date`) rather than applied to a
+  team it never saw.
 
-**How it's tested.**
-- **`tests/teams/test_races.py`** holds one change's lock uncommitted and starts a second change
-  on another connection. Once Postgres shows that connection waiting for a lock (`pg_locks`), it
-  commits the first. Then it checks what the second found: a full team, a family already on it,
-  or an out-of-date order.
-- **`test_a_change_waits_for_one_in_progress_then_sees_it`** (in `tests/api/routes/test_teams.py`)
+### The database as a backstop
+
+Database constraints enforce the rules even for a write that skips the service.
+
+- A unique constraint on `(team_id, family_id)` allows only one Pokémon per evolution family. If
+  a write breaks it, `_guarded` turns the error into the same 409 `family_on_team`.
+- A CHECK constraint keeps `position` between 0 and 5, and a unique constraint on
+  `(team_id, position)` gives each slot one member. Together they mean a team can't have more than
+  six members.
+- The slot rule is a deferred constraint, which means Postgres checks it at commit instead of after
+  each statement. Deferring it lets a reorder, replacement or removal move members through each
+  other's slots along the way. Every change that moves members ends by calling `_check_slots`,
+  which checks the rule straight away and then defers it again. That way a clash shows up inside
+  the change that caused it.
+
+### Creating a team
+
+The client picks the team's UUID itself and sends `PUT /api/teams/{id}`.
+
+- The request is safe to repeat. If it arrives twice, from a retry or a double click, the second
+  request gets back the team that the first one made.
+- If another user already has that id, the answer is 409 `team_id_taken`. The insert runs in a
+  savepoint (a part of a transaction that can be rolled back on its own), so the refusal doesn't
+  abort the rest of the request.
+- The new team's Pokémon are added in the same transaction. If one of them is refused, no
+  half-made team is left behind.
+
+### How it's tested
+
+These tests check that the locking works.
+
+- `tests/teams/test_races.py` holds one change's lock without committing, and starts a second
+  change on another connection. Once Postgres shows that connection waiting for a lock (in
+  `pg_locks`), the test commits the first change. Then it checks what the second change found,
+  which is a full team, a family already on the team, or an out-of-date order.
+- `test_a_change_waits_for_one_in_progress_then_sees_it` (in `tests/api/routes/test_teams.py`)
   does the same through the API.
-- **`test_the_database_refuses_a_family_member_the_check_couldnt_see`** adds a Pokémon without the
-  lock, to show the constraint refuses it alone.
+- `test_the_database_refuses_a_family_member_the_check_couldnt_see` adds a Pokémon without taking
+  the lock, to show that the constraint refuses it on its own.
 
 ## Counter teams
 
-Three read-only routes answer from the Pokédex and the type chart alone:
+Three read-only routes work out their answers from the Pokédex and the type chart alone.
 
 | Route | What it answers |
 | --- | --- |
 | `GET /api/counter-team` | A team to beat the one given |
-| `GET /api/team-threats` | Up to 12 Pokémon that beat it most |
-| `GET /api/matchups` | Each of one team's Pokémon scored against each of another's, such as a team being built against the team it's meant to counter |
+| `GET /api/team-threats` | Up to 12 Pokémon that do best against the team given |
+| `GET /api/matchups` | Each Pokémon on one team scored against each Pokémon on another, such as a team you're building against the team it's meant to counter |
 
-Teams are given as repeated Pokémon ids.
+You pass a team to these routes as repeated Pokémon ids.
 
 ### Scoring a matchup
 
-A matchup is one Pokémon against another, scored from the first one's side. It uses types and base
-stats only, with no moves. The code is in `scoring.py`, and the weights are in `constants.py`.
+A matchup is one Pokémon against another, scored from the first Pokémon's side. It uses only
+types and base stats, because the data has no moves. The code is in `scoring.py`, and the weights
+are in `constants.py`. The score adds up four parts.
 
 | Part | Points |
 | --- | --- |
-| **Offense** | Log2 of its best type's multiplier against the opponent. 4× is +2, 2× +1, 1× 0, ½× −1, ¼× −2, and no effect −3. |
-| **Defense** | The opponent's best type against it, scored the same way and subtracted. |
-| **Power** | ±0.25 for each 100 of base stat total between them, in proportion. A 50-point gap is ±0.125. |
-| **Speed** | ±0.25 for being faster or slower. |
+| Offense | Log2 of the multiplier for the Pokémon's best type against the opponent, so every doubling is one point. 4× is +2, 2× is +1, 1× is 0, ½× is −1, ¼× is −2, and no effect is −3. |
+| Defense | The opponent's best type against the Pokémon, scored the same way and then subtracted. |
+| Power | Plus or minus 0.25 for every 100 points of difference in base stat total, in proportion. A 50-point gap is worth 0.125. |
+| Speed | Plus 0.25 for being faster, minus 0.25 for being slower, and 0 for a tie. |
 
-- **Types usually decide.** Types move the score by whole points and stats by quarters. A type's
-  edge usually decides a matchup, but a big enough gap in stats can outweigh it.
-- **Ratings.** A score of 0.75 or more is `good`, −0.75 or less is `bad`, and anything between is
-  `even`. So a one-point type edge stays good unless the stats take back more than a quarter of it.
-- **Reasons.** Each matchup includes the parts it's scored from (`attack`, `opponent_attack`,
-  `speed` and `stat_total_difference`), so a client can say why it's good.
-- **Rounding.** Scores are rounded to 9 decimals, so scores equal on paper compare equal. The
-  tie-breaks below then decide, not float rounding.
+Types move the score by whole points, and stats only by quarters. So a type advantage usually
+decides a matchup, but a big enough gap in stats can outweigh it.
+
+A score of 0.75 or more is rated `good`, −0.75 or less is `bad`, and anything in between is
+`even`. So a one-point type advantage stays good unless the stats take back more than a quarter of
+it.
+
+Each matchup includes the parts it was scored from (`attack`, `opponent_attack`, `speed` and
+`stat_total_difference`), so a client can explain why it's good.
+
+Scores are rounded to 9 decimal places, so scores that are equal on paper also compare as equal.
+That way the tie-breaks described below decide the order, not floating-point rounding.
 
 ### Choosing the counter team
 
-`search.py` chooses the counter team one Pokémon at a time. Each pick is the one that most raises
-the team's score.
+`search.py` builds the counter team one Pokémon at a time. Each time, it adds the Pokémon that
+raises the counter team's score the most.
 
-- **The team's score.** Add up the team's best score against each of their Pokémon. Take off a
-  point for each of their types that three or more of the team are weak to. One of theirs could
-  beat all of those.
-- **Ties.** Ties go to the higher total score against their team, then the higher base stat
-  total, then the lower id. So a team always gets the same answer from the same data.
-- **Who can be picked.** Picks come from different evolution families, so the result can be saved.
-  They come only from Pokémon PokéAPI lists. Alternate forms and legendary and mythical Pokémon
-  count only when asked for (`forms=true`, `legendaries=true`).
-- **Battle order.** First comes the Pokémon that scores best against their lead. The rest follow
-  in the order of the opponents they each score best against.
+The counter team's score works like this. For each Pokémon on the other team, take the counter
+team's best score against it, and add those up. Then take off a point for each of the other team's
+types that three or more of the counter team's Pokémon are weak to, because one opposing Pokémon
+of that type could beat all of them.
 
-Picking one at a time can miss the best possible six, but finding those would mean scoring every
-set of six from the whole Pokédex. Picking one at a time is quick and gives the same answer every
-time. It also lets each pick be explained by its matchups.
+Ties go to the Pokémon with the higher total score against the other team, then the higher base
+stat total, then the lower id. So the same team always gets the same answer from the same data.
 
-**Why these numbers.** The weights are picked by hand, because there's no battle data to fit them
-to. Each one is checked against the synced Pokédex. For example, a stat gap only outweighs a whole
-type step in 0.6% of pairs, so types decide most matchups. The reason for every number is written
-next to it in `app/counter/constants.py`, and the root README sums them up in
-[Why it's scored this way](../README.md#why-its-scored-this-way).
+Picks come from different evolution families, so the counter team can be saved as a real team.
+They only come from Pokémon that PokéAPI currently lists. Alternate forms, and legendary and
+mythical Pokémon, are only included when the request asks for them (`forms=true` and
+`legendaries=true`).
 
-**The threats** are up to 12 Pokémon with the highest total score against the team, each evolution
-family once, by its best. The team's own families are left out, even a removed member's. So the
-team's Pokémon and their evolutions never come back as threats to it.
+The finished team comes back in battle order. First comes the Pokémon that scores best against the
+other team's lead, which is its first Pokémon. The rest follow in the order of the opponents they
+each score best against.
+
+Picking one at a time can miss the best possible six. But finding those would mean scoring every
+set of six from the whole Pokédex. Picking one at a time is quick, gives the same answer every
+time, and lets each pick be explained by its matchups.
+
+### Why these numbers
+
+The weights are picked by hand, because there's no battle data to fit them to. Each one is checked
+against the synced Pokédex. For example, a stat gap only outweighs a whole type step in 0.6% of
+pairs, so types decide most matchups. The reason for every number is written next to it in
+`app/counter/constants.py`. The root README sums them up in
+[How the scoring works, and why](../README.md#how-the-scoring-works-and-why).
+
+### Threats
+
+The threats to a team are up to 12 Pokémon with the highest total score against it. Each
+evolution family appears at most once, through its best-scoring Pokémon. The team's own families
+are left out, including the family of a member that PokéAPI has removed. So the team's Pokémon and
+their evolutions never show up as threats to it.
 
 ### Worked out on request
 
-Nothing is worked out in advance. A team can be any one to six of about 1,350 Pokémon,
-and a sync can also change the stats and types behind a score.
+Nothing is worked out in advance. A team can be any one to six of about 1,350 Pokémon, and a sync
+can also change the stats and types behind a score.
 
-- **Per request.** A request reads the type chart and the Pokémon it can choose from. It then
-  scores each of them against at most six, in memory.
-- **Caching.** Responses are cached like the Pokédex's (`COUNTER_TEAM_CACHE_CONTROL`), since the
-  same ids get the same answer until a sync changes the data.
-- **Before a sync.** Until a sync has stored the type chart, the routes answer 503 and say to run
-  one. The counter team also answers 503 while there are fewer evolution families to choose from
-  than the team has Pokémon.
-- **Bad ids.** An unknown id, or one given twice on a team, is a 422.
+Each request reads the type chart and the Pokémon it can choose from. It then scores each of them
+against the team's Pokémon (six at most), all in memory.
+
+Responses are cached the same way as the Pokédex's (`COUNTER_TEAM_CACHE_CONTROL`), since the same
+ids get the same answer until a sync changes the data.
+
+Until a sync has stored the type chart, the routes answer 503 and say to run one. The counter team
+route also answers 503 when there are fewer evolution families to choose from than the team has
+Pokémon.
+
+An unknown id, or an id given twice for one team, gets a 422.
 
 ## The type chart and legendary flags
 
-Two pieces of PokéAPI data exist only for the counter routes.
+Two pieces of PokéAPI data are stored only for the counter routes.
 
-**The type chart.** `type_matchups` has one row for each pair of the 18 types, 324 in all. Each
-row gives the share of damage a move of the attacking type does to a Pokémon of the defending
-type. The share is 0, ½, 1 or 2. A Pokémon with two types takes the product of both rows, so Rock
-against Charizard (Fire/Flying) is 2 × 2 = 4×. The chart is how a Pokémon's weaknesses,
-resistances and immunities are worked out. It's stored rather than written into the code,
-because it's PokéAPI's data like the rest and every sync refreshes it. Checks allow only known
-types and the four multipliers.
+The type chart lives in `type_matchups`, which has one row for each pair of the 18 types, 324 rows
+in all. Each row gives the share of damage that a move of the attacking type does to a Pokémon of
+the defending type. The share is 0, ½, 1 or 2. A Pokémon with two types takes the product of both
+rows, so Rock against Charizard (Fire/Flying) is 2 × 2 = 4×. The chart is how the app works out a
+Pokémon's weaknesses, resistances and immunities. It's stored in the database rather than written
+into the code, because it's PokéAPI's data like everything else, and every sync refreshes it. CHECK
+constraints allow only known types and the four multipliers.
 
-**Legendary and mythical flags.** `species.is_legendary` and `species.is_mythical` mark species
-such as Mewtwo and Mew. The counter search leaves them out unless `legendaries=true`, so it
-suggests Pokémon a player would usually field. PokéAPI doesn't flag Paradox Pokémon or Ultra
-Beasts, so they count as regular Pokémon.
+The legendary and mythical flags are `species.is_legendary` and `species.is_mythical`, and they
+mark species such as Mewtwo and Mew. The counter search leaves those species out unless the request
+sets `legendaries=true`, so that it suggests Pokémon a player would usually bring to a battle.
+PokéAPI doesn't flag Paradox Pokémon or Ultra Beasts, so they count as regular Pokémon.
 
 ## How the sync works
 
-The sync copies PokéAPI into Postgres and records what changed, in one transaction.
-`python -m app.jobs.sync_pokemon` (`app/jobs/sync_pokemon.py`) runs `run_sync`
-(`app/sync/service.py`), then [the team follow-up](#the-team-follow-up), and commits them together.
+The sync copies PokéAPI into Postgres and records what changed, all in one transaction. Running
+`python -m app.jobs.sync_pokemon` (`app/jobs/sync_pokemon.py`) calls `run_sync`
+(`app/sync/service.py`), then runs [the team follow-up](#the-team-follow-up), and commits both
+together.
 
 ```mermaid
 sequenceDiagram
@@ -460,84 +512,97 @@ sequenceDiagram
 
 ### What it fetches
 
-`PokeApiClient` (`app/sync/client.py`) makes about 3,000 requests a run:
-- **Listings.** The `pokemon` and `pokemon-species` listings, `PAGE_SIZE` (200) entries a page.
-- **Details.** Every Pokémon, every species, and each evolution chain the species belong to, once
+`PokeApiClient` (`app/sync/client.py`) makes about 3,000 requests each run.
+
+- It reads the `pokemon` and `pokemon-species` listings, `PAGE_SIZE` (200) entries per page.
+- It fetches every Pokémon, every species, and each evolution chain the species belong to, once
   per chain. Each species also brings its legendary and mythical flags.
-- **Types.** The 18 types, whose damage relations become the type chart.
+- It fetches the 18 types, whose damage relations become the type chart.
 
-The client validates every response with Pydantic (`pokeapi.py`), and `normalize.py` turns them
-into our shapes. The client only requests URLs on PokéAPI, and it doesn't follow redirects.
+The client checks every response against a Pydantic model (in `pokeapi.py`), and `normalize.py`
+turns the responses into the app's own shapes. The client only requests URLs on PokéAPI, and it
+doesn't follow redirects.
 
-Whatever is missing from a listing counts as removed. So a listing that fails or can't be trusted,
-such as one that loops or runs past `MAX_PAGES`, fails the sync.
+Any Pokémon missing from a listing counts as removed. So if a listing fails or can't be trusted,
+for example because it loops or runs past `MAX_PAGES`, the whole sync fails.
 
 ### Fair use
 
-The client limits its load on PokéAPI (`app/sync/constants.py`):
-- **User agent.** Every request sends `USER_AGENT`, which names the app and links to its repo.
-- **Concurrency.** At most `CONCURRENT_REQUESTS` (20) requests are in flight, each with a timeout
-  of `REQUEST_TIMEOUT_SECONDS` (15).
-- **Retries.** The client retries only rate limiting, server errors (`RETRYABLE_STATUS_CODES`:
-  429, 500, 502, 503 and 504) and network failures. A request gets up to `MAX_ATTEMPTS` (3) tries
-  in all. The first retry waits `RETRY_DELAY_SECONDS` (0.5), and each later one twice as long as
-  the last.
-- **Retry-After.** A 429 or 503 whose `Retry-After` asks for a number of seconds gets that wait
-  instead, up to `MAX_RETRY_AFTER_SECONDS` (30).
+The client limits how much load it puts on PokéAPI. The settings for this are in
+`app/sync/constants.py`.
 
-PokéAPI answers from Cloudflare's cache with `max-age=86400` (one day). So syncing more than once
-a day can't see newer data.
+- Every request sends `USER_AGENT`, which names the app and links to its repository.
+- At most `CONCURRENT_REQUESTS` (20) requests are in flight at once, and each one times out after
+  `REQUEST_TIMEOUT_SECONDS` (15).
+- The client only retries rate limiting, server errors and network failures. The status codes it
+  retries are listed in `RETRYABLE_STATUS_CODES`, and they're 429, 500, 502, 503 and 504. A
+  request gets up to `MAX_ATTEMPTS` (3) tries in all. The first retry waits `RETRY_DELAY_SECONDS`
+  (0.5 seconds), and each later retry waits twice as long as the one before.
+- If a 429 or 503 response has a `Retry-After` header asking for a number of seconds, the client
+  waits that long instead, up to `MAX_RETRY_AFTER_SECONDS` (30).
+
+PokéAPI answers from Cloudflare's cache with `max-age=86400` (one day). So syncing more than once a
+day can't pick up newer data.
 
 ### How changes are detected and stored
 
-`store_pokemon` (`app/sync/store.py`) compares each fetched Pokémon with its row. It tracks the
-Pokémon's columns (name, types, base stats, sprite and default-form flag), hashed with SHA-256 into
-`content_hash`.
+`store_pokemon` (`app/sync/store.py`) compares each fetched Pokémon with its stored row. It tracks
+the Pokémon's name, types, base stats, sprite and default-form flag. Those columns are hashed with
+SHA-256 into `content_hash`. A hash is a fingerprint of the data, so a different hash means
+something changed.
 
-| Kind | When | Recorded as a change? |
+| Kind | When it happens | Recorded as a change? |
 | --- | --- | --- |
-| **New** | Not stored yet | No, since no team can have it yet |
-| **Updated** | The hash differs | Yes |
-| **Removed** | Stored and not yet removed, but missing from PokéAPI's listing | Yes |
-| **Restored** | Marked removed, and listed again | Yes |
+| New | The Pokémon isn't stored yet | No, because no team can have it yet |
+| Updated | The hash is different | Yes |
+| Removed | It's stored and not already removed, but it's missing from PokéAPI's listing | Yes |
+| Restored | It was marked removed, and it's listed again | Yes |
 
-- **Removed rows stay.** A removed row gets `removed_at` and is never deleted, so teams keep it.
-  A Pokémon whose fetch failed is left as it was, since only the listing decides what's removed.
-- **Changes.** Each change is a row in `pokemon_changes`, with snapshots of the tracked fields from
-  before and after (a removal has no `after`). It also sets the Pokémon's `last_changed_at`, which
-  the `changed` filters and `changed_recently` read.
-- **Runs.** Each run is a row in `sync_runs`, with its counts and what failed.
-  `GET /api/sync/status` serves when the data last synced and how the latest run went.
-- **Reference data.** Species, evolution families and the type chart are overwritten without
-  history. A family is stored only if all its species and its chain were fetched, and the type
-  chart only if all 18 types were. Otherwise what was stored before stays.
+A removed row gets a `removed_at` timestamp and is never deleted, so teams keep their Pokémon. If a
+Pokémon's fetch failed, its row is left as it was, because only the listing decides what's removed.
+
+Each change becomes a row in `pokemon_changes`, with snapshots of the tracked fields before and
+after the change (a removal has no `after`). It also sets the Pokémon's `last_changed_at`, which
+the `changed` filters and `changed_recently` read.
+
+Each run becomes a row in `sync_runs`, with its counts and a list of what failed.
+`GET /api/sync/status` reports when the data last synced and how the latest run went.
+
+Species, evolution families and the type chart are reference data, and they're overwritten without
+keeping any history. A family is only stored if all its species and its chain were fetched, and the
+type chart is only stored if all 18 types were. Otherwise the previously stored version stays.
 
 ### Safeguards
 
-A bad sync would flag every team, so the job guards against one:
-- **Too many removals.** A sync that would remove more than `MAX_REMOVED_SHARE` (5%) of the stored
-  Pokémon, or `MIN_REMOVALS_ALLOWED` (10) if that's more, raises `SuspiciousRemovalError`. A
-  broken listing is likelier than that many real removals.
-- **One at a time.** `run_sync` first takes a transaction-level advisory lock on `SYNC_LOCK_KEY`,
-  held until the transaction ends. A second sync raises `SyncAlreadyRunningError`.
-- **All or nothing.** The data, its changes and the run's record are saved together or not at
-  all. On any error the job rolls back, records a failed run with the error, and exits 1.
-- **Partial failures.** If a Pokémon, species, chain or type still fails after retrying, the rest
-  is saved. The run lists what failed, the job exits 1, and the next run fills the gaps.
+A bad sync would flag every team, so the job guards against one in four ways.
+
+- If a sync would remove more than `MAX_REMOVED_SHARE` (5%) of the stored Pokémon, or
+  `MIN_REMOVALS_ALLOWED` (10) if that's more, it raises `SuspiciousRemovalError`. A broken listing
+  is more likely than that many real removals.
+- Only one sync runs at a time. `run_sync` first takes a transaction-level advisory lock on
+  `SYNC_LOCK_KEY`, which it holds until the transaction ends. A second sync raises
+  `SyncAlreadyRunningError`.
+- The data, its changes and the run's record are saved together or not at all. On any error, the
+  job rolls back, records a failed run with the error, and exits with code 1.
+- If a Pokémon, species, chain or type still fails after retrying, the rest is saved anyway. The
+  run lists what failed, the job exits with code 1, and the next run fills in the gaps.
 
 ### The team follow-up
 
 The follow-up keeps each team member in its species' evolution family. After `run_sync`, the job
 calls `follow_species_families` (`app/teams/service.py`) in the same transaction.
 
-When PokéAPI moves a Pokémon to a species in another family:
-1. Its members' `species_id` follows through the cascading foreign key to `species_varieties`.
+When PokéAPI moves a Pokémon to a species in a different family, two things happen.
+
+1. The team members holding that Pokémon get the new `species_id` automatically, through the
+   cascading foreign key to `species_varieties`.
 2. `follow_species_families` moves their `family_id` to the new species' family.
 
-The foreign key to `species` is checked at commit, so a member can be out of step in between.
+The foreign key to `species` is only checked at commit, so a member can be out of step between
+those two steps.
 
-**Clashes fail the run.** A move that would put two Pokémon from one family on a team breaks the
-unique `(team_id, family_id)`. The run then fails, is rolled back and is recorded as failed.
+If a move would put two Pokémon from the same family on one team, it breaks the unique
+`(team_id, family_id)` constraint. The run then fails, is rolled back, and is recorded as failed.
 Otherwise the sync would have to choose which Pokémon to take off someone's team.
 
 ### Running a sync
@@ -546,45 +611,49 @@ Otherwise the sync would have to choose which Pokémon to take off someone's tea
 uv run --env-file ../.env python -m app.jobs.sync_pokemon
 ```
 
-It logs a summary and exits 0 only if nothing failed. Nothing schedules it yet (`vercel.json` has
-no cron). To sync production, run it by hand with production's `DATABASE_URL`. Once a day is the
-natural cadence, given PokéAPI's one-day cache.
+The job logs a summary and exits with code 0 only if nothing failed. Nothing schedules it yet
+(`vercel.json` has no cron job). To sync production, run it by hand with production's
+`DATABASE_URL`. Once a day is the natural rhythm, given PokéAPI's one-day cache.
 
 ### Demoing a change
 
-PokéAPI rarely changes, so `python -m app.jobs.demo_changes` makes it look as if it had. Use it for
-a demo, or for working on how changes are shown.
+PokéAPI rarely changes, so `python -m app.jobs.demo_changes` makes it look as if it had. Use it to
+give a demo, or when you're working on how changes are displayed.
 
-It runs the real job through `ChangedPokeApi` (`app/jobs/demo_changes.py`), an httpx2 transport.
-The transport passes each request to PokéAPI and edits the Pokémon in the response, as the `DEMO`
-constant says:
-- **Charizard** gains 20 Attack and 20 Speed.
-- **Gengar** becomes Ghost/Fairy.
-- **Pikachu** leaves the listing.
-- **Garchomp, Snorlax, Lucario and Dragonite** get smaller stat changes.
+It runs the real sync job through `ChangedPokeApi` (`app/jobs/demo_changes.py`), which is an httpx2
+transport (the layer that actually sends the HTTP requests). The transport passes each request on
+to PokéAPI, then edits the Pokémon in the response as the `DEMO` constant describes.
 
-Everything from the client on is the real sync. So the demo shows detection, snapshots,
-`last_changed_at` and the teams' alerts working together, not rows written by hand.
+- Charizard gains 20 Attack and 20 Speed.
+- Gengar becomes Ghost/Fairy.
+- Pikachu leaves the listing.
+- Garchomp, Snorlax, Lucario and Dragonite get smaller stat changes.
 
-- **Undoing it.** The next ordinary sync puts PokéAPI's data back and records that too. The six
-  are updated again and Pikachu is restored, so each kind of change can be shown.
-- **Local by default.** Like `seed_teams`, it refuses a database that isn't on this machine.
-  `--not-local` lets it demo a deployed app. The deployed database then keeps the made-up changes
-  in its history, and serves the made-up data until its next ordinary sync.
-- **Tested.** `tests/jobs/test_demo_changes.py` runs a similar scenario, both syncs and all,
-  against the fake PokéAPI, which serves only Charizard's and Pikachu's families.
+Everything from the client onward is the real sync. So the demo shows change detection, the
+snapshots, `last_changed_at` and the teams' alerts all working together, rather than rows written
+by hand.
+
+The next ordinary sync puts PokéAPI's real data back, and records that as changes too. The six
+edited Pokémon are updated again and Pikachu is restored, so you can see every kind of change.
+
+Like `seed_teams`, the demo refuses a database that isn't on this machine. Pass `--not-local` to
+demo a deployed app. The deployed database then keeps the made-up changes in its history, and
+serves the made-up data until its next ordinary sync.
+
+`tests/jobs/test_demo_changes.py` runs a similar scenario, including both syncs, against the fake
+PokéAPI, which only serves Charizard's and Pikachu's families.
 
 ### Admins and the run history
 
-Admins can see the history of every sync run.
+Admins can see the history of every sync run. `users.is_admin` marks who's an admin, and
+`GET /api/session` includes that flag.
 
-- **Admins.** `users.is_admin` marks admins, and `GET /api/session` includes it.
-- **History.** `GET /api/sync/runs` lists every sync run, newest first, a page at a time (`page`,
-  `page_size`). It gives the total, so a page can say "Page 2 of 5".
-- **Access.** Its `require_admin` dependency answers 401 to visitors and 403 to users who aren't
-  admins.
+`GET /api/sync/runs` lists every sync run, newest first, one page at a time (using `page` and
+`page_size`). It also gives the total, so a page can say "Page 2 of 5". Its `require_admin`
+dependency answers 401 to visitors who aren't signed in, and 403 to signed-in users who aren't
+admins.
 
-Grant admin from the command line, or take it away with `--revoke`:
+To make someone an admin, run the command below. Add `--revoke` to take admin away.
 
 ```bash
 uv run --env-file ../.env python -m app.jobs.make_admin USERNAME
@@ -592,27 +661,26 @@ uv run --env-file ../.env python -m app.jobs.make_admin USERNAME
 
 ## Migrations
 
-Alembic manages the schema. To add a migration and apply it:
+Alembic manages the database schema. To add a migration and apply it, run these two commands.
 
 ```bash
 uv run --env-file ../.env alembic revision --autogenerate -m "store something"
 uv run --env-file ../.env alembic upgrade head
 ```
 
-- **New files.** They're date-prefixed, and ruff lints and formats them as they're written.
-- **Tests.** Tests check that the migrations match the models, including the CHECK constraints
-  autogenerate can't see, and that they downgrade cleanly.
-- **Deploys.** Nothing runs migrations on deploy. Run production's by hand, over Neon's direct
-  URL.
-- **Deferred constraints.** Two team constraints are checked at commit. One is the unique slot
-  ([Atomicity and races](#atomicity-and-races)). The other is the member's foreign key to its
-  species' family ([The team follow-up](#the-team-follow-up)).
-  `check_a_team_members_family_at_commit` makes the second deferrable with a hand-written
+- New migration files get a date prefix, and ruff lints and formats them as they're written.
+- Tests check that the migrations match the models, including the CHECK constraints that
+  autogenerate can't see, and that the migrations downgrade cleanly.
+- Nothing runs migrations on deploy. Run production's migrations by hand, over Neon's direct URL.
+- Two team constraints are deferred, which means they're checked at commit. One is the unique slot
+  constraint (see [Atomicity and races](#atomicity-and-races)). The other is the member's foreign
+  key to its species' family (see [The team follow-up](#the-team-follow-up)). The migration
+  `check_a_team_members_family_at_commit` makes the second one deferrable with a hand-written
   `alter constraint`.
 
 ## Tests and checks
 
-Four commands check the backend:
+These four commands check the backend.
 
 ```bash
 uv run pytest                                      # needs Docker
@@ -621,29 +689,28 @@ uv run mypy app tests                              # strict
 uv run lint-imports
 ```
 
-- **Database.** Database tests start a throwaway Postgres 17 container on first use
-  (Testcontainers) and migrate it. Each test runs in a transaction that's rolled back. Tests of
-  pure logic don't start it.
-- **No network.** pytest-socket fails any test that connects to anything but localhost and
-  Docker's socket.
-- **Fake PokéAPI.** `tests/support/pokeapi.py` serves recorded responses from
-  `tests/support/pokeapi_responses` through a mock transport. They cover Charizard's and Pikachu's
-  families, and all 18 types. A test can make requests fail or edit the responses.
-- **Races.** Race tests commit on two real connections, as
+- Database tests start a throwaway Postgres 17 container the first time one needs it (using
+  Testcontainers), and run the migrations on it. Each test runs inside a transaction that's rolled
+  back afterwards. Tests of pure logic don't start the container.
+- pytest-socket fails any test that connects to anything other than localhost and Docker's socket.
+- A fake PokéAPI in `tests/support/pokeapi.py` serves recorded responses from
+  `tests/support/pokeapi_responses` through a mock transport. The responses cover Charizard's and
+  Pikachu's families, and all 18 types. A test can make requests fail or edit the responses.
+- Race tests commit on two real database connections, as
   [Atomicity and races](#atomicity-and-races) describes.
-- **A lean suite.** About 600 tests run in under ten seconds. Each behavior is tested once, at the
-  level that shows it best. Rules are tested in the service, and status codes, messages and
-  caching through the routes.
-- **Cheap hashing.** Tests hash passwords with cheap Argon2 settings, except
-  `tests/accounts/test_passwords.py`, which checks the real ones. Real hashing would take a
-  quarter of the run.
-- **Shared fixtures.** `pokedex` (the type chart and a set of real Pokémon with their species and
-  families, as a sync stores them) and `sessions` live in `tests/conftest.py`. Builders such as
-  `remove_pokemon` and `change_recently` are in `tests/support/pokemon.py`.
-- **Complete docs.** One test checks that every route and every parameter has a description.
+- The suite is lean. About 600 tests run in under ten seconds. Each behavior is tested once, at the
+  level that shows it best. Rules are tested in the service, and status codes, messages and caching
+  are tested through the routes.
+- Tests hash passwords with cheap Argon2 settings, because real hashing would take up a quarter of
+  the run. The exception is `tests/accounts/test_passwords.py`, which checks the real settings.
+- The shared fixtures `pokedex` and `sessions` live in `tests/conftest.py`. The `pokedex` fixture
+  is the type chart plus a set of real Pokémon with their species and families, stored the way a
+  sync stores them. Builders such as `remove_pokemon` and `change_recently` are in
+  `tests/support/pokemon.py`.
+- One test checks that every route and every parameter has a description.
 
 ## The frontend's client
 
-The frontend's API client is generated from this app's OpenAPI schema. After changing a route or a
-schema, run `npm run api:generate` in `frontend/`. `tests/api/test_export_openapi.py` fails until
-you do.
+The frontend's API client is generated from this app's OpenAPI schema, which is a machine-readable
+description of every route. After changing a route or a schema, run `npm run api:generate` in
+`frontend/`. Until you do, `tests/api/test_export_openapi.py` fails.
