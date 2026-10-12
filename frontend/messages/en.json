@@ -356,8 +356,8 @@
       }
     }
   ],
-  "team_matchup_covered": "Every Pokémon on their team has a good answer",
-  "team_matchup_uncovered": "Nothing here clearly beats {names}",
+  "team_matchup_covered": "At least one pick beats each Pokémon on their team",
+  "team_matchup_uncovered": "No pick clearly beats {names}",
   "team_matchup_cell": "{pokemon} against {opponent}:",
   "team_matchup_title": "{pokemon} against {opponent}",
   "team_pool_label": "Also pick from",
@@ -366,12 +366,12 @@
   "team_pool_info_label": "About what’s picked from",
   "team_pool_info": "Picks come from each species’ usual form, without legendary or mythical Pokémon. Alternate forms adds Mega Evolutions, Gigantamax and regional forms. Legendaries adds legendary and mythical Pokémon.",
   "team_counter_title": "How to beat this team",
-  "team_counter_description": "Our picks, in battle order, scored against theirs on types, base stats and Speed.",
-  "team_counter_picks": "Our picks, in battle order",
-  "team_counter_leads_against": "Leads against {name}",
-  "team_counter_matchups": "How each of our picks matches up against each of theirs. Choose one to see why.",
-  "team_counter_our_pick": "Our pick",
-  "team_counter_best_picks": "Our best pick against each of theirs",
+  "team_counter_description": "Six Pokémon picked to beat this team, in battle order. Each pick is scored against this team’s Pokémon on types, base stats and Speed.",
+  "team_counter_picks": "Counter picks, in battle order",
+  "team_counter_leads_against": "Goes first, vs {name}",
+  "team_counter_matchups": "Each cell rates a pick (row) against one of this team’s Pokémon (column) as Good, Even or Bad, with how effective the pick’s best moves are. Choose one to see why.",
+  "team_counter_our_pick": "Counter pick",
+  "team_counter_best_picks": "The best pick against each of this team’s Pokémon",
   "team_counter_versus": "vs {name}",
   "team_counter_build": "Build this counter",
   "team_counter_load_failed": "Couldn’t find a counter to this team",
@@ -441,8 +441,8 @@
         "countPlural"
       ],
       "match": {
-        "countPlural=one": "The top threat. Each cell rates your Pokémon against it. Choose one to see why.",
-        "countPlural=other": "The top {shown}, the biggest first. Each cell rates your Pokémon against the threat in its row. Choose one to see why."
+        "countPlural=one": "The top threat. Each cell rates your Pokémon (column) against it as Good, Even or Bad, with how effective your Pokémon’s best moves are. Choose one to see why.",
+        "countPlural=other": "The top {shown}, the biggest first. Each cell rates your Pokémon (column) against the threat (row) as Good, Even or Bad, with how effective your Pokémon’s best moves are. Choose one to see why."
       }
     }
   ],
@@ -480,10 +480,10 @@
   "team_against_loading": "Matching up the teams",
   "team_against_needs_sync": "Matchups need a Pokédex sync first",
   "team_against_load_failed": "Couldn’t match up the teams",
-  "team_against_details": "Picks and best answers",
+  "team_against_details": "Picks and best matchups",
   "team_against_picks": "Your picks",
-  "team_against_answers": "Your best answer to each of theirs",
-  "team_against_answer": "Best answer: {name}",
+  "team_against_answers": "Your best pick against each of their Pokémon",
+  "team_against_answer": "Best pick: {name}",
   "team_added": "Added {name} to {team}",
   "team_show": "Show team",
   "team_add_to": "Add to team",

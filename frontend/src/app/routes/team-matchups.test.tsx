@@ -146,7 +146,7 @@ const rockBeatsTwo: MatchupOf = (_, opponentId) =>
 const TOP_THREE = 'The top 3, the biggest first'
 // The grid's caption, which names it, also says whose side each cell rates.
 const TOP_THREE_GRID =
-  'The top 3, the biggest first. Each cell rates your Pokémon against the threat in its row. Choose one to see why.'
+  'The top 3, the biggest first. Each cell rates your Pokémon (column) against the threat (row) as Good, Even or Bad, with how effective your Pokémon’s best moves are. Choose one to see why.'
 
 function renderTeam(path = VIEW) {
   return renderWithProviders(
@@ -190,15 +190,15 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const section = await findSection()
     const slots = screen.getByRole('list', { name: 'Team, in battle order' })
     expect(slots.compareDocumentPosition(section)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-    const picks = await within(section).findByRole('list', { name: 'Our picks, in battle order' })
+    const picks = await within(section).findByRole('list', { name: 'Counter picks, in battle order' })
     const tiles = within(picks).getAllByRole('listitem')
     expect(tiles.map((tile) => within(tile).getByRole('heading').textContent)).toEqual(
       names(PICKS),
     )
-    expect(tiles[0]).toHaveTextContent('Leads against Charizard')
+    expect(tiles[0]).toHaveTextContent('Goes first, vs Charizard')
     expect(tiles[0]).toHaveTextContent('Strong against Charizard')
     expect(tiles[1]).toHaveTextContent('Strong against Pikachu')
-    expect(tiles[1]).not.toHaveTextContent('Leads against')
+    expect(tiles[1]).not.toHaveTextContent('Goes first')
     expect(tiles[2]).toHaveTextContent('Holds its own against Charizard, Pikachu and Gengar')
   })
 
@@ -208,7 +208,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     renderTeam()
 
     expect(
-      await within(await findSection()).findByText('Nothing here clearly beats Gengar', ON_SCREEN),
+      await within(await findSection()).findByText('No pick clearly beats Gengar', ON_SCREEN),
     ).toBeInTheDocument()
   })
 
@@ -219,7 +219,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
 
     expect(
       await within(await findSection()).findByText(
-        'Every Pokémon on their team has a good answer',
+        'At least one pick beats each Pokémon on their team',
         ON_SCREEN,
       ),
     ).toBeInTheDocument()
@@ -235,7 +235,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((header) => header.textContent),
-    ).toEqual(['Our pick', ...names([charizard, pikachu, gengar])])
+    ).toEqual(['Counter pick', ...names([charizard, pikachu, gengar])])
     expect(
       within(table)
         .getAllByRole('rowheader')
@@ -298,7 +298,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
 
     const section = await findSection()
     const list = await within(section).findByRole('list', {
-      name: 'Our best pick against each of theirs',
+      name: 'The best pick against each of this team’s Pokémon',
     })
     const items = within(list).getAllByRole('listitem')
     expect(items.map((item) => within(item).getByRole('heading').textContent)).toEqual([
@@ -472,7 +472,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
 
     const section = await findSection()
     const status = within(section).getByRole('status')
-    await waitFor(() => expect(status).toHaveTextContent('Nothing here clearly beats Gengar'))
+    await waitFor(() => expect(status).toHaveTextContent('No pick clearly beats Gengar'))
     const table = within(section).getByRole('table')
     // With legendaries, every one of theirs has a good answer.
     matchup = alwaysGood
@@ -488,7 +488,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     held.release()
 
     await waitFor(() =>
-      expect(status).toHaveTextContent('Every Pokémon on their team has a good answer'),
+      expect(status).toHaveTextContent('At least one pick beats each Pokémon on their team'),
     )
     expect(within(section).getByRole('table').closest('[aria-busy]')).toHaveAttribute(
       'aria-busy',
@@ -538,7 +538,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     held.release()
 
     expect(await within(section).findByRole('table')).toBeInTheDocument()
-    await waitFor(() => expect(status).toHaveTextContent('Nothing here clearly beats Gengar'))
+    await waitFor(() => expect(status).toHaveTextContent('No pick clearly beats Gengar'))
     expect(within(section).getByRole('status')).toBe(status)
   })
 
@@ -592,7 +592,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(counters).toHaveLength(1)
     // The same status as while it failed, so what the counter covers is read out.
     expect(within(section).getByRole('status')).toBe(status)
-    expect(status).toHaveTextContent('Nothing here clearly beats Gengar')
+    expect(status).toHaveTextContent('No pick clearly beats Gengar')
   })
 
   it('isn’t shown for a team with no Pokémon', async () => {

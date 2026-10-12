@@ -112,7 +112,7 @@ describe('TeamEditPage, against the team in ?against', () => {
       within(within(against).getByRole('list', { name: 'Their team' })).getAllByRole('listitem'),
     ).toHaveLength(2)
     expect(
-      await within(against).findByText('Nothing here clearly beats Gengar', ON_SCREEN),
+      await within(against).findByText('No pick clearly beats Gengar', ON_SCREEN),
     ).toBeInTheDocument()
     const picks = within(against).getByRole('list', { name: 'Your picks' })
     expect(within(picks).getAllByRole('listitem').map((pick) => pick.textContent)).toEqual([
@@ -120,13 +120,13 @@ describe('TeamEditPage, against the team in ?against', () => {
       'PikachuStrong against Lapras',
     ])
     const answers = within(against).getAllByRole('listitem').filter((item) =>
-      within(against).getByRole('list', { name: 'Your best answer to each of theirs' }).contains(item),
+      within(against).getByRole('list', { name: 'Your best pick against each of their Pokémon' }).contains(item),
     )
     expect(answers[0]).toHaveTextContent('vs Gengar')
-    expect(answers[0]).toHaveTextContent('Best answer: Charmander')
+    expect(answers[0]).toHaveTextContent('Best pick: Charmander')
     expect(answers[0]).toHaveTextContent('Even')
     expect(answers[1]).toHaveTextContent('vs Lapras')
-    expect(answers[1]).toHaveTextContent('Best answer: Pikachu')
+    expect(answers[1]).toHaveTextContent('Best pick: Pikachu')
     expect(answers[1]).toHaveTextContent('Good')
   })
 
@@ -161,11 +161,11 @@ describe('TeamEditPage, against the team in ?against', () => {
     const { user } = renderEdit()
 
     const against = await panel()
-    await within(against).findByText('Nothing here clearly beats Gengar', ON_SCREEN)
+    await within(against).findByText('No pick clearly beats Gengar', ON_SCREEN)
     await user.click(screen.getByRole('button', { name: 'Remove Pikachu' }))
 
     expect(
-      await within(against).findByText('Nothing here clearly beats Gengar and Lapras', ON_SCREEN),
+      await within(against).findByText('No pick clearly beats Gengar and Lapras', ON_SCREEN),
     ).toBeInTheDocument()
     expect(requests).toContain(query([charmander], [gengar, lapras]))
     const picks = within(against).getByRole('list', { name: 'Your picks' })
@@ -183,7 +183,7 @@ describe('TeamEditPage, against the team in ?against', () => {
     const against = await panel()
     await waitFor(() =>
       expect(within(against).getByRole('status')).toHaveTextContent(
-        'Nothing here clearly beats Gengar',
+        'No pick clearly beats Gengar',
       ),
     )
   })
@@ -269,12 +269,12 @@ describe('TeamEditPage, against the team in ?against', () => {
 
     const against = await panel()
     expect(
-      await within(against).findByText('Nothing here clearly beats Gengar', ON_SCREEN),
+      await within(against).findByText('No pick clearly beats Gengar', ON_SCREEN),
     ).toBeVisible()
     const picks = within(against).getByRole('list', { name: 'Your picks' })
     expect(picks).not.toBeVisible()
 
-    await user.click(within(against).getByText('Picks and best answers'))
+    await user.click(within(against).getByText('Picks and best matchups'))
 
     expect(picks).toBeVisible()
   })

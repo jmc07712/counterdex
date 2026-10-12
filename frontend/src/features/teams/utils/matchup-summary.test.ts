@@ -145,7 +145,7 @@ describe('coverage', () => {
       makeChallenger(snorlax, THEIRS, [EVEN, GOOD, GOOD]),
     ]
 
-    expect(coverage(picks, THEIRS)).toBe('Every Pokémon on their team has a good answer')
+    expect(coverage(picks, THEIRS)).toBe('At least one pick beats each Pokémon on their team')
   })
 
   it('names those of theirs that no pick is rated good against, in their order', () => {
@@ -154,7 +154,7 @@ describe('coverage', () => {
       makeChallenger(snorlax, THEIRS, [BAD, EVEN, EVEN]),
     ]
 
-    expect(coverage(picks, THEIRS)).toBe('Nothing here clearly beats Charizard and Gengar')
+    expect(coverage(picks, THEIRS)).toBe('No pick clearly beats Charizard and Gengar')
   })
 })
 
