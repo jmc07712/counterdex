@@ -5,6 +5,7 @@ Nothing here writes to the database.
 """
 
 from collections.abc import Sequence
+from dataclasses import asdict
 
 from sqlalchemy.orm import Session
 
@@ -16,7 +17,7 @@ from app.counter.exceptions import (
     UnknownPokemonError,
 )
 from app.counter.scoring import matchup, weak_to
-from app.counter.types import Attack, Contender, Matchup, Profile, TypeChart
+from app.counter.types import Contender, Matchup, Profile, TypeChart
 from app.pokemon.queries import pokemon_by_ids
 from app.pokemon.schemas import Pokemon
 
@@ -131,23 +132,7 @@ def _challenger(
     return schemas.Challenger(
         pokemon=pokemon,
         matchups=[
-            _matchup(opponent_id, scored)
+            schemas.Matchup(opponent_id=opponent_id, **asdict(scored))
             for opponent_id, scored in zip(opponent_ids, matchups, strict=True)
         ],
     )
-
-
-def _matchup(opponent_id: int, scored: Matchup) -> schemas.Matchup:
-    return schemas.Matchup(
-        opponent_id=opponent_id,
-        attack=_attack(scored.attack),
-        opponent_attack=_attack(scored.opponent_attack),
-        speed=scored.speed,
-        stat_total_difference=scored.stat_total_difference,
-        score=scored.score,
-        rating=scored.rating,
-    )
-
-
-def _attack(attack: Attack) -> schemas.Attack:
-    return schemas.Attack(type=attack.type, multiplier=attack.multiplier)
