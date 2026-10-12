@@ -7,18 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.counter.schemas import TeamMatchupQuery
 from app.counter.service import find_counter_team
-from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart
 
 KANTO_SIX = [6, 3, 9, 25, 143, 94]
 # Garchomp, Tyranitar, Scizor, Rotom-Wash, Dragonite and Gholdengo.
 OU_TEAM = [445, 248, 212, 10009, 149, 1000]
-
-
-@pytest.fixture
-def pokedex(db_session: Session) -> None:
-    """The type chart, and every real Pokémon the tests know."""
-    add_type_chart(db_session)
-    add_real_pokemon(db_session, *REAL_POKEMON)
 
 
 def picks(session: Session, team: list[int], *, legendaries: bool = False) -> list[str]:

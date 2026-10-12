@@ -5,7 +5,7 @@ from app.counter.enums import Rating
 from app.counter.schemas import Challenger, MatchupsQuery, TeamMatchupQuery
 from app.counter.service import find_counter_team, list_team_threats, score_teams
 from app.pokemon.enums import PokemonType
-from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart, remove_pokemon
+from tests.support.counter import REAL_POKEMON, remove_pokemon
 
 CHARIZARD, VENUSAUR, BLASTOISE, SNORLAX = 6, 3, 9, 143
 
@@ -16,17 +16,6 @@ def query(*pokemon_ids: int, forms: bool = False, legendaries: bool = False) -> 
 
 def ids(challengers: list[Challenger]) -> list[int]:
     return [challenger.pokemon.id for challenger in challengers]
-
-
-@pytest.fixture
-def type_chart(db_session: Session) -> None:
-    add_type_chart(db_session)
-
-
-@pytest.fixture
-def pokedex(db_session: Session, type_chart: None) -> None:
-    """The type chart, and every real Pokémon the tests know."""
-    add_real_pokemon(db_session, *REAL_POKEMON)
 
 
 # --- Counter teams ---

@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.core.db import Base, get_engine, get_session
 from app.pokemon import models
 from tests.support.accounts import ASH, MISTY, OAK, sign_up_admin
+from tests.support.counter import REAL_POKEMON, add_real_pokemon, add_type_chart
 from tests.support.pokemon import LEVEL_16, LEVEL_36, add_species, make_pokemon
 
 # Same major version as production (Neon) and docker-compose.yml.
@@ -157,6 +158,15 @@ def charmander_family(db_session: Session) -> None:
         name="charizard",
         genus="Flame Pokémon",
     )
+
+
+@pytest.fixture
+def pokedex(db_session: Session) -> None:
+    """The type chart, and every real Pokémon in tests.support.counter with its species and
+    evolution family, as a sync would store them.
+    """
+    add_type_chart(db_session)
+    add_real_pokemon(db_session, *REAL_POKEMON)
 
 
 @pytest.fixture

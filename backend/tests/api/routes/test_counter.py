@@ -12,13 +12,6 @@ PATHS = ["/api/counter-team", "/api/team-threats"]
 CHARIZARD, AERODACTYL, GOLEM = 6, 142, 76
 
 
-@pytest.fixture
-def pokedex(db_session: Session) -> None:
-    """The type chart, and the real Pokémon the tests know, each in its own family."""
-    add_type_chart(db_session)
-    add_real_pokemon(db_session, *REAL_POKEMON)
-
-
 @pytest.mark.usefixtures("pokedex")
 def test_finds_a_counter_team_with_each_matchup(client: TestClient) -> None:
     response = client.get("/api/counter-team", params={"pokemon_id": CHARIZARD})
