@@ -15,3 +15,5 @@ export function usePokemonDetails(pokemonId: number) {
   })
   return { details, changes }
 }
+
+export type PokemonChanges = ReturnType<typeof usePokemonDetails>['changes']
