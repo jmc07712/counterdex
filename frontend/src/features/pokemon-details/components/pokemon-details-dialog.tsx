@@ -1,9 +1,7 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from 'usehooks-ts'
 
 import type { Pokemon } from '@/api'
-import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
 import { BaseStats } from '@/components/pokemon/base-stats'
 import { PokemonChip } from '@/components/pokemon/pokemon-chip'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
@@ -22,6 +20,7 @@ import { formatDate } from '@/lib/dates'
 import { Skeleton } from '@/components/ui/skeleton'
 import { m } from '@/paraglide/messages.js'
 
+import { usePokemonDetails } from '../hooks/use-pokemon-details'
 import { ChangeHistory } from './change-history'
 import { CloseButton } from './close-button'
 import { EvolutionTree } from './evolution-tree'
@@ -91,14 +90,7 @@ type PokemonDetailsProps = {
 }
 
 function PokemonDetails({ pokemonId, onSelect, action }: PokemonDetailsProps) {
-  const path = { pokemon_id: pokemonId }
-  // Choosing another form or stage keeps this one showing until the next arrives, rather than
-  // flashing a skeleton in between.
-  const details = useQuery({ ...getPokemonOptions({ path }), placeholderData: keepPreviousData })
-  const changes = useQuery({
-    ...listPokemonChangesOptions({ path }),
-    placeholderData: keepPreviousData,
-  })
+  const { details, changes } = usePokemonDetails(pokemonId)
   const top = useRef<HTMLDivElement>(null)
   const shownPokemonId = details.data?.pokemon.id
 
