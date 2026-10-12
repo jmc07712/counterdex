@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { Team } from '@/api'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -47,17 +47,7 @@ export function SavedTeam({ teamId, onOpenPokemon, children }: SavedTeamProps) {
   if (team.isPending || currentUser.isPending) return <Skeleton className="h-72 rounded-2xl" />
 
   if (team.isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>{m.team_load_failed()}</AlertTitle>
-        <AlertDescription>{m.common_check_connection()}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => void team.refetch()}>
-            {m.common_try_again()}
-          </Button>
-        </AlertAction>
-      </Alert>
-    )
+    return <LoadFailedAlert title={m.team_load_failed()} onRetry={() => void team.refetch()} />
   }
 
   if (team.data === null) {

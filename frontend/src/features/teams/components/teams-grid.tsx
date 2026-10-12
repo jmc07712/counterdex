@@ -3,7 +3,7 @@ import { Compass, SearchX, UsersRound } from 'lucide-react'
 import { DealtInItem, DealtInList } from '@/components/lists/dealt-in-item'
 import { LoadMore } from '@/components/lists/load-more'
 import { ResultsStatus } from '@/components/lists/results-status'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -68,17 +68,7 @@ export function TeamsGrid({
   }
 
   if (teams.isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>{m.teams_load_failed()}</AlertTitle>
-        <AlertDescription>{m.common_check_connection()}</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="sm" onClick={() => void teams.refetch()}>
-            {m.common_try_again()}
-          </Button>
-        </AlertAction>
-      </Alert>
-    )
+    return <LoadFailedAlert title={m.teams_load_failed()} onRetry={() => void teams.refetch()} />
   }
 
   const { pages } = teams.data

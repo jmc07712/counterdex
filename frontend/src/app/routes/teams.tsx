@@ -3,8 +3,7 @@ import { useRef } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ResultsRegion } from '@/components/lists/results-region'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { paths } from '@/config/paths'
 import { SignInPrompt } from '@/features/auth/components/sign-in-prompt'
 import { NewTeamButton } from '@/features/teams/components/new-team-button'
@@ -67,15 +66,10 @@ export function TeamsPage() {
         action={offerNewTeam && <NewTeamButton teamCount={teamCount ?? 0} />}
       />
       {currentUser.isError && (
-        <Alert variant="destructive">
-          <AlertTitle>{m.teams_session_check_failed()}</AlertTitle>
-          <AlertDescription>{m.common_check_connection()}</AlertDescription>
-          <AlertAction>
-            <Button variant="outline" size="sm" onClick={() => void currentUser.refetch()}>
-              {m.common_try_again()}
-            </Button>
-          </AlertAction>
-        </Alert>
+        <LoadFailedAlert
+          title={m.teams_session_check_failed()}
+          onRetry={() => void currentUser.refetch()}
+        />
       )}
       {user === null && (
         <div className="mb-6">
