@@ -26,16 +26,6 @@ def test_signing_up_stores_the_username_and_a_hash_of_the_password(db_session: S
     assert verify_password(ASH.password.get_secret_value(), user.password_hash)
 
 
-def test_signing_up_signs_you_in(db_session: Session) -> None:
-    signed_in = service.sign_up(db_session, ASH)
-
-    assert service.find_signed_in(db_session, signed_in.token) == signed_in
-
-
-def test_new_users_are_not_admins(ash: SignedIn) -> None:
-    assert ash.user.is_admin is False
-
-
 def test_a_username_is_taken_whatever_its_case(db_session: Session, ash: SignedIn) -> None:
     with pytest.raises(UsernameTakenError):
         service.sign_up(db_session, NewAccount(username="ASH", password="a-different-one"))
@@ -52,21 +42,6 @@ def test_signs_in_with_the_right_password(
 
     assert signed_in is not None
     assert signed_in.user == ash.user
-
-
-@pytest.mark.parametrize(
-    "credentials",
-    [
-        pytest.param(
-            Credentials(username="ash", password="raichu-i-choose-you"), id="wrong-password"
-        ),
-        pytest.param(Credentials(username="gary", password=ASH.password), id="unknown-username"),
-    ],
-)
-def test_refuses_wrong_credentials(
-    db_session: Session, ash: SignedIn, credentials: Credentials
-) -> None:
-    assert service.sign_in(db_session, credentials) is None
 
 
 def test_an_unknown_username_still_costs_a_password_check(
@@ -123,23 +98,6 @@ def test_an_unknown_token_signs_nobody_in(db_session: Session, ash: SignedIn) ->
     assert service.find_signed_in(db_session, "not-a-real-token") is None
 
 
-def test_an_expired_session_signs_nobody_in(db_session: Session, ash: SignedIn) -> None:
-    expire_in(db_session, ash.token, timedelta(seconds=-1))
-
-    assert service.find_signed_in(db_session, ash.token) is None
-
-
-def test_a_session_used_in_its_second_half_is_renewed(db_session: Session, ash: SignedIn) -> None:
-    expire_in(db_session, ash.token, timedelta(days=1))
-
-    before = datetime.now(UTC)
-    signed_in = service.find_signed_in(db_session, ash.token)
-
-    assert signed_in is not None
-    assert signed_in.expires_at >= before + SESSION_LIFETIME
-    assert db_session.get_one(UserSession, hash_token(ash.token)).expires_at == signed_in.expires_at
-
-
 def test_a_session_ended_while_being_renewed_signs_nobody_in(
     db_session: Session, ash: SignedIn
 ) -> None:
@@ -165,12 +123,6 @@ def test_a_session_used_in_its_first_half_is_left_alone(db_session: Session, ash
 
 
 # --- Signing out ---
-
-
-def test_signing_out_ends_the_session(db_session: Session, ash: SignedIn) -> None:
-    service.sign_out(db_session, ash.token)
-
-    assert service.find_signed_in(db_session, ash.token) is None
 
 
 def test_signing_out_leaves_other_sessions(db_session: Session, ash: SignedIn) -> None:

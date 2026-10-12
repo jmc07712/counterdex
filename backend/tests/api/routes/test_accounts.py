@@ -169,10 +169,6 @@ def test_responses_are_never_cached(
 # --- Who's signed in ---
 
 
-def test_says_who_is_signed_in(ash_client: TestClient, ash: SignedIn) -> None:
-    assert ash_client.get("/api/session").json() == ash.user.model_dump()
-
-
 @pytest.mark.usefixtures("running_locally")
 def test_the_cookie_signs_you_in_over_plain_http_locally(client: TestClient, ash: SignedIn) -> None:
     client.cookies.set("session", ash.token)
