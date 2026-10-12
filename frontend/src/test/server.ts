@@ -25,3 +25,29 @@ export function serve(path: string, respond: (query: URLSearchParams) => JsonBod
 export function refusal(status: number) {
   return HttpResponse.json({ detail: 'Refused.' }, { status })
 }
+
+/**
+ * Holds every `method` request to `path`, or those of them `when` picks, until `release` is called,
+ * then hands each on to the next handler that matches it, such as a stand-in. `arrived` counts the
+ * requests held so far. Call it after that handler, so it comes first.
+ */
+export function holdRequests(
+  method: 'all' | 'get' | 'post' | 'put' | 'patch' | 'delete',
+  path: string,
+  when: (request: Request) => boolean = () => true,
+) {
+  let release = () => {}
+  const released = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let arrived = 0
+  server.use(
+    // Answering nothing hands the request on to the next handler that matches.
+    http[method](path, async ({ request }) => {
+      if (!when(request)) return
+      arrived += 1
+      await released
+    }),
+  )
+  return { release, arrived: () => arrived }
+}

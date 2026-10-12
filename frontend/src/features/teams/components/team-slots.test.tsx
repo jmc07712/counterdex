@@ -8,7 +8,7 @@ import { servePokemonChanges } from '@/test/handlers/pokemon'
 import { makePokemon } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { asMember, catalog } from '@/test/teams'
 
 import { EmptySlots, LeadSlot, PartySlots, ReplaceLink, TeamSlot, TeamSlots } from './team-slots'
@@ -166,21 +166,13 @@ describe('TeamSlot', () => {
   })
 
   it('shows a small skeleton while the change loads', async () => {
-    let release = () => {}
-    const released = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    server.use(
-      http.get('/api/pokemon/:pokemonId/changes', async () => {
-        await released
-        return HttpResponse.json([UPDATED])
-      }),
-    )
+    servePokemonChanges([UPDATED])
+    const changes = holdRequests('get', '/api/pokemon/:pokemonId/changes')
 
     const row = renderRow(asMember(charizard, 1))
 
     await waitFor(() => expect(row.querySelector('[data-slot=skeleton]')).toBeInTheDocument())
-    release()
+    changes.release()
     await waitFor(() => expect(row).toHaveTextContent('Attack 120 → 125'))
     expect(row.querySelector('[data-slot=skeleton]')).not.toBeInTheDocument()
   })

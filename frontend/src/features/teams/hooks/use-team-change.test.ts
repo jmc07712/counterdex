@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
 import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
-import { holdUserTeams, refuseTeamChange, serveTeams } from '@/test/handlers/teams'
+import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { renderHookWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
@@ -42,18 +42,7 @@ function memberIds(team: { members: { pokemon: { id: number } }[] } | null | und
 
 // Holds the removal of this member until `release` is called, then lets the stand-in answer it.
 function holdRemoving(pokemonId: number) {
-  let release = () => {}
-  const released = new Promise<void>((resolve) => {
-    release = resolve
-  })
-  let arrived = false
-  server.use(
-    http.delete(`/api/teams/:teamId/members/${pokemonId}`, async () => {
-      arrived = true
-      await released
-    }),
-  )
-  return { release, arrived: () => arrived }
+  return holdRequests('delete', `/api/teams/:teamId/members/${pokemonId}`)
 }
 
 // Counts the fetches of the team from now on, which the stand-in still answers.
@@ -83,7 +72,7 @@ describe('useTeamChange', () => {
       void result.current.remove(pikachu.id)
     })
     expect(await refused).toBeUndefined()
-    await waitFor(() => expect(later.arrived()).toBe(true))
+    await waitFor(() => expect(later.arrived()).toBe(1))
 
     // Given time, both changes still show: the refused one isn't undone under the later one.
     await new Promise((resolve) => setTimeout(resolve, 50))
@@ -107,7 +96,7 @@ describe('useTeamChange', () => {
       void result.current.remove(pikachu.id)
     })
     await first
-    await waitFor(() => expect(later.arrived()).toBe(true))
+    await waitFor(() => expect(later.arrived()).toBe(1))
     // Given time, the first has settled, but the team isn't fetched while the second waits.
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(fetches()).toBe(0)
@@ -127,25 +116,17 @@ describe('useTeamChange', () => {
       TeamConflictReason.ORDER_OUT_OF_DATE,
       `/api/teams/:teamId/members/${charmander.id}`,
     )
-    let refuse = () => {}
-    const refusing = new Promise<void>((resolve) => {
-      refuse = resolve
-    })
-    server.use(
-      http.delete(`/api/teams/:teamId/members/${charmander.id}`, async () => {
-        await refusing
-      }),
-    )
+    const refusing = holdRemoving(charmander.id)
     const result = await renderRemove()
     // The list's fetch once the change settles waits, so what it shows is the change's doing.
-    const fetches = holdUserTeams()
+    const fetches = holdRequests('get', '/api/users/:username/teams')
 
     let refused: Promise<unknown> = Promise.resolve()
     act(() => {
       refused = result.current.remove(charmander.id)
     })
     await waitFor(() => expect(memberIds(result.current.listed.data?.[0])).toEqual([pikachu.id]))
-    refuse()
+    refusing.release()
     expect(await refused).toBeUndefined()
 
     await waitFor(() =>
@@ -161,15 +142,7 @@ describe('useTeamChange', () => {
       TeamConflictReason.ORDER_OUT_OF_DATE,
       `/api/teams/${TEAM_ID}/members/${charmander.id}`,
     )
-    let refuse = () => {}
-    const refusing = new Promise<void>((resolve) => {
-      refuse = resolve
-    })
-    server.use(
-      http.delete(`/api/teams/${TEAM_ID}/members/${charmander.id}`, async () => {
-        await refusing
-      }),
-    )
+    const refusing = holdRequests('delete', `/api/teams/${TEAM_ID}/members/${charmander.id}`)
     const { result } = renderHookWithProviders(() => ({
       listed: useUserTeams(ASH.username),
       removeFromTeam: useRemoveTeamMember(TEAM),
@@ -179,7 +152,7 @@ describe('useTeamChange', () => {
     const listedMembers = (teamId: string) =>
       memberIds(result.current.listed.data?.find((each) => each.id === teamId))
     // The list's fetches once each change settles wait, so what it shows is the changes' doing.
-    const fetches = holdUserTeams()
+    const fetches = holdRequests('get', '/api/users/:username/teams')
 
     let refused: Promise<unknown> = Promise.resolve()
     let removed: Promise<unknown> = Promise.resolve()
@@ -193,7 +166,7 @@ describe('useTeamChange', () => {
     expect(await removed).toBeTruthy()
     await waitFor(() => expect(listedMembers(OTHER.id)).toEqual([lapras.id]))
 
-    refuse()
+    refusing.release()
     expect(await refused).toBeUndefined()
 
     await waitFor(() => expect(listedMembers(TEAM_ID)).toEqual([charmander.id, pikachu.id]))
@@ -218,7 +191,7 @@ describe('useTeamChange', () => {
     act(() => {
       void result.current.remove(charmander.id)
     })
-    await waitFor(() => expect(held.arrived()).toBe(true))
+    await waitFor(() => expect(held.arrived()).toBe(1))
 
     expect(result.current.client.getQueryState(listKey)?.isInvalidated).toBe(true)
     held.release()

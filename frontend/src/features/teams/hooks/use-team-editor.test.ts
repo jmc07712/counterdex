@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Team } from '@/api'
-import { holdTeamFetches, serveTeams } from '@/test/handlers/teams'
+import { serveTeams } from '@/test/handlers/teams'
 import { makePokemon } from '@/test/pokemon'
 import { renderHookWithProviders } from '@/test/render'
+import { holdRequests } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -83,7 +84,7 @@ describe('useTeamEditor', () => {
     const error = vi.spyOn(toast, 'error')
     serveTeams({ teams: [TEAM], catalog: CATALOG, signedIn: MISTY })
     const result = await renderEditor()
-    const fetches = holdTeamFetches()
+    const fetches = holdRequests('get', '/api/teams/:teamId')
 
     const changed = await act(() => result.current.editor.remove(4))
 

@@ -5,11 +5,11 @@ import { describe, expect, it } from 'vitest'
 
 import type { Team } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
-import { holdCounterTeams, serveCounterTeam } from '@/test/handlers/counter'
+import { serveCounterTeam } from '@/test/handlers/counter'
 import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -102,7 +102,7 @@ describe('CounterTeamButton, signed in', () => {
   it('shows it’s building, and builds one team however often it’s clicked', async () => {
     const api = serveAsh()
     const counters = serveCounterTeam({ catalog: PICKS })
-    const held = holdCounterTeams()
+    const held = holdRequests('get', '/api/counter-team')
     const { router } = renderButton(RAIN)
 
     const button = await screen.findByRole('button', { name: 'Build a counter to Rain' })

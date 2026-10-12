@@ -12,7 +12,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncStatus } from '@/test/handlers/sync'
 import { serveTeams } from '@/test/handlers/teams'
 import { renderRoutes, renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, refusal, server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -198,15 +198,9 @@ describe('TeamsPage, signed in', () => {
 
   it('shows no one else’s teams while yours load', async () => {
     serveTeams({ teams: [FIRE, RAIN] })
-    let release = () => {}
-    const released = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    // Added last, so it answers first: your teams wait for `release`, then go to the stand-in.
-    server.use(
-      http.get('/api/teams', async ({ request }) => {
-        if (new URL(request.url).searchParams.has('owner')) await released
-      }),
+    // Your teams wait for `release`, then go to the stand-in.
+    const yours = holdRequests('get', '/api/teams', (request) =>
+      new URL(request.url).searchParams.has('owner'),
     )
     const { user } = await renderTeams()
     await screen.findByRole('article', { name: 'Rain' })
@@ -216,7 +210,7 @@ describe('TeamsPage, signed in', () => {
 
     expect(await screen.findByRole('list', { name: 'Loading teams' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
-    release()
+    yours.release()
     expect(await screen.findByRole('article', { name: 'Fire' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Rain' })).not.toBeInTheDocument()
     // The same status throughout, so what it says about your teams is read out.
@@ -494,22 +488,14 @@ describe('TeamsPage, signed in', () => {
 
   it('offers New team before it knows how many teams you have, and if it can’t', async () => {
     serveTeams({ teams: [FIRE] })
-    let release = () => {}
-    const released = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    // Added last, so it answers first: counting your teams waits, then fails.
-    server.use(
-      http.get('/api/users/:username/teams', async () => {
-        await released
-        return HttpResponse.json({ detail: 'Refused.' }, { status: 500 })
-      }),
-    )
+    // Added last, so they answer first: counting your teams waits, then fails.
+    server.use(http.get('/api/users/:username/teams', () => refusal(500)))
+    const counting = holdRequests('get', '/api/users/:username/teams')
 
     await renderTeams('/?scope=mine')
 
     expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
-    release()
+    counting.release()
     await screen.findByRole('article', { name: 'Fire' })
     expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
@@ -915,17 +901,16 @@ describe('TeamsPage, everyone’s teams', () => {
 
   it('tells screen readers what the new filters found once it loads', async () => {
     serveTeams({ teams: [RAIN] })
-    let release = () => {}
-    const released = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    // Added last, so it answers first: a search waits for `release`, then finds nothing.
+    // Added last, so they answer first: a search waits for `release`, then finds nothing.
     server.use(
-      http.get('/api/teams', async ({ request }) => {
-        if (!new URL(request.url).searchParams.has('q')) return
-        await released
-        return HttpResponse.json({ items: [], next_cursor: null })
+      http.get('/api/teams', ({ request }) => {
+        if (new URL(request.url).searchParams.has('q')) {
+          return HttpResponse.json({ items: [], next_cursor: null })
+        }
       }),
+    )
+    const search = holdRequests('get', '/api/teams', (request) =>
+      new URL(request.url).searchParams.has('q'),
     )
     const { user } = await renderTeams()
     const status = await screen.findByRole('status')
@@ -935,7 +920,7 @@ describe('TeamsPage, everyone’s teams', () => {
 
     // Nothing while the last results stand in for the new ones.
     await waitFor(() => expect(status).toBeEmptyDOMElement())
-    release()
+    search.release()
     await waitFor(() => expect(status).toHaveTextContent('No teams match these filters'))
   })
 

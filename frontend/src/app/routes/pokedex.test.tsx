@@ -7,16 +7,10 @@ import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import {
-  holdNewTeams,
-  holdTeamChanges,
-  holdUserTeams,
-  refuseTeamChange,
-  serveTeams,
-} from '@/test/handlers/teams'
+import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
@@ -500,7 +494,7 @@ describe('PokedexPage', () => {
 
     it('shows the Pokémon on the team at once, before the API has answered', async () => {
       serveAsh([makeTeam({ name: 'Rain Squad', pokemon: [lapras] })])
-      const held = holdTeamChanges()
+      const held = holdRequests('post', '/api/teams/:teamId/members')
       browse([pikachu])
       const { user } = renderPokedex()
       const button = await screen.findByRole('button', { name: 'Add to team: Pikachu' })
@@ -588,7 +582,7 @@ describe('PokedexPage', () => {
 
     it('stays open while it creates the new team, with New team disabled', async () => {
       serveAsh()
-      const held = holdNewTeams()
+      const held = holdRequests('put', '/api/teams/:teamId')
       browse([pikachu])
       const { user, router } = renderPokedex()
 
@@ -635,7 +629,7 @@ describe('PokedexPage', () => {
 
     it('says it’s loading your teams until they arrive', async () => {
       serveAsh([makeTeam({ name: 'Rain Squad' })])
-      const held = holdUserTeams()
+      const held = holdRequests('get', '/api/users/:username/teams')
       browse([pikachu])
       const { user } = renderPokedex()
 

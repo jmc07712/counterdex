@@ -11,15 +11,10 @@ import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import {
-  holdTeamChanges,
-  holdTeamFetches,
-  refuseTeamChange,
-  serveTeams,
-} from '@/test/handlers/teams'
+import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -495,7 +490,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('removes a Pokémon at once, before the API answers', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
-    const hold = holdTeamChanges()
+    const hold = holdRequests('delete', '/api/teams/:teamId/members/:pokemonId')
     const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
@@ -508,7 +503,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('sends changes to a team one at a time, in order', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
-    const hold = holdTeamChanges()
+    const hold = holdRequests('delete', '/api/teams/:teamId/members/:pokemonId')
     const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
@@ -534,7 +529,7 @@ describe('TeamPage, for the team’s owner', () => {
     const { user, queryClient } = renderTeam(EDIT)
     const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
     // Held, so what shows is the change undone rather than the team fetched again.
-    const fetches = holdTeamFetches()
+    const fetches = holdRequests('get', '/api/teams/:teamId')
 
     await user.click(remove)
 
@@ -909,7 +904,7 @@ describe('TeamPage, putting a team in a new order', () => {
     stackSlots()
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
-    const hold = holdTeamChanges()
+    const hold = holdRequests('put', '/api/teams/:teamId/order')
     const { user } = renderTeam(EDIT)
 
     await move(user, 'Pikachu', ['ArrowUp'])
@@ -930,7 +925,7 @@ describe('TeamPage, putting a team in a new order', () => {
     const { user, queryClient } = renderTeam(EDIT)
     await screen.findByRole('button', { name: 'Move Pikachu' })
     // Held, so what shows is the order put back rather than the team fetched again.
-    const fetches = holdTeamFetches()
+    const fetches = holdRequests('get', '/api/teams/:teamId')
 
     await move(user, 'Pikachu', ['ArrowUp'])
 

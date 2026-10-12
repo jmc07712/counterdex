@@ -15,8 +15,6 @@ import {
 import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import {
-  holdCounterTeams,
-  holdTeamThreats,
   type MatchupOf,
   serveCounterTeam,
   serveMatchups,
@@ -28,7 +26,7 @@ import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { makeDetails } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
@@ -408,7 +406,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await within(section).findByRole('table')
     const build = within(section).getByRole('button', { name: 'Build this counter' })
     expect(build).toHaveAttribute('aria-disabled', 'false')
-    const held = holdCounterTeams()
+    const held = holdRequests('get', '/api/counter-team')
 
     await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
     await waitFor(() => expect(held.arrived()).toBe(1))
@@ -463,7 +461,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('shows its skeleton while the counter loads', async () => {
     serveTheirs()
     serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    const held = holdCounterTeams()
+    const held = holdRequests('get', '/api/counter-team')
     renderTeam()
 
     const section = await findSection()
@@ -492,7 +490,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const table = within(section).getByRole('table')
     // With legendaries, every one of theirs has a good answer.
     matchup = alwaysGood
-    const held = holdCounterTeams()
+    const held = holdRequests('get', '/api/counter-team')
 
     await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
 
@@ -544,7 +542,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
     const message = await within(section).findByText('Counter teams need a Pokédex sync first')
     const status = within(section).getByRole('status')
     expect(status).toBeEmptyDOMElement()
-    const held = holdCounterTeams()
+    const held = holdRequests('get', '/api/counter-team')
 
     await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
 
@@ -856,7 +854,7 @@ describe('TeamPage, threats to your own team', () => {
       ),
     )
     const threats = within(section).getByRole('table', { name: TOP_THREE_GRID })
-    const held = holdTeamThreats()
+    const held = holdRequests('get', '/api/team-threats')
 
     await user.click(within(section).getByRole('button', { name: 'Legendaries' }))
 

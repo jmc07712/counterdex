@@ -7,7 +7,7 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncRuns } from '@/test/handlers/sync'
 import { cellsByRow, termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { server } from '@/test/server'
+import { holdRequests, server } from '@/test/server'
 import { makeSyncRun, makeSyncRuns } from '@/test/sync-runs'
 import { ASH, OAK } from '@/test/users'
 
@@ -289,15 +289,9 @@ describe('AdminPage, sync runs', () => {
 
   it('fades the runs on screen while the next page loads', async () => {
     serveSyncRuns({ runs: makeSyncRuns(2), pageSize: 1 })
-    let release = () => {}
-    const released = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    // Added last, so it answers first: page 2 waits for `release`, then goes on to the stand-in.
-    server.use(
-      http.get('/api/sync/runs', async ({ request }) => {
-        if (new URL(request.url).searchParams.get('page') === '2') await released
-      }),
+    // Page 2 waits for `release`, then goes on to the stand-in.
+    const page2 = holdRequests('get', '/api/sync/runs', (request) =>
+      new URL(request.url).searchParams.get('page') === '2',
     )
     const { user } = renderAdmin()
     const table = await findRunsTable()
@@ -306,7 +300,7 @@ describe('AdminPage, sync runs', () => {
 
     expect(table).toHaveAttribute('aria-busy', 'true')
     expect(within(table).getByRole('time')).toHaveTextContent('Sep 2, 2026')
-    release()
+    page2.release()
     await waitFor(() => expect(table).toHaveAttribute('aria-busy', 'false'))
     expect(within(table).getByRole('time')).toHaveTextContent('Sep 1, 2026')
   })
