@@ -668,6 +668,10 @@ describe('TeamPage, threats to your own team', () => {
       names(THREATS),
     )
     expect(within(cards[0]).getByText('Beats Charizard, Pikachu and Gengar')).toBeInTheDocument()
+    // What it beats describes the card's button too.
+    expect(within(cards[0]).getByRole('button', { name: 'Dragonite' })).toHaveAccessibleDescription(
+      'Beats Charizard, Pikachu and Gengar',
+    )
     // Its own thumb, and one for each member it beats.
     expect(cards[0].querySelectorAll('img')).toHaveLength(1 + 3)
     expect(within(cards[1]).getByText('Beats Charizard')).toBeInTheDocument()
@@ -676,34 +680,23 @@ describe('TeamPage, threats to your own team', () => {
     expect(cards[2].querySelectorAll('img')).toHaveLength(1)
   })
 
-  it('opens a threat’s Pokédex details from its card', async () => {
+  it.each([
+    ['its card', 'list', TOP_THREE, dragonite],
+    ['its name in the grid', 'table', TOP_THREE_GRID, lapras],
+  ] as const)('opens a threat’s Pokédex details from %s', async (_, role, name, threat) => {
     serveTheirs({ viewer: ASH })
     serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
     servePokemonDetails((id) => makeDetails({ pokemon: CATALOG.find((each) => each.id === id) }))
     servePokemonChanges()
     const { user, router } = renderTeam()
 
-    const list = await within(await findThreats()).findByRole('list', { name: TOP_THREE })
-    const card = within(list).getByRole('button', { name: 'Dragonite' })
-    expect(card).toHaveAccessibleDescription('Beats Charizard, Pikachu and Gengar')
-    await user.click(card)
+    const threats = await within(await findThreats()).findByRole(role, { name })
+    await user.click(within(threats).getByRole('button', { name: displayName(threat.name) }))
 
-    expect(await screen.findByRole('dialog', { name: 'Dragonite' })).toBeInTheDocument()
-    expect(router.state.location.search).toBe(`?pokemon=${dragonite.id}`)
-  })
-
-  it('opens a threat’s Pokédex details from its name in the grid', async () => {
-    serveTheirs({ viewer: ASH })
-    serveTeamThreats({ threats: THREATS, matchup: threatMatchupOf })
-    servePokemonDetails((id) => makeDetails({ pokemon: CATALOG.find((each) => each.id === id) }))
-    servePokemonChanges()
-    const { user, router } = renderTeam()
-
-    const table = await within(await findThreats()).findByRole('table', { name: TOP_THREE_GRID })
-    await user.click(within(table).getByRole('button', { name: 'Lapras' }))
-
-    expect(await screen.findByRole('dialog', { name: 'Lapras' })).toBeInTheDocument()
-    expect(router.state.location.search).toBe(`?pokemon=${lapras.id}`)
+    expect(
+      await screen.findByRole('dialog', { name: displayName(threat.name) }),
+    ).toBeInTheDocument()
+    expect(router.state.location.search).toBe(`?pokemon=${threat.id}`)
   })
 
   it('finds threats among alternate forms and legendaries once they’re turned on', async () => {

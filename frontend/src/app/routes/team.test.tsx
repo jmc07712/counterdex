@@ -280,13 +280,14 @@ describe('TeamPage, for the team’s owner', () => {
   })
 
   it.each([
-    ['a later stage', charizard],
-    ['another form of a later stage', charizardMegaX],
+    ['a later stage', [charmander, pikachu], charizard, [6, 25]],
+    ['another form of a later stage', [charmander, pikachu], charizardMegaX, [10034, 25]],
+    ['a later stage, of a member that isn’t the lead', [pikachu, charmander], charizard, [25, 6]],
   ])(
     'offers to replace the member from a Pokémon’s family on the team: %s',
-    async (_, pokemon) => {
+    async (_, members, pokemon, replaced) => {
       onWideScreen()
-      const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
+      const api = serveAsh([makeTeam({ pokemon: members })])
       browse([pokemon])
       const { user } = renderTeam(EDIT)
 
@@ -300,7 +301,7 @@ describe('TeamPage, for the team’s owner', () => {
 
       await user.click(button)
 
-      await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([pokemon.id, 25]))
+      await waitFor(() => expect(memberIds(api.teams()[0])).toEqual(replaced))
       expect(api.requests).toEqual([
         {
           method: 'PUT',
@@ -310,23 +311,6 @@ describe('TeamPage, for the team’s owner', () => {
       ])
     },
   )
-
-  it('replaces the member from a Pokémon’s family when that member isn’t the lead', async () => {
-    onWideScreen()
-    const api = serveAsh([makeTeam({ pokemon: [pikachu, charmander] })])
-    browse([charizard])
-    const { user } = renderTeam(EDIT)
-
-    const pokedex = await screen.findByRole('complementary', { name: 'Add Pokémon' })
-    await user.click(
-      await within(pokedex).findByRole('button', { name: 'Replace Charmander with Charizard' }),
-    )
-
-    await waitFor(() => expect(memberIds(api.teams()[0])).toEqual([25, 6]))
-    expect(api.requests).toEqual([
-      { method: 'PUT', path: `/api/teams/${TEAM_ID}/members/4`, body: { pokemon_id: 6 } },
-    ])
-  })
 
   it('keeps focus on a card’s button in the sheet as it replaces a member', async () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])

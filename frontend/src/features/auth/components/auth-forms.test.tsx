@@ -39,6 +39,11 @@ function renderAt(path: string) {
   )
 }
 
+// Each of `expected`'s attributes as `field` has it: its value, or null if it has none.
+function attributes(field: HTMLElement, expected: Record<string, string | null>) {
+  return Object.fromEntries(Object.keys(expected).map((name) => [name, field.getAttribute(name)]))
+}
+
 // Fills in the form, once it shows, and presses `button`.
 async function fillIn(
   user: UserEvent,
@@ -122,18 +127,6 @@ describe('SignInForm and SignUpForm', () => {
       expect(router.state.location.pathname).toBe('/')
     })
 
-    it('checks only the lengths no account can go over', async () => {
-      serveSession()
-      renderAt('/sign-in')
-
-      const username = await screen.findByLabelText('Username')
-      expect(username).toHaveAttribute('maxlength', '32')
-      expect(username).not.toHaveAttribute('minlength')
-      expect(username).not.toHaveAttribute('pattern')
-      expect(screen.getByLabelText('Password')).toHaveAttribute('maxlength', '128')
-      expect(screen.getByLabelText('Password')).not.toHaveAttribute('minlength')
-    })
-
     it.each([
       ['/sign-in?next=/teams/42', '/sign-up?next=%2Fteams%2F42'],
       ['/sign-in', '/sign-up'],
@@ -189,19 +182,6 @@ describe('SignInForm and SignUpForm', () => {
       await waitFor(() => expect(requests.signUps).toEqual([]))
     })
 
-    it('has the browser hold back usernames and passwords of the wrong length', async () => {
-      // Unlike browsers, jsdom doesn't hold back a value that's too short, so this checks the
-      // browser is given the lengths.
-      serveSession()
-      renderAt('/sign-up')
-
-      const username = await screen.findByLabelText('Username')
-      expect(username).toHaveAttribute('minlength', '3')
-      expect(username).toHaveAttribute('maxlength', '32')
-      expect(screen.getByLabelText('Password')).toHaveAttribute('minlength', '8')
-      expect(screen.getByLabelText('Password')).toHaveAttribute('maxlength', '128')
-    })
-
     it('says what makes a good username and password', async () => {
       serveSession()
       renderAt('/sign-up')
@@ -214,4 +194,31 @@ describe('SignInForm and SignUpForm', () => {
       )
     })
   })
+
+  // Unlike browsers, jsdom doesn't hold back a value that's too short, so this checks the browser
+  // is given the lengths. Signing in checks only the lengths no account can go over.
+  it.each([
+    [
+      'signing in, only past the lengths no account can go over',
+      '/sign-in',
+      { minlength: null, maxlength: '32', pattern: null },
+      { minlength: null, maxlength: '128' },
+    ],
+    [
+      'signing up, of the wrong length',
+      '/sign-up',
+      { minlength: '3', maxlength: '32' },
+      { minlength: '8', maxlength: '128' },
+    ],
+  ])(
+    'has the browser hold back usernames and passwords when %s',
+    async (_, path, username, password) => {
+      serveSession()
+      renderAt(path)
+
+      const usernameField = await screen.findByLabelText('Username')
+      expect(attributes(usernameField, username)).toEqual(username)
+      expect(attributes(screen.getByLabelText('Password'), password)).toEqual(password)
+    },
+  )
 })
