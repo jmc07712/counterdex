@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
 import pytest
 from alembic import command
@@ -73,9 +73,15 @@ def connection(migrated_engine: Engine) -> Iterator[Connection]:
 
 
 @pytest.fixture
-def db_session(connection: Connection) -> Iterator[Session]:
+def sessions(connection: Connection) -> Callable[[], Session]:
+    """Sessions whose commits stay inside the test's transaction, which is rolled back."""
+    return lambda: Session(bind=connection, join_transaction_mode="create_savepoint")
+
+
+@pytest.fixture
+def db_session(sessions: Callable[[], Session]) -> Iterator[Session]:
     """A session whose changes are rolled back after each test, even if the code commits."""
-    with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+    with sessions() as session:
         yield session
 
 
@@ -92,7 +98,7 @@ def committing_sessions(migrated_engine: Engine) -> Iterator[sessionmaker[Sessio
 
 
 @pytest.fixture
-def client(connection: Connection) -> Iterator[TestClient]:
+def client(sessions: Callable[[], Session]) -> Iterator[TestClient]:
     """The app, on the test's rolled-back connection so it sees the rows each test adds.
 
     Each request gets its own session, as in production, so what a route doesn't commit is
@@ -101,7 +107,7 @@ def client(connection: Connection) -> Iterator[TestClient]:
     from app.api.main import app
 
     def request_session() -> Iterator[Session]:
-        with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+        with sessions() as session:
             yield session
 
     app.dependency_overrides[get_session] = request_session
