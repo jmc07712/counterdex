@@ -116,8 +116,16 @@ The API's side is in [Atomicity and races](../backend/README.md#atomicity-and-ra
   a matchup explains it in one sentence (`utils/matchup-sentence.ts`). Where the table doesn't fit,
   a list gives our best pick against each of theirs. Build this counter saves the counter shown,
   and opens it in Edit matched up against this team, as Counter beside the team's name does.
-- **Under your own team**, "Threats to this team" lists up to 12 Pokémon from
-  `GET /api/team-threats`, each saying which members it beats, and each opening its details. Both
+- **Under your own team**, "Top threats to this team" shows the Pokémon from
+  `GET /api/team-threats` that match up best against it, none from the team's own evolution
+  families. A line names its weak spots, the members at least half of the threats beat (three at
+  most, then how many more), and the type most of them beat members with, if one type is
+  (`utils/weak-spots.ts`). A grid then rates each threat against each member from the member's
+  side, as the counter's table rates its picks, so a column of bad matchups is a weak spot, and its
+  caption says each cell rates your Pokémon.
+  The API scores each threat from its own side, and the grid turns each matchup around
+  (`utils/turned-around.ts`). Where the grid doesn't fit, a list
+  shows each threat with thumbs of the members it beats. Each threat opens its details. Both
   sections can also pick from alternate forms and legendaries, kept in the URL
   (`?alternate_forms=true&legendaries=true`, apart from the Pokédex filters' `?forms=`) so
   signing in to build a counter comes back to the same one.
