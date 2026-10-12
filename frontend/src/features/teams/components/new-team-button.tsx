@@ -1,14 +1,13 @@
 import { Plus } from 'lucide-react'
 import { useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import { useCreateTeam } from '../hooks/use-create-team'
-import { teamProblem } from '../utils/team-change-error'
+import { toastTeamProblem } from '../utils/team-change-error'
 
 export function NewTeamButton({ teamCount }: { teamCount: number }) {
   const create = useCreateTeam()
@@ -26,7 +25,7 @@ export function NewTeamButton({ teamCount }: { teamCount: number }) {
         onSuccess: (team) => void navigate(paths.teamEdit.getHref(team.id)),
         onError: (error) => {
           creating.current = false
-          toast.error(m.team_problem({ problem: teamProblem(error) }))
+          toastTeamProblem(error)
         },
       },
     )

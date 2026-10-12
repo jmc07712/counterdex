@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 
 import type { Team } from '@/api'
 import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
 import { currentUserOptions } from '@/lib/auth'
-import { m } from '@/paraglide/messages.js'
 
-import { teamProblem } from '../utils/team-change-error'
+import { teamProblem, toastTeamProblem } from '../utils/team-change-error'
 import { teamQueryOptions } from './use-team'
 import { invalidateTeamLists } from './use-user-teams'
 
@@ -72,12 +70,11 @@ export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange
           )
         }
       }
-      const problem = teamProblem(error)
       // Asks again who's signed in, so the page stops offering changes the API won't take.
-      if (problem === 'signed_out') {
+      if (teamProblem(error) === 'signed_out') {
         void queryClient.invalidateQueries({ queryKey: currentUserOptions.queryKey })
       }
-      toast.error(m.team_problem({ problem }))
+      toastTeamProblem(error)
     },
     onSettled: () => {
       if (!isLastChange()) return

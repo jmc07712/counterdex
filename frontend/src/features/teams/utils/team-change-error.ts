@@ -1,4 +1,7 @@
+import { toast } from 'sonner'
+
 import { type Team, TeamConflictReason } from '@/api'
+import { m } from '@/paraglide/messages.js'
 
 // Why a change to a team failed: the API's reason for a conflict, or what its status says:
 // signed out, not the team's owner, the team or member not found, or anything else.
@@ -38,6 +41,11 @@ export class TeamChangeError extends Error {
 /** Errors that aren't a TeamChangeError, such as no network, are 'failed'. */
 export function teamProblem(error: Error): TeamProblem {
   return error instanceof TeamChangeError ? error.problem : 'failed'
+}
+
+/** Says in a toast why a change to a team failed. */
+export function toastTeamProblem(error: Error) {
+  toast.error(m.team_problem({ problem: teamProblem(error) }))
 }
 
 type ChangeResult = { data?: Team; error?: unknown; response?: Response }

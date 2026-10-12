@@ -23,7 +23,7 @@ import { useAddTeamMember } from '../hooks/use-add-team-member'
 import { useCreateTeam } from '../hooks/use-create-team'
 import { useUserTeams } from '../hooks/use-user-teams'
 import { cantAdd, familyMember, MAX_TEAM_SIZE } from '../utils/can-add'
-import { teamProblem } from '../utils/team-change-error'
+import { toastTeamProblem } from '../utils/team-change-error'
 
 type AddToTeamMenuProps = {
   pokemon: Pokemon
@@ -166,10 +166,7 @@ function NewTeamItem({ pokemon, teamCount }: { pokemon: Pokemon; teamCount: numb
             name: m.team_default_name({ number: teamCount + 1 }),
             pokemonIds: [pokemon.id],
           })
-          .then(
-            (team) => void navigate(paths.teamEdit.getHref(team.id)),
-            (error: Error) => toast.error(m.team_problem({ problem: teamProblem(error) })),
-          )
+          .then((team) => void navigate(paths.teamEdit.getHref(team.id)), toastTeamProblem)
       }}
     >
       <Plus aria-hidden="true" />

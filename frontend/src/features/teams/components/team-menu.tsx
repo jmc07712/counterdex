@@ -25,7 +25,7 @@ import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
 import { useDeleteTeam } from '../hooks/use-delete-team'
-import { teamProblem } from '../utils/team-change-error'
+import { toastTeamProblem } from '../utils/team-change-error'
 
 export function TeamMenu({ team }: { team: Team }) {
   const [confirming, setConfirming] = useState(false)
@@ -39,7 +39,7 @@ export function TeamMenu({ team }: { team: Team }) {
         toast.success(m.team_deleted({ name: team.name }))
         void navigate(paths.home.getHref({ scope: 'mine' }))
       },
-      onError: (error) => toast.error(m.team_problem({ problem: teamProblem(error) })),
+      onError: toastTeamProblem,
     })
   }
 
