@@ -20,8 +20,8 @@ const TINTS: Record<Rating, string> = {
   bad: 'bg-destructive/10',
 }
 
-/** A matchup's rating as a status light and a word, so it doesn't rest on color alone. */
-export function RatingMark({ rating }: { rating: Rating }) {
+// A matchup's rating as a status light and a word, so it doesn't rest on color alone.
+function RatingMark({ rating }: { rating: Rating }) {
   return (
     <span className="inline-flex items-center gap-1.5 font-semibold">
       <span

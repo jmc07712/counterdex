@@ -1,10 +1,8 @@
 import { type Team, TeamConflictReason } from '@/api'
 
-/**
- * Why a change to a team failed: the API's reason for a conflict, or what its status says:
- * signed out, not the team's owner, the team or member not found, or anything else.
- */
-export type TeamProblem = TeamConflictReason | 'signed_out' | 'not_owner' | 'not_found' | 'failed'
+// Why a change to a team failed: the API's reason for a conflict, or what its status says:
+// signed out, not the team's owner, the team or member not found, or anything else.
+type TeamProblem = TeamConflictReason | 'signed_out' | 'not_owner' | 'not_found' | 'failed'
 
 // A 409's body is { detail: <sentence>, reason: <TeamConflictReason> }.
 function conflictReason(body: unknown): TeamConflictReason | undefined {
