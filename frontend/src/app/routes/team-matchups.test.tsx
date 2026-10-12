@@ -1,6 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http } from 'msw'
-import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -12,7 +11,6 @@ import {
   type Team,
   type User,
 } from '@/api'
-import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import {
   type MatchupOf,
@@ -25,13 +23,10 @@ import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { makeDetails } from '@/test/pokemon'
-import { renderWithProviders } from '@/test/render'
 import { failOnce, holdRequests, server } from '@/test/server'
+import { EDIT, renderTeam, VIEW } from '@/test/team-page'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
-
-import { TeamPage } from './team'
-import { TeamEditPage } from './team-edit'
 
 const { charizard, pikachu, gengar, lapras, snorlax, dragonite } = catalog
 const CATALOG = Object.values(catalog)
@@ -41,7 +36,6 @@ const { GOOD, BAD } = Rating
 // screen.
 const ON_SCREEN = { ignore: '[role=status]' }
 
-const VIEW = `/teams/${TEAM_ID}`
 const EDIT_PAGE = /^\/teams\/([0-9a-f-]{36})\/edit$/
 
 // Ash's, which Misty and someone signed out can counter.
@@ -143,19 +137,6 @@ const TOP_THREE = 'The top 3, the biggest first'
 // The grid's caption, which names it, also says whose side each cell rates.
 const TOP_THREE_GRID =
   'The top 3, the biggest first. Each cell rates your Pokémon (column) against the threat (row) as Good, Even or Bad, with how effective your Pokémon’s best moves are. Choose one to see why.'
-
-function renderTeam(path = VIEW) {
-  return renderWithProviders(
-    <>
-      <Routes>
-        <Route path="/teams/:teamId" element={<TeamPage />} />
-        <Route path="/teams/:teamId/edit" element={<TeamEditPage />} />
-      </Routes>
-      <Toaster />
-    </>,
-    { path },
-  )
-}
 
 // Ash's team, with `viewer` signed in: Misty unless given, or Ash, or nobody. A counter built to
 // it opens matched up against it.
@@ -914,7 +895,7 @@ describe('TeamPage, threats to your own team', () => {
     serveTheirs({ viewer: ASH })
     servePokemon({ items: [], next_cursor: null })
     const threats = serveTeamThreats({ threats: THREATS })
-    renderTeam(`${VIEW}/edit`)
+    renderTeam(EDIT)
 
     await screen.findByRole('textbox', { name: 'Team name' })
 

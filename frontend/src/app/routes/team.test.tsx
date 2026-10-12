@@ -1,11 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
-import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
-import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
@@ -19,13 +17,10 @@ import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveAsh, serveTeams } from '@/test/handlers/teams'
 import { onWideScreen } from '@/test/media'
 import { termsAndDefinitions } from '@/test/queries'
-import { renderWithProviders } from '@/test/render'
 import { holdRequests, server } from '@/test/server'
+import { EDIT, renderTeam, slotRows, VIEW } from '@/test/team-page'
 import { asMember, catalog, makeTeam, memberIds, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
-
-import { TeamPage } from './team'
-import { TeamEditPage } from './team-edit'
 
 const { charmander, charizard, charizardMegaX, pikachu, snorlax, gengar, lapras, eevee, vaporeon } =
   catalog
@@ -33,37 +28,12 @@ const CATALOG = Object.values(catalog)
 
 const CHANGED_ON = '2026-10-09T09:00:00Z'
 
-const VIEW = `/teams/${TEAM_ID}`
-const EDIT = `/teams/${TEAM_ID}/edit`
-
 // Someone else's team shows how to beat it, and your own what threatens it, which these tests
 // leave to team-matchups.test.tsx.
 beforeEach(() => {
   serveCounterTeam()
   serveTeamThreats()
 })
-
-function renderTeam(path = VIEW) {
-  return renderWithProviders(
-    <>
-      <Routes>
-        <Route path="/teams/:teamId" element={<TeamPage />} />
-        <Route path="/teams/:teamId/edit" element={<TeamEditPage />} />
-        <Route path="/" element={<p>Home</p>} />
-      </Routes>
-      <Toaster />
-    </>,
-    { path },
-  )
-}
-
-// The team's slots, in order. Each member's types are a list of their own, so they're left out.
-function slotRows() {
-  const slots = screen.getByRole('list', { name: 'Team, in battle order' })
-  return within(slots)
-    .getAllByRole('listitem')
-    .filter((row) => row.parentElement === slots)
-}
 
 describe('TeamPage, for the team’s owner', () => {
   it('shows the owner the party, with View current in a View / Edit toggle', async () => {
