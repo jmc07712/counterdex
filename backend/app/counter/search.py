@@ -100,12 +100,7 @@ def battle_order(team: Sequence[Contender]) -> list[Contender]:
     strongest_first = sorted(
         (member for member in team if member is not lead), key=_strength, reverse=True
     )
-    return [lead, *sorted(strongest_first, key=_best_answered)]
-
-
-def _best_answered(member: Contender) -> int:
-    """The position, in their team, of the opponent the Pokémon scores best against."""
-    return _first_best(member.matchups)
+    return [lead, *sorted(strongest_first, key=lambda member: _first_best(member.matchups))]
 
 
 def _first_best(matchups: Sequence[Matchup]) -> int:
