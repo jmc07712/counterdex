@@ -8,6 +8,7 @@ import { Toaster } from '@/components/layout/toaster'
 import {
   holdNewTeams,
   holdNextCurrentUser,
+  holdTeamChanges,
   holdUserTeams,
   servePokemon,
   servePokemonChanges,
@@ -497,6 +498,24 @@ describe('PokedexPage', () => {
       const toast = (await screen.findByText('Added Charizard to Rain Squad')).closest('li')!
       await user.click(within(toast).getByRole('button', { name: 'Show team' }))
       expect(router.state.location.pathname).toBe(`/teams/${TEAM_ID}`)
+    })
+
+    it('shows the Pokémon on the team at once, before the API has answered', async () => {
+      serveAsh([makeTeam({ name: 'Rain Squad', pokemon: [lapras] })])
+      const held = holdTeamChanges()
+      browse([pikachu])
+      const { user } = renderPokedex()
+      const button = await screen.findByRole('button', { name: 'Add to team: Pikachu' })
+
+      await user.click(button)
+      await user.click(await screen.findByRole('menuitem', { name: /^Rain Squad/ }))
+      await waitFor(() => expect(held.arrived()).toBe(1))
+      await user.click(button)
+
+      const team = await screen.findByRole('menuitem', { name: 'Rain Squad 2 of 6 On the team' })
+      expect(team).toHaveAttribute('aria-disabled', 'true')
+      held.release()
+      expect(await screen.findByText('Added Pikachu to Rain Squad')).toBeInTheDocument()
     })
 
     it('says why when the API refuses the add', async () => {

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type { Team } from '@/api'
 import {
   listTeamsInfiniteQueryKey,
-  listUserTeamsQueryKey,
+  listUserTeamsOptions,
 } from '@/api/@tanstack/react-query.gen'
 import { currentUserOptions } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
@@ -25,7 +25,8 @@ type TeamChange<Variables> = {
 }
 
 /**
- * Makes one kind of change to a team, showing it at once.
+ * Makes one kind of change to a team, showing it at once, in the team and in its owner's list of
+ * teams.
  *
  * Changes to a team are sent one at a time, in the order they were made, so a response can't
  * overtake an earlier one. The team is fetched again only after the last change waiting has
@@ -39,6 +40,7 @@ type TeamChange<Variables> = {
 export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange<Variables>) {
   const queryClient = useQueryClient()
   const teamKey = teamQueryOptions(team.id).queryKey
+  const listKey = listUserTeamsOptions({ path: { username: team.owner.username } }).queryKey
   const mutationKey = ['change-team', team.id]
   const isLastChange = () => queryClient.isMutating({ mutationKey }) === 1
 
@@ -48,12 +50,30 @@ export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange
     mutationFn: send,
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: teamKey })
+      await queryClient.cancelQueries({ queryKey: listKey })
       const previous = queryClient.getQueryData(teamKey)
+      const previousListed = queryClient.getQueryData(listKey)?.find((each) => each.id === team.id)
       queryClient.setQueryData(teamKey, (shown) => shown && apply(shown, variables))
-      return { previous }
+      // Only when the team is in it, as setting a list marks it fresh, even one waiting to be
+      // fetched again.
+      if (previousListed) {
+        queryClient.setQueryData(listKey, (teams) =>
+          teams?.map((each) => (each.id === team.id ? apply(each, variables) : each)),
+        )
+      }
+      return { previous, previousListed }
     },
     onError: (error, _variables, snapshot) => {
-      if (snapshot && isLastChange()) queryClient.setQueryData(teamKey, snapshot.previous)
+      if (snapshot && isLastChange()) {
+        queryClient.setQueryData(teamKey, snapshot.previous)
+        // Only this team, as the list may show changes made to the others since.
+        const { previousListed } = snapshot
+        if (previousListed) {
+          queryClient.setQueryData(listKey, (teams) =>
+            teams?.map((each) => (each.id === team.id ? previousListed : each)),
+          )
+        }
+      }
       const problem = teamProblem(error)
       // Asks again who's signed in, so the page stops offering changes the API won't take.
       if (problem === 'signed_out') {
@@ -65,8 +85,7 @@ export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange
       if (!isLastChange()) return
       void queryClient.invalidateQueries({ queryKey: teamKey })
       // The lists that show the team: its owner's, and everyone's.
-      const path = { username: team.owner.username }
-      void queryClient.invalidateQueries({ queryKey: listUserTeamsQueryKey({ path }) })
+      void queryClient.invalidateQueries({ queryKey: listKey })
       void queryClient.invalidateQueries({ queryKey: listTeamsInfiniteQueryKey() })
     },
   })
