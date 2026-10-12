@@ -1,6 +1,7 @@
 """Run a sync end to end: fetch, normalize, store, and record the run and its changes."""
 
 import logging
+from collections.abc import Iterable
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
@@ -13,6 +14,7 @@ from app.sync.enums import SyncStatus
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.normalize import normalize, normalize_species, normalize_type_chart
+from app.sync.pokeapi import PokeApiPokemon
 from app.sync.store import store_pokemon, store_species, store_type_chart
 from app.sync.types import Clock, SyncReport
 
@@ -44,22 +46,9 @@ async def run_sync(
     fetched_types = await client.fetch_types()
     failed = [*fetched.failed, *fetched_species.failed, *fetched_types.failed]
 
-    # Keyed by id: two listing URLs can resolve to the same Pokémon, and the upsert must
-    # touch each row only once.
-    normalized: dict[int, Pokemon] = {}
-    for raw in fetched.pokemon:
-        try:
-            normalized[raw.id] = normalize(raw)
-        except ValueError as error:
-            logger.warning("Skipping %s: %s", raw.name, error)
-            failed.append(raw.name)
-
-    result = store_pokemon(
-        session,
-        sorted(normalized.values(), key=lambda pokemon: pokemon.id),
-        listed_ids=fetched.listed_ids,
-        synced_at=started_at,
-    )
+    pokemon, unusable = _normalize_all(fetched.pokemon)
+    failed += unusable
+    result = store_pokemon(session, pokemon, listed_ids=fetched.listed_ids, synced_at=started_at)
 
     # After the Pokémon, so each species can link to the Pokémon that belong to it.
     species = normalize_species(fetched_species.species, fetched_species.evolution_chains)
@@ -108,6 +97,21 @@ async def run_sync(
         restored=run.restored,
         failed=run.failed,
     )
+
+
+def _normalize_all(fetched: Iterable[PokeApiPokemon]) -> tuple[list[Pokemon], list[str]]:
+    """The fetched Pokémon our table would accept, by id, and the names of those it wouldn't."""
+    # Keyed by id: two listing URLs can resolve to the same Pokémon, and the upsert must
+    # touch each row only once.
+    normalized: dict[int, Pokemon] = {}
+    unusable: list[str] = []
+    for raw in fetched:
+        try:
+            normalized[raw.id] = normalize(raw)
+        except ValueError as error:
+            logger.warning("Skipping %s: %s", raw.name, error)
+            unusable.append(raw.name)
+    return sorted(normalized.values(), key=lambda pokemon: pokemon.id), unusable
 
 
 def record_failed_sync(
