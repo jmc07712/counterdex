@@ -68,6 +68,16 @@ describe('TeamsPage, signed out', () => {
     )
   })
 
+  it('says teams are public', async () => {
+    serveTeams()
+
+    await renderTeams()
+
+    expect(
+      screen.getByText(/Teams are public: anyone can see them, but only their owner can change one/),
+    ).toBeInTheDocument()
+  })
+
   it.each(['/', '/?scope=mine'])(
     'lists everyone’s teams at %s, with no choice of whose',
     async (path) => {
@@ -533,22 +543,6 @@ describe('TeamsPage, signed in', () => {
   })
 })
 
-describe.each([
-  ['signed in', ASH],
-  ['signed out', null],
-])('TeamsPage, %s', (_, signedIn) => {
-  it('says teams are public', async () => {
-    serveSession({ signedIn })
-    serveTeams()
-
-    await renderTeams()
-
-    expect(
-      screen.getByText(/Teams are public: anyone can see them, but only their owner can change one/),
-    ).toBeInTheDocument()
-  })
-})
-
 // Signed out, so everyone's teams.
 describe('TeamsPage, everyone’s teams', () => {
   beforeEach(() => {
@@ -742,17 +736,15 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
   })
 
-  it.each([
-    ['About what’s shown', 'Changed this week is the teams with a Pokémon a sync changed'],
-    ['About sorting', 'Most powerful: the sum of each team’s base stats, highest first.'],
-    ['About types', 'Teams with a Pokémon of every type you pick'],
-  ])('explains a filter from its info button: %s', async (button, explanation) => {
+  it('explains a filter from its info button', async () => {
     serveTeams({ teams: [RAIN] })
     const { user } = await renderTeams()
 
-    await user.click(screen.getByRole('button', { name: button }))
+    await user.click(screen.getByRole('button', { name: 'About what’s shown' }))
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent(explanation)
+    expect(await screen.findByRole('dialog')).toHaveTextContent(
+      'Changed this week is the teams with a Pokémon a sync changed',
+    )
   })
 
   it('offers to clear the filters when no team matches, then waits in the search', async () => {

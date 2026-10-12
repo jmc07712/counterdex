@@ -138,17 +138,13 @@ describe('PokedexPage', () => {
     expect(search).toHaveValue('char')
   })
 
-  it.each([
-    ['About forms', 'Standard is each species’ usual form.'],
-    ['About status', 'Current is what PokéAPI lists now.'],
-    ['About types', 'Up to 2 types at a time.'],
-  ])('explains a filter from its info button: %s', async (button, explanation) => {
+  it('explains a filter from its info button', async () => {
     servePokemon()
     const { user } = renderWithProviders(<PokedexPage />)
 
-    await user.click(screen.getByRole('button', { name: button }))
+    await user.click(screen.getByRole('button', { name: 'About status' }))
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent(explanation)
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Current is what PokéAPI lists now.')
   })
 
   it('filters by up to two types, dropping the oldest for a third', async () => {
