@@ -251,7 +251,8 @@ A team's page (`/teams/:teamId`) is a party screen.
 - **The owner** also gets a View / Edit toggle, and a Replace link on each removed member.
 
 **Files:** `src/app/routes/team.tsx`, `components/saved-team.tsx`, `components/team-party.tsx`,
-`components/team-slots.tsx`.
+`components/team-slots.tsx`, with each slot's parts in `member-panel.tsx`, `empty-slots.tsx` and
+`slot-controls.tsx`.
 
 ### How to beat this team
 
@@ -371,5 +372,7 @@ Tests run in Vitest with jsdom and Testing Library.
 
 - **Each test gets its own providers.** `renderWithProviders` in `src/test/render.tsx` gives it its
   own query client and router.
-- **MSW answers the app's real requests.** The helpers in `src/test/handlers.ts` serve each
-  endpoint and record what was asked for. A request with no handler is an error.
+- **MSW answers the app's real requests.** The helpers in `src/test/handlers/`, one file per
+  resource, serve each endpoint and record what was asked for. A request with no handler is an
+  error. `src/test/server.ts` has the shared ones, such as holding a request until a test lets
+  it go, or failing it once.
