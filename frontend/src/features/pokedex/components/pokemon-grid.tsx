@@ -93,7 +93,7 @@ export function PokemonGrid({ filters, onClearFilters, onOpen, cardAction }: Pok
       <div className="@container">
         <DealtInList
           aria-busy={query.isPlaceholderData}
-          className={`${GRID} transition-opacity duration-200 aria-busy:opacity-60`}
+          className={`${GRID} busy-fade`}
         >
           {pages.flatMap((page) =>
             page.items.map((each, index) => (

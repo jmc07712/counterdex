@@ -54,6 +54,11 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Dims a list or answer while the next one loads, when its aria-busy is true. */
+@utility busy-fade {
+    @apply transition-opacity duration-200 aria-busy:opacity-60;
+}
+
 @theme {
     /* A sprite's hop: up a little and back down. */
     --animate-hop: hop 0.4s ease-out;

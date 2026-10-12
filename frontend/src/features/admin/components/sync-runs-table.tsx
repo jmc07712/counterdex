@@ -29,7 +29,7 @@ export function SyncRunsTable({ runs, labelledBy, busy, className }: SyncRunsTab
     <Table
       aria-labelledby={labelledBy}
       aria-busy={busy}
-      className={cn('transition-opacity duration-200 aria-busy:opacity-60', className)}
+      className={cn('busy-fade', className)}
     >
       <TableHeader>
         <TableRow className="text-xs hover:bg-transparent">

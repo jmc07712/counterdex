@@ -23,10 +23,7 @@ export function SyncRunsList({ runs, labelledBy, busy, className }: SyncRunsList
     <ul
       aria-labelledby={labelledBy}
       aria-busy={busy}
-      className={cn(
-        'grid gap-3 transition-opacity duration-200 aria-busy:opacity-60 md:grid-cols-2',
-        className,
-      )}
+      className={cn('busy-fade grid gap-3 md:grid-cols-2', className)}
     >
       {runs.map((run) => (
         <li key={run.id} className="flex min-w-0 flex-col gap-3 rounded-lg border p-3 text-sm">
