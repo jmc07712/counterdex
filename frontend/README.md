@@ -85,7 +85,8 @@ A team saves each change as it's made, so several can be on their way at once. `
   (`teamChangeScope`), so each is sent only once the one before has answered. A response can't
   overtake an earlier one, and the API, which locks the team for each change, sees them in the
   order they were made.
-- **Shown at once.** Each change is applied to the cached team as soon as it's made.
+- **Shown at once.** Each change is applied to the cached team, and to the team in its owner's
+  cached list of teams, as soon as it's made.
 - **Undone only when nothing depends on it.** If the API refuses a change, the team is put back
   only if no later change is waiting, and a toast says why. Otherwise the fetch after the last
   change shows the team as it really is.
