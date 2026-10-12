@@ -1,5 +1,6 @@
 import { ChangeKind, type Pokemon, type PokemonChange } from '@/api'
-import { formatDate, formatList } from '@/lib/dates'
+import { formatDate } from '@/lib/dates'
+import { formatList } from '@/lib/lists'
 import type { Message } from '@/lib/messages'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'

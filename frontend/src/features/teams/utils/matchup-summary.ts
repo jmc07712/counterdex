@@ -1,6 +1,6 @@
 import { type Challenger, type Matchup, type Pokemon, Rating } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { formatList } from '@/lib/dates'
+import { formatList } from '@/lib/lists'
 import { m } from '@/paraglide/messages.js'
 
 import type { WeakSpots } from './weak-spots'

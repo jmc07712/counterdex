@@ -1,5 +1,5 @@
 import { type SyncOverview, type SyncRunSummary, SyncStatus } from '@/api'
-import { formatList } from '@/lib/dates'
+import { formatList } from '@/lib/lists'
 import { m } from '@/paraglide/messages.js'
 
 // How long a sync's changes count as recent, as the API's RECENTLY_CHANGED.

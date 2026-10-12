@@ -8,6 +8,8 @@ import { enUS } from 'date-fns/locale'
 
 import { getLocale, type Locale } from '@/paraglide/runtime.js'
 
+import { formatList } from './lists'
+
 // date-fns's words for dates in each of the app's languages.
 const DATE_FNS_LOCALES: Record<Locale, DateFnsLocale> = { en: enUS }
 
@@ -56,9 +58,4 @@ function formatUnit(amount: number, unit: 'hour' | 'minute' | 'second') {
   return new Intl.NumberFormat(getLocale(), { style: 'unit', unit, unitDisplay: 'short' }).format(
     amount,
   )
-}
-
-/** "Fire, Flying" */
-export function formatList(items: string[]) {
-  return new Intl.ListFormat(getLocale(), { type: 'unit', style: 'short' }).format(items)
 }
