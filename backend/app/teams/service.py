@@ -11,7 +11,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from psycopg.errors import UniqueViolation
 from sqlalchemy import (
     ColumnElement,
     Exists,
@@ -36,6 +35,7 @@ from sqlalchemy.orm import Session, aliased
 from sqlalchemy.orm.util import AliasedClass
 
 from app.accounts import models as accounts_models
+from app.core.db import violates_unique
 from app.pokemon import models as pokemon_models
 from app.pokemon.constants import MAX_TEAM_SIZE
 from app.pokemon.queries import changed_recently, pokemon_from_columns
@@ -174,7 +174,7 @@ def create_team(
         with session.begin_nested():
             session.add(team)
     except IntegrityError as error:
-        if not _violates(error, TEAM_ID):
+        if not violates_unique(error, TEAM_ID):
             raise
         owner = session.scalar(select(models.Team.user_id).where(models.Team.id == team_id))
         if owner != user_id:
@@ -407,7 +407,7 @@ def _guarded(session: Session, statement: Insert | Update) -> None:
         with session.begin_nested():
             session.execute(statement)
     except IntegrityError as error:
-        if _violates(error, FAMILY_ON_TEAM):
+        if violates_unique(error, FAMILY_ON_TEAM):
             raise TeamConflictError(TeamConflictReason.FAMILY_ON_TEAM) from error
         raise
 
@@ -518,7 +518,3 @@ def _members_shown(rows: Sequence[Mapping[Any, Any]]) -> list[schemas.TeamMember
         )
         for row in rows
     ]
-
-
-def _violates(error: IntegrityError, constraint: str) -> bool:
-    return isinstance(error.orig, UniqueViolation) and error.orig.diag.constraint_name == constraint

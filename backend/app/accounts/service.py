@@ -5,7 +5,6 @@ Nothing here commits: the caller owns the transaction.
 
 from datetime import UTC, datetime
 
-from psycopg.errors import UniqueViolation
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -17,6 +16,7 @@ from app.accounts.passwords import hash_password, verify_password
 from app.accounts.schemas import Credentials, NewAccount, User
 from app.accounts.tokens import hash_token, new_token
 from app.accounts.types import SignedIn
+from app.core.db import violates_unique
 
 
 def sign_up(session: Session, account: NewAccount) -> SignedIn:
@@ -33,7 +33,7 @@ def sign_up(session: Session, account: NewAccount) -> SignedIn:
         with session.begin_nested():
             session.add(user)
     except IntegrityError as error:
-        if _violates(error, models.USERNAME_INDEX.name):
+        if violates_unique(error, models.USERNAME_INDEX.name):
             raise UsernameTakenError(account.username) from error
         raise
     return _start_session(session, user)
@@ -128,7 +128,3 @@ def _start_session(session: Session, user: models.User) -> SignedIn:
     )
     session.flush()
     return SignedIn(User.model_validate(user), token, expires_at)
-
-
-def _violates(error: IntegrityError, constraint: str | None) -> bool:
-    return isinstance(error.orig, UniqueViolation) and error.orig.diag.constraint_name == constraint

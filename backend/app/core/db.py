@@ -2,7 +2,9 @@ from collections.abc import Iterator
 from enum import StrEnum
 from functools import lru_cache
 
+from psycopg.errors import UniqueViolation
 from sqlalchemy import Engine, Enum, MetaData, create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.core.config import get_settings
@@ -37,6 +39,11 @@ def text_enum(enum_class: type[StrEnum], *, check_name: str) -> Enum:
         # Store "succeeded", not the member's name "SUCCEEDED".
         values_callable=lambda members: [member.value for member in members],
     )
+
+
+def violates_unique(error: IntegrityError, constraint: str | None) -> bool:
+    """Whether the error is a unique violation of this constraint or unique index."""
+    return isinstance(error.orig, UniqueViolation) and error.orig.diag.constraint_name == constraint
 
 
 @lru_cache
