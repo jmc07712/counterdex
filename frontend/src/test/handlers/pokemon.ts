@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { PokemonChange, PokemonDetails, PokemonPage } from '@/api'
+import type { Pokemon, PokemonChange, PokemonDetails, PokemonPage } from '@/api'
 
 import { makeDetails, makePage } from '../pokemon'
 import { serve, server } from '../server'
@@ -41,4 +41,9 @@ export function servePokemonChanges(
     }),
   )
   return asked
+}
+
+/** Answers the Pokédex list with these Pokémon, on one page. */
+export function browse(pokemon: Pokemon[]) {
+  return servePokemon({ items: pokemon, next_cursor: null })
 }

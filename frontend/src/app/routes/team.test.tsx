@@ -4,19 +4,24 @@ import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { type Pokemon, type Team, TeamConflictReason } from '@/api'
+import { TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
-import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import {
+  browse,
+  servePokemon,
+  servePokemonChanges,
+  servePokemonDetails,
+} from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
+import { refuseTeamChange, serveAsh, serveTeams } from '@/test/handlers/teams'
 import { onWideScreen } from '@/test/media'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { holdRequests, server } from '@/test/server'
-import { asMember, catalog, makeTeam, TEAM_ID } from '@/test/teams'
+import { asMember, catalog, makeTeam, memberIds, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
 import { TeamPage } from './team'
@@ -52,27 +57,12 @@ function renderTeam(path = VIEW) {
   )
 }
 
-// Ash, signed in, with these teams.
-function serveAsh(teams: Team[] = []) {
-  serveSession({ signedIn: ASH })
-  return serveTeams({ teams, catalog: CATALOG, signedIn: ASH })
-}
-
-// The Pokédex lists these, on one page.
-function browse(pokemon: Pokemon[]) {
-  return servePokemon({ items: pokemon, next_cursor: null })
-}
-
 // The team's slots, in order. Each member's types are a list of their own, so they're left out.
 function slotRows() {
   const slots = screen.getByRole('list', { name: 'Team, in battle order' })
   return within(slots)
     .getAllByRole('listitem')
     .filter((row) => row.parentElement === slots)
-}
-
-function memberIds(team: Team) {
-  return team.members.map((member) => member.pokemon.id)
 }
 
 describe('TeamPage, for the team’s owner', () => {

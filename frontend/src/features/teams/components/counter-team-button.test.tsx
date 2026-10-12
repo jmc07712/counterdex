@@ -6,7 +6,7 @@ import type { Team } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { serveCounterTeam } from '@/test/handlers/counter'
 import { serveSession } from '@/test/handlers/session'
-import { serveTeams } from '@/test/handlers/teams'
+import { serveAsh, serveTeams } from '@/test/handlers/teams'
 import { renderWithProviders } from '@/test/render'
 import { failOnce, holdRequests } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
@@ -46,19 +46,13 @@ function renderButton(team: Team, { path = '/' } = {}) {
   )
 }
 
-// Ash, signed in, with Rain among the teams.
-function serveAsh(teams: Team[] = [RAIN]) {
-  serveSession({ signedIn: ASH })
-  return serveTeams({ teams, catalog: Object.values(catalog), signedIn: ASH })
-}
-
 function creations(api: ReturnType<typeof serveTeams>) {
   return api.requests.filter((request) => request.method === 'PUT')
 }
 
 describe('CounterTeamButton, signed in', () => {
   it('builds a counter to the team as a new team, then opens it to edit', async () => {
-    const api = serveAsh()
+    const api = serveAsh([RAIN])
     const counters = serveCounterTeam({ catalog: PICKS })
     const { user, router } = renderButton(RAIN)
 
@@ -99,7 +93,7 @@ describe('CounterTeamButton, signed in', () => {
   })
 
   it('shows it’s building, and builds one team however often it’s clicked', async () => {
-    const api = serveAsh()
+    const api = serveAsh([RAIN])
     const counters = serveCounterTeam({ catalog: PICKS })
     const held = holdRequests('get', '/api/counter-team')
     const { router } = renderButton(RAIN)
@@ -127,7 +121,7 @@ describe('CounterTeamButton, signed in', () => {
   })
 
   it('says a counter team needs a Pokédex sync first, and makes no team', async () => {
-    const api = serveAsh()
+    const api = serveAsh([RAIN])
     serveCounterTeam({ refuse: 503 })
     const { user, router } = renderButton(RAIN)
 
@@ -144,7 +138,7 @@ describe('CounterTeamButton, signed in', () => {
   })
 
   it('says when it couldn’t find a counter, makes no team, and tries again', async () => {
-    const api = serveAsh()
+    const api = serveAsh([RAIN])
     const counters = serveCounterTeam({ catalog: PICKS })
     failOnce('/api/counter-team', 500)
     const { user, router } = renderButton(RAIN)

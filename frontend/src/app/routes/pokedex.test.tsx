@@ -3,11 +3,16 @@ import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { type Pokemon, type Team, TeamConflictReason } from '@/api'
+import { TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
-import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import {
+  browse,
+  servePokemon,
+  servePokemonChanges,
+  servePokemonDetails,
+} from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
+import { refuseTeamChange, serveAsh } from '@/test/handlers/teams'
 import { onTouchScreen } from '@/test/media'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
@@ -426,17 +431,6 @@ describe('PokedexPage', () => {
         </>,
         { path },
       )
-    }
-
-    // Ash, signed in, with these teams.
-    function serveAsh(teams: Team[] = []) {
-      serveSession({ signedIn: ASH })
-      return serveTeams({ teams, catalog: Object.values(catalog), signedIn: ASH })
-    }
-
-    // The Pokédex lists these, on one page.
-    function browse(pokemon: Pokemon[]) {
-      return servePokemon({ items: pokemon, next_cursor: null })
     }
 
     it('lists your teams, each with how many Pokémon it has, without opening the card', async () => {

@@ -7,7 +7,7 @@ import { serveTeams } from '@/test/handlers/teams'
 import { makePokemon } from '@/test/pokemon'
 import { renderHookWithProviders } from '@/test/render'
 import { holdRequests } from '@/test/server'
-import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
+import { catalog, makeTeam, memberIds, TEAM_ID } from '@/test/teams'
 import { ASH, MISTY } from '@/test/users'
 
 import { useTeam } from './use-team'
@@ -25,10 +25,6 @@ async function renderEditor(team: Team = TEAM) {
   }))
   await waitFor(() => expect(result.current.shown.data).toBeTruthy())
   return result
-}
-
-function memberIds(team: { members: { pokemon: { id: number } }[] } | null | undefined) {
-  return team?.members.map((member) => member.pokemon.id)
 }
 
 describe('useTeamEditor', () => {

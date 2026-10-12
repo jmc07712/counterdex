@@ -8,7 +8,7 @@ import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
 import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { renderHookWithProviders } from '@/test/render'
 import { holdRequests, server } from '@/test/server'
-import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
+import { catalog, makeTeam, memberIds, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
 import { useRemoveTeamMember } from './use-remove-team-member'
@@ -34,10 +34,6 @@ async function renderRemove() {
   await waitFor(() => expect(result.current.shown.data).toBeTruthy())
   await waitFor(() => expect(result.current.listed.data).toBeTruthy())
   return result
-}
-
-function memberIds(team: { members: { pokemon: { id: number } }[] } | null | undefined) {
-  return team?.members.map((member) => member.pokemon.id)
 }
 
 // Holds the removal of this member until `release` is called, then lets the stand-in answer it.

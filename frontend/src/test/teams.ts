@@ -107,3 +107,8 @@ export function makeTeam({
     ...overrides,
   }
 }
+
+/** The ids of the team's members, in battle order. */
+export function memberIds(team: Pick<Team, 'members'> | null | undefined) {
+  return team?.members.map((member) => member.pokemon.id)
+}

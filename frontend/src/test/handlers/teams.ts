@@ -3,7 +3,9 @@ import { http, HttpResponse } from 'msw'
 import { type Pokemon, type Team, TeamConflictReason, type User } from '@/api'
 
 import { refusal, server } from '../server'
-import { asMember } from '../teams'
+import { asMember, catalog } from '../teams'
+import { ASH } from '../users'
+import { serveSession } from './session'
 
 /** A request the teams stand-in received: method, path and JSON body. */
 export type TeamRequest = { method: string; path: string; body: unknown }
@@ -271,4 +273,10 @@ export function serveTeams({
  */
 export function refuseTeamChange(reason: TeamConflictReason, path = '/api/teams/:teamId/*') {
   server.use(http.all(path, () => conflict(reason)))
+}
+
+/** Ash, signed in, with these teams, which may have any of the test catalog's Pokémon. */
+export function serveAsh(teams: Team[] = []) {
+  serveSession({ signedIn: ASH })
+  return serveTeams({ teams, catalog: Object.values(catalog), signedIn: ASH })
 }
