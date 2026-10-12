@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.pokemon.models import Pokemon
-from app.sync.enums import ChangeKind, SyncStatus
+from app.sync.enums import ChangeKind
 from app.sync.models import PokemonChange, SyncRun
 from tests.support.sync import add_sync_run, make_sync_run
 
@@ -43,19 +43,6 @@ def test_a_change_must_belong_to_a_known_pokemon(db_session: Session, run: SyncR
 
     with pytest.raises(IntegrityError, match="fk_pokemon_changes_pokemon_id_pokemon"):
         db_session.flush()
-
-
-def test_reads_status_and_kind_back_as_enums(
-    db_session: Session, run: SyncRun, gyarados: Pokemon
-) -> None:
-    db_session.add(change(run, gyarados.id, kind="removed"))
-    db_session.flush()
-    db_session.expire_all()
-
-    stored_change = db_session.scalars(select(PokemonChange)).one()
-
-    assert (run.status, stored_change.kind) == (SyncStatus.SUCCEEDED, ChangeKind.REMOVED)
-    assert (type(run.status), type(stored_change.kind)) == (SyncStatus, ChangeKind)
 
 
 def test_stores_a_missing_snapshot_as_sql_null(

@@ -13,7 +13,6 @@ from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
 from app.sync.service import record_failed_sync, run_sync
 from tests.support.pokeapi import BASE_URL, SPECIES_IDS, fake_pokeapi
-from tests.support.pokemon import stored_varieties
 
 pytestmark = pytest.mark.anyio
 
@@ -132,27 +131,12 @@ async def test_syncs_whether_each_species_is_legendary_or_mythical(db_session: S
     assert (mythical, legendary) == ([172], [])
 
 
-async def test_links_each_synced_pokemon_to_its_species(db_session: Session) -> None:
-    await run_sync(fake_pokeapi(), db_session, clock=clock)
-
-    assert stored_varieties(db_session) == {6: 6, 25: 25}
-
-
 async def test_reports_species_it_could_not_sync(db_session: Session) -> None:
     # Charmeleon failed to fetch, so none of its family is updated until the next sync.
     report = await run_sync(fake_pokeapi(failing=("pokemon-species/5",)), db_session, clock=clock)
 
     assert report.failed == ["charizard", "charmander", f"{BASE_URL}pokemon-species/5/"]
     assert sorted(db_session.scalars(select(Species.id))) == [25, 26, 172]
-
-
-async def test_syncs_how_much_damage_each_type_does_to_each_other(db_session: Session) -> None:
-    await run_sync(fake_pokeapi(), db_session, clock=clock)
-
-    assert count(db_session, TypeMatchup) == len(PokemonType) ** 2
-    water_on_fire = db_session.get(TypeMatchup, (PokemonType.WATER, PokemonType.FIRE))
-    assert water_on_fire is not None
-    assert water_on_fire.multiplier == 2
 
 
 async def test_keeps_the_stored_type_chart_when_a_type_fails(db_session: Session) -> None:

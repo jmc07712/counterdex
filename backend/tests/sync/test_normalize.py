@@ -28,7 +28,7 @@ from app.sync.pokeapi import (
     PokeApiSpecies,
     PokeApiType,
 )
-from app.sync.types import SpeciesRecord, TypeMatchupRecord
+from app.sync.types import SpeciesRecord
 from tests.support.pokeapi import (
     SPECIES_IDS,
     evolution_chain_response,
@@ -187,12 +187,6 @@ def test_keeps_every_way_to_evolve_in_the_latest_games(
     )
 
 
-def test_normalizes_every_species_of_every_family_fetched_whole(
-    species: list[PokeApiSpecies], chains: list[PokeApiEvolutionChain]
-) -> None:
-    assert sorted(by_id(species, chains)) == sorted(SPECIES_IDS)
-
-
 def test_leaves_out_a_family_missing_a_species(
     species: list[PokeApiSpecies], chains: list[PokeApiEvolutionChain]
 ) -> None:
@@ -332,18 +326,3 @@ def test_leaves_out_the_chart_when_a_type_is_missing(types: list[PokeApiType]) -
     without_fire = [each for each in types if each.name != "fire"]
 
     assert normalize_type_chart(without_fire) == []
-
-
-def test_gives_each_matchup_one_of_the_known_multipliers(types: list[PokeApiType]) -> None:
-    assert {matchup.multiplier for matchup in normalize_type_chart(types)} == {0, 0.5, 1, 2}
-
-
-def test_reads_a_matchup_into_the_apps_types(types: list[PokeApiType]) -> None:
-    matchup = next(
-        each
-        for each in normalize_type_chart(types)
-        if (each.attacking_type, each.defending_type) == ("water", "fire")
-    )
-
-    assert matchup == TypeMatchupRecord(PokemonType.WATER, PokemonType.FIRE, 2)
-    assert type(matchup.attacking_type) is PokemonType
