@@ -62,20 +62,6 @@ class TeamOrder(BaseModel):
     """Every member's Pokémon `id`, each once, in the new slot order."""
 
 
-class TeamPreviewQuery(BaseModel):
-    """The Pokémon to preview as a team."""
-
-    model_config = ConfigDict(frozen=True, validate_by_name=True)
-
-    pokemon_ids: Annotated[
-        PokemonIds,
-        Field(
-            alias="pokemon_id",
-            description="A Pokémon's `id`. Repeat it for each Pokémon, in slot order, up to six.",
-        ),
-    ] = Field(default_factory=list)
-
-
 class TeamsQuery(BaseModel):
     """Which of everyone's teams to list, and which page. A team must match every filter given."""
 

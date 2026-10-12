@@ -73,7 +73,6 @@ def test_the_docs_sort_every_route_under_one_tag_in_a_group(openapi: dict[str, A
         "Counter team",
         "Health",
     ]
-    assert tagged["GET /api/teams/preview"] == ["Teams"]
     assert tagged["GET /api/users/{username}/teams"] == ["Teams"]
     assert tagged["POST /api/teams/{team_id}/members"] == ["Team members"]
     assert tagged["PUT /api/teams/{team_id}/order"] == ["Team members"]

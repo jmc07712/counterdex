@@ -946,61 +946,6 @@
         }
       }
     },
-    "/api/teams/preview": {
-      "get": {
-        "tags": [
-          "Teams"
-        ],
-        "summary": "Preview a team",
-        "description": "Pokémon as a team's members would be, in the order given, without saving a team or\nsigning in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.",
-        "operationId": "preview_team",
-        "parameters": [
-          {
-            "name": "pokemon_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "maximum": 2147483647,
-                "minimum": 1
-              },
-              "maxItems": 6,
-              "description": "A Pokémon's `id`. Repeat it for each Pokémon, in slot order, up to six.",
-              "title": "Pokemon Id"
-            },
-            "description": "A Pokémon's `id`. Repeat it for each Pokémon, in slot order, up to six."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TeamMember"
-                  },
-                  "title": "Response Preview Team"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/teams/{team_id}/members": {
       "post": {
         "tags": [

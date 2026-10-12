@@ -1764,40 +1764,6 @@ export type CreateTeamResponses = {
 
 export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
 
-export type PreviewTeamData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Pokemon Id
-         *
-         * A Pokémon's `id`. Repeat it for each Pokémon, in slot order, up to six.
-         */
-        pokemon_id?: Array<number>;
-    };
-    url: '/api/teams/preview';
-};
-
-export type PreviewTeamErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PreviewTeamError = PreviewTeamErrors[keyof PreviewTeamErrors];
-
-export type PreviewTeamResponses = {
-    /**
-     * Response Preview Team
-     *
-     * Successful Response
-     */
-    200: Array<TeamMember>;
-};
-
-export type PreviewTeamResponse = PreviewTeamResponses[keyof PreviewTeamResponses];
-
 export type AddTeamMemberData = {
     body: NewMember;
     path: {

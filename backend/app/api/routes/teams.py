@@ -25,10 +25,8 @@ from app.teams.schemas import (
     NewTeam,
     Team,
     TeamConflict,
-    TeamMember,
     TeamOrder,
     TeamPage,
-    TeamPreviewQuery,
     TeamRename,
     TeamsQuery,
 )
@@ -162,17 +160,6 @@ def create_team(
     if created:
         response.status_code = status.HTTP_201_CREATED
     return created_team
-
-
-# Before /teams/{team_id}, which would otherwise take "preview" for a team's id.
-@router.get("/teams/preview", summary="Preview a team")
-def preview_team(
-    session: SessionDep, query: Annotated[TeamPreviewQuery, Query()]
-) -> list[TeamMember]:
-    """Pokémon as a team's members would be, in the order given, without saving a team or
-    signing in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.
-    """
-    return service.preview(session, query.pokemon_ids)
 
 
 @router.get(

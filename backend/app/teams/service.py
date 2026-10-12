@@ -159,39 +159,6 @@ def get_team(session: Session, team_id: uuid.UUID) -> schemas.Team:
     return shown
 
 
-def preview(session: Session, pokemon_ids: Sequence[int]) -> list[schemas.TeamMember]:
-    """These Pokémon as a team's members would be, in the order given, for a team that isn't
-    saved, such as a guest's. Ids with no Pokémon, or whose species isn't stored yet, are left
-    out.
-    """
-    rows = (
-        session.execute(
-            select(
-                pokemon_models.Pokemon.__table__,
-                pokemon_models.SpeciesVariety.species_id,
-                pokemon_models.Species.evolution_chain_id.label("family_id"),
-            )
-            .join(
-                pokemon_models.SpeciesVariety,
-                pokemon_models.SpeciesVariety.pokemon_id == pokemon_models.Pokemon.id,
-            )
-            .join(
-                pokemon_models.Species,
-                pokemon_models.Species.id == pokemon_models.SpeciesVariety.species_id,
-            )
-            .where(pokemon_models.Pokemon.id.in_(pokemon_ids))
-        )
-        .mappings()
-        .all()
-    )
-    by_id = {row["id"]: row for row in rows}
-    known = [pokemon_id for pokemon_id in pokemon_ids if pokemon_id in by_id]
-    members = [
-        {**by_id[pokemon_id], "position": position} for position, pokemon_id in enumerate(known)
-    ]
-    return _members_shown(members)
-
-
 def create_team(
     session: Session, user_id: int, team_id: uuid.UUID, new: schemas.NewTeam
 ) -> tuple[schemas.Team, bool]:

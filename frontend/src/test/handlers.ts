@@ -278,10 +278,6 @@ export function serveTeams({
       const theirs = teams.filter((each) => each.owner.username.toLowerCase() === username)
       return HttpResponse.json(theirs)
     }),
-    http.get('/api/teams/preview', ({ request }) => {
-      const ids = new URL(request.url).searchParams.getAll('pokemon_id').map(Number)
-      return HttpResponse.json(asMembers(ids.flatMap((id) => pokemon(id) ?? [])))
-    }),
     http.get('/api/teams/:teamId', ({ params }) => {
       const found = team(params.teamId)
       return found ? HttpResponse.json(found) : refusal(404)

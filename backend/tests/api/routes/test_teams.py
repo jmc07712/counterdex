@@ -633,23 +633,3 @@ def test_rejects_owners_that_cant_exist(client: TestClient, owner: str) -> None:
 )
 def test_rejects_bad_pages(client: TestClient, params: dict[str, Any]) -> None:
     assert client.get("/api/teams", params=params).status_code == 422
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_previews_without_signing_in(client: TestClient) -> None:
-    response = client.get("/api/teams/preview", params={"pokemon_id": [6, 4]})
-
-    assert response.status_code == 200
-    assert [member["pokemon"]["id"] for member in response.json()] == [6, 4]
-
-
-def test_previewing_no_pokemon_gives_no_members(client: TestClient) -> None:
-    response = client.get("/api/teams/preview")
-
-    assert (response.status_code, response.json()) == (200, [])
-
-
-def test_a_preview_holds_up_to_six(client: TestClient) -> None:
-    response = client.get("/api/teams/preview", params={"pokemon_id": [1, 2, 3, 4, 5, 6, 7]})
-
-    assert response.status_code == 422

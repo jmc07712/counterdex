@@ -1131,16 +1131,3 @@ def test_members_follow_their_pokemon_to_another_species_family(
         (member.pokemon.id, member.pokemon.species_id, member.pokemon.family_id)
         for member in service.get_team(db_session, team.id).members
     ] == [(201, 202, 1202), (203, 203, 1203)]
-
-
-# --- Previewing ---
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_previews_pokemon_as_members_in_the_order_given(db_session: Session) -> None:
-    add_species_pokemon(db_session, 201)
-
-    members = service.preview(db_session, [6, 9999, 201])
-
-    assert [(member.position, member.pokemon.id) for member in members] == [(0, 6), (1, 201)]
-    assert [member.pokemon.family_id for member in members] == [2, 1201]

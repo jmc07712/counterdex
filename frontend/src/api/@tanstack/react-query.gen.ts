@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listSyncRuns, listTeams, listTeamThreats, listUserTeams, type Options, previewTeam, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, scoreTeams, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
-import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListSyncRunsData, ListSyncRunsError, ListSyncRunsResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, PreviewTeamData, PreviewTeamError, PreviewTeamResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, ScoreTeamsData, ScoreTeamsError, ScoreTeamsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
+import { addTeamMember, createTeam, deleteTeam, findCounterTeam, getCurrentUser, getPokemon, getTeam, health, listPokemon, listPokemonChanges, listSyncRuns, listTeams, listTeamThreats, listUserTeams, type Options, removeTeamMember, renameTeam, reorderTeam, replaceTeamMember, scoreTeams, signIn, signOut, signUp, syncStatus } from '../sdk.gen';
+import type { AddTeamMemberData, AddTeamMemberError, AddTeamMemberResponse, CreateTeamData, CreateTeamError, CreateTeamResponse, DeleteTeamData, DeleteTeamError, DeleteTeamResponse, FindCounterTeamData, FindCounterTeamError, FindCounterTeamResponse, GetCurrentUserData, GetCurrentUserResponse, GetPokemonData, GetPokemonError, GetPokemonResponse, GetTeamData, GetTeamError, GetTeamResponse, HealthData, HealthResponse, ListPokemonChangesData, ListPokemonChangesError, ListPokemonChangesResponse, ListPokemonData, ListPokemonError, ListPokemonResponse, ListSyncRunsData, ListSyncRunsError, ListSyncRunsResponse, ListTeamsData, ListTeamsError, ListTeamsResponse, ListTeamThreatsData, ListTeamThreatsError, ListTeamThreatsResponse, ListUserTeamsData, ListUserTeamsError, ListUserTeamsResponse, RemoveTeamMemberData, RemoveTeamMemberError, RemoveTeamMemberResponse, RenameTeamData, RenameTeamError, RenameTeamResponse, ReorderTeamData, ReorderTeamError, ReorderTeamResponse, ReplaceTeamMemberData, ReplaceTeamMemberError, ReplaceTeamMemberResponse, ScoreTeamsData, ScoreTeamsError, ScoreTeamsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutResponse, SignUpData, SignUpError, SignUpResponse, SyncStatusData, SyncStatusResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -516,27 +516,6 @@ export const createTeamMutation = (options?: Partial<Options<CreateTeamData>>): 
     };
     return mutationOptions;
 };
-
-export const previewTeamQueryKey = (options?: Options<PreviewTeamData>) => createQueryKey('previewTeam', options);
-
-/**
- * Preview a team
- *
- * Pokémon as a team's members would be, in the order given, without saving a team or
- * signing in: for a team that's kept in a guest's browser. Ids with no Pokémon are left out.
- */
-export const previewTeamOptions = (options?: Options<PreviewTeamData>) => queryOptions<PreviewTeamResponse, PreviewTeamError, PreviewTeamResponse, ReturnType<typeof previewTeamQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await previewTeam({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: previewTeamQueryKey(options)
-});
 
 /**
  * Add a Pokémon to a team
