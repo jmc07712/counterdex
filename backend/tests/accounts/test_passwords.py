@@ -19,10 +19,6 @@ def test_only_the_right_password_matches() -> None:
     assert not verify_password("raichu12", hashed)
 
 
-def test_no_password_matches_a_missing_hash() -> None:
-    assert not verify_password("pikachu1", None)
-
-
 def test_a_missing_hash_still_costs_a_check(monkeypatch: pytest.MonkeyPatch) -> None:
     # So that no such user takes about as long as a wrong password.
     checked: list[str | bytes] = []

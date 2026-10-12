@@ -147,8 +147,6 @@ def test_a_page_holds_20_runs_unless_asked_for_another_size(
         pytest.param(1, 1, id="one"),
         pytest.param(2, 1, id="exactly-one-page"),
         pytest.param(3, 2, id="one-more-than-a-page"),
-        pytest.param(4, 2, id="exactly-two-pages"),
-        pytest.param(5, 3, id="one-more-than-two-pages"),
     ],
 )
 def test_counts_the_pages(

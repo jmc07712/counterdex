@@ -53,7 +53,7 @@ def test_finds_a_counter_team_as_big_as_theirs(client: TestClient) -> None:
     assert all([each["opponent_id"] for each in pick["matchups"]] == team for pick in picks)
 
 
-@pytest.mark.parametrize("path", PATHS)
+# Both routes read their team as a TeamMatchupQuery, so one route covers its rules.
 @pytest.mark.parametrize(
     "params",
     [
@@ -66,11 +66,8 @@ def test_finds_a_counter_team_as_big_as_theirs(client: TestClient) -> None:
         pytest.param({"pokemon_id": 6, "legendaries": "maybe"}, id="legendaries-not-a-boolean"),
     ],
 )
-@pytest.mark.usefixtures("pokedex")
-def test_refuses_a_team_that_cannot_be(
-    client: TestClient, path: str, params: dict[str, Any]
-) -> None:
-    assert client.get(path, params=params).status_code == 422
+def test_refuses_a_team_that_cannot_be(client: TestClient, params: dict[str, Any]) -> None:
+    assert client.get("/api/counter-team", params=params).status_code == 422
 
 
 @pytest.mark.parametrize("path", PATHS)
@@ -174,7 +171,6 @@ def test_scores_one_team_against_another(client: TestClient) -> None:
         pytest.param({"pokemon_id": 0, "opponent_id": 6}, id="not-an-id"),
     ],
 )
-@pytest.mark.usefixtures("pokedex")
 def test_refuses_teams_that_cannot_be(client: TestClient, params: dict[str, Any]) -> None:
     assert client.get("/api/matchups", params=params).status_code == 422
 

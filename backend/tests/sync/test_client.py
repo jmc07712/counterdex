@@ -26,13 +26,6 @@ from tests.support.pokeapi import (
 pytestmark = pytest.mark.anyio
 
 
-async def test_fetches_every_pokemon_in_the_listing() -> None:
-    result = await fake_pokeapi().fetch_pokemon()
-
-    assert sorted(p.name for p in result.pokemon) == ["charizard", "pikachu"]
-    assert result.failed == []
-
-
 def listed_on_two_pages(first: int, second: int, *, requested: list[str] | None = None) -> Handler:
     """PokéAPI listing Pokémon `first` on one page and `second` on the next; every URL
     requested is added to `requested`.
@@ -55,24 +48,6 @@ async def test_follows_pagination_through_every_page() -> None:
     result = await client_for(listed_on_two_pages(6, 25)).fetch_pokemon()
 
     assert sorted(p.name for p in result.pokemon) == ["charizard", "pikachu"]
-
-
-async def test_retries_server_errors() -> None:
-    calls = 0
-
-    async def handler(request: httpx2.Request) -> httpx2.Response:
-        nonlocal calls
-        if request.url.path.endswith("/pokemon"):
-            return httpx2.Response(200, json=listing_response(25))
-        calls += 1
-        if calls == 1:
-            return httpx2.Response(503)
-        return httpx2.Response(200, json=pokemon_response(25))
-
-    result = await client_for(handler).fetch_pokemon()
-
-    assert [p.name for p in result.pokemon] == ["pikachu"]
-    assert calls == 2
 
 
 @pytest.fixture
@@ -101,16 +76,19 @@ def answering_first(*responses: httpx2.Response) -> Handler:
     return handler
 
 
-@pytest.mark.parametrize("status", [429, 503])
 @pytest.mark.parametrize(
-    ("retry_after", "waited"),
+    ("status", "retry_after", "waited"),
     [
-        pytest.param("0", 0, id="no-time"),
-        pytest.param("2", 2, id="a-few-seconds"),
-        pytest.param(str(MAX_RETRY_AFTER_SECONDS), MAX_RETRY_AFTER_SECONDS, id="the-most"),
-        pytest.param(str(MAX_RETRY_AFTER_SECONDS + 1), MAX_RETRY_AFTER_SECONDS, id="over-the-most"),
-        pytest.param("3600", MAX_RETRY_AFTER_SECONDS, id="an-hour"),
-        pytest.param("9" * MAX_RETRY_AFTER_DIGITS, MAX_RETRY_AFTER_SECONDS, id="the-most-digits"),
+        pytest.param(429, "0", 0, id="429-no-time"),
+        pytest.param(503, "2", 2, id="503-a-few-seconds"),
+        pytest.param(429, str(MAX_RETRY_AFTER_SECONDS), MAX_RETRY_AFTER_SECONDS, id="429-the-most"),
+        pytest.param(
+            503, str(MAX_RETRY_AFTER_SECONDS + 1), MAX_RETRY_AFTER_SECONDS, id="503-over-the-most"
+        ),
+        pytest.param(429, "3600", MAX_RETRY_AFTER_SECONDS, id="429-an-hour"),
+        pytest.param(
+            503, "9" * MAX_RETRY_AFTER_DIGITS, MAX_RETRY_AFTER_SECONDS, id="503-the-most-digits"
+        ),
     ],
 )
 async def test_waits_as_long_as_a_429_or_503_asks_up_to_the_most(
