@@ -15,6 +15,8 @@ import {
   TimeOfDay,
 } from '@/api'
 import { STATS } from '@/components/pokemon/format'
+import { POKEDEX_VIEWS } from '@/features/pokedex/hooks/use-pokedex-filters'
+import { TEAMS_SCOPES, TEAMS_SORTS, TEAMS_VIEWS } from '@/features/teams/hooks/use-teams-filters'
 import { m } from '@/paraglide/messages.js'
 
 // A select message words a value it doesn't know as the value itself, so a value worded as
@@ -63,6 +65,27 @@ describe.each<[string, string[], (value: string) => string]>([
     Object.values(RelativeSpeed),
     (speed) => m.team_matchup_speed({ speed, pokemon: 'Golem', opponent: 'Charizard' }),
   ],
+  ['pokedex_view_option', [...POKEDEX_VIEWS], (view) => m.pokedex_view_option({ view })],
+  [
+    'pokedex_nothing_found_title',
+    [...POKEDEX_VIEWS],
+    (view) => m.pokedex_nothing_found_title({ view }),
+  ],
+  [
+    'pokedex_nothing_found_description',
+    [...POKEDEX_VIEWS],
+    (view) => m.pokedex_nothing_found_description({ view }),
+  ],
+  ['teams_scope_option', [...TEAMS_SCOPES], (scope) => m.teams_scope_option({ scope })],
+  ['teams_empty_description', [...TEAMS_SCOPES], (scope) => m.teams_empty_description({ scope })],
+  ['teams_view_option', [...TEAMS_VIEWS], (view) => m.teams_view_option({ view })],
+  ['teams_nothing_found_title', [...TEAMS_VIEWS], (view) => m.teams_nothing_found_title({ view })],
+  [
+    'teams_nothing_found_description',
+    [...TEAMS_VIEWS],
+    (view) => m.teams_nothing_found_description({ view }),
+  ],
+  ['teams_sort_option', [...TEAMS_SORTS], (sort) => m.teams_sort_option({ sort })],
 ])('%s', (_, values, word) => {
   it.each(values)('words %s', (value) => {
     expect(word(value)).not.toBe(value)
