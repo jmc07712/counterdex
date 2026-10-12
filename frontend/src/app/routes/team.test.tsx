@@ -1118,6 +1118,10 @@ describe('TeamPage, as a party', () => {
     const line = await screen.findByText('Pikachu and Gengar changed this week')
     const slots = screen.getByRole('list', { name: 'Team, in battle order' })
     expect(line.compareDocumentPosition(slots)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    // A status, so it's read out without taking focus.
+    expect(screen.getAllByRole('status').map((status) => status.textContent)).toContain(
+      'Pikachu and Gengar changed this week',
+    )
   })
 
   it('asks for the changes of only the members a sync changed, and still in the Pokédex', async () => {
