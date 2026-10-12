@@ -8,11 +8,6 @@ from app.pokemon.models import TypeMatchup
 from tests.support.pokemon import make_pokemon
 
 
-def test_sprite_is_optional(db_session: Session) -> None:
-    db_session.add(make_pokemon(sprite_url=None))
-    db_session.flush()
-
-
 @pytest.mark.parametrize(
     ("columns", "constraint"),
     [

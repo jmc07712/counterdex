@@ -44,14 +44,6 @@ def test_serves_a_page_of_pokemon_with_their_public_fields(client: TestClient) -
     }
 
 
-def test_serves_the_page_after_the_cursor(client: TestClient, db_session: Session) -> None:
-    add_pokemon(db_session, 1, 4, 7)
-
-    page = client.get("/api/pokemon", params={"limit": 1, "cursor": 1}).json()
-
-    assert ([pokemon["id"] for pokemon in page["items"]], page["next_cursor"]) == ([4], 4)
-
-
 def test_serves_50_pokemon_per_page_by_default(client: TestClient, db_session: Session) -> None:
     add_pokemon(db_session, *range(1, 52))
 

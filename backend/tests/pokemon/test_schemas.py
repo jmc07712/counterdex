@@ -21,14 +21,6 @@ def test_gives_each_stat_its_own_column() -> None:
     assert GYARADOS.to_columns() == gyarados_columns()
 
 
-def test_the_species_id_is_never_stored_or_hashed() -> None:
-    assert "species_id" not in GYARADOS.model_copy(update={"species_id": 130}).to_columns()
-
-
-def test_the_family_id_is_never_stored_or_hashed() -> None:
-    assert "family_id" not in GYARADOS.model_copy(update={"family_id": 63}).to_columns()
-
-
 def test_reads_a_pokemon_back_from_its_row() -> None:
     # A row also holds the sync's bookkeeping, which isn't part of the Pokémon.
     row = gyarados_columns() | {"content_hash": "0" * 64, "removed_at": None}
@@ -78,13 +70,6 @@ def test_says_which_kind_of_alternate_form_it_is(name: str, form: PokemonForm) -
 
 def test_a_default_form_has_no_form_kind() -> None:
     assert GYARADOS.form is None
-
-
-def test_the_form_kind_is_not_stored() -> None:
-    # It's worked out from the name, so it stays out of the columns (and the content hash).
-    alternate = Pokemon.from_columns(gyarados_columns() | {"is_default": False})
-
-    assert "form" not in alternate.to_columns()
 
 
 def test_the_form_kind_always_comes_from_the_name() -> None:

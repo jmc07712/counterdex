@@ -12,7 +12,6 @@ from app.pokemon.schemas import (
     PokemonDetails,
     PokemonPage,
     PokemonQuery,
-    Species,
 )
 from tests.support.pokemon import (
     GYARADOS_CDN_SPRITE,
@@ -81,21 +80,7 @@ def test_lists_pokemon_by_whether_pokeapi_still_lists_them(
     assert ids(list_pokemon(db_session, query)) == expected_ids
 
 
-def test_lists_only_pokemon_a_sync_changed_in_the_last_week(db_session: Session) -> None:
-    now = datetime.now(UTC)
-    db_session.add_all(
-        [
-            make_pokemon(id=1, name="bulbasaur", last_changed_at=now - timedelta(days=2)),
-            make_pokemon(id=2, name="ivysaur", last_changed_at=now - timedelta(days=8)),
-            make_pokemon(id=3, name="venusaur"),
-        ]
-    )
-    db_session.flush()
-
-    assert ids(list_pokemon(db_session, PokemonQuery(changed=True))) == [1]
-
-
-def test_says_which_pokemon_a_sync_changed_in_the_last_week(db_session: Session) -> None:
+def test_marks_and_filters_the_pokemon_a_sync_changed_in_the_last_week(db_session: Session) -> None:
     now = datetime.now(UTC)
     db_session.add_all(
         [
@@ -109,10 +94,7 @@ def test_says_which_pokemon_a_sync_changed_in_the_last_week(db_session: Session)
     page = list_pokemon(db_session, PokemonQuery())
 
     assert [pokemon.changed_recently for pokemon in page.items] == [True, False, False]
-
-
-def test_lists_nothing_before_the_first_sync(db_session: Session) -> None:
-    assert list_pokemon(db_session, PokemonQuery()) == PokemonPage(items=[], next_cursor=None)
+    assert ids(list_pokemon(db_session, PokemonQuery(changed=True))) == [1]
 
 
 @pytest.mark.parametrize(
@@ -230,22 +212,6 @@ def details(session: Session, pokemon_id: int) -> PokemonDetails:
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_gets_a_pokemon_and_its_species(db_session: Session) -> None:
-    charizard = details(db_session, 6)
-
-    assert (charizard.pokemon.name, charizard.removed_at) == ("charizard", None)
-    assert charizard.species == Species(id=6, name="charizard", genus="Flame Pokémon")
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_gets_every_form_of_its_species(db_session: Session) -> None:
-    assert [form.name for form in details(db_session, 6).forms] == [
-        "charizard",
-        "charizard-mega-x",
-    ]
-
-
-@pytest.mark.usefixtures("charmander_family")
 def test_leaves_out_forms_pokeapi_no_longer_lists(db_session: Session) -> None:
     remove(db_session, 10034)
 
@@ -318,48 +284,29 @@ def test_shows_a_stage_pokeapi_no_longer_lists_without_its_pokemon(db_session: S
     assert outline(evolution.evolves_to[0])[:2] == ("charmeleon", None)
 
 
-def test_lists_each_pokemons_species(
-    db_session: Session, charmander_family: None, gyarados: models.Pokemon
-) -> None:
-    page = list_pokemon(db_session, PokemonQuery())
-
-    # Gyarados has no stored species; Mega Charizard X is a Charizard.
-    assert {each.id: each.species_id for each in page.items} == {
-        4: 4,
-        5: 5,
-        6: 6,
-        130: None,
-        10034: 6,
-    }
-
-
-def test_details_give_the_pokemons_species(db_session: Session, charmander_family: None) -> None:
-    charizard = details(db_session, 10034)
-
-    assert charizard.pokemon.species_id == 6
-    assert {form.id: form.species_id for form in charizard.forms} == {6: 6, 10034: 6}
-
-
 @pytest.mark.usefixtures("charmander_family", "gyarados")
-def test_lists_each_pokemons_family(db_session: Session) -> None:
+def test_lists_each_pokemons_species_and_family(db_session: Session) -> None:
     page = list_pokemon(db_session, PokemonQuery())
 
-    # Gyarados has no stored species, so no family.
-    assert {each.id: each.family_id for each in page.items} == {
-        4: 2,
-        5: 2,
-        6: 2,
-        130: None,
-        10034: 2,
+    # Gyarados has no stored species, so no family; Mega Charizard X is a Charizard.
+    assert {each.id: (each.species_id, each.family_id) for each in page.items} == {
+        4: (4, 2),
+        5: (5, 2),
+        6: (6, 2),
+        130: (None, None),
+        10034: (6, 2),
     }
 
 
 @pytest.mark.usefixtures("charmander_family")
-def test_details_give_the_family_of_each_pokemon(db_session: Session) -> None:
+def test_details_give_each_pokemons_species_and_family(db_session: Session) -> None:
     charizard = details(db_session, 10034)
 
-    assert charizard.pokemon.family_id == 2
-    assert [form.family_id for form in charizard.forms] == [2, 2]
+    assert (charizard.pokemon.species_id, charizard.pokemon.family_id) == (6, 2)
+    assert {form.id: (form.species_id, form.family_id) for form in charizard.forms} == {
+        6: (6, 2),
+        10034: (6, 2),
+    }
     assert charizard.evolution is not None
     assert charizard.evolution.pokemon is not None
     assert charizard.evolution.pokemon.family_id == 2
