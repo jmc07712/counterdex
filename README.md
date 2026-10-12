@@ -184,18 +184,20 @@ a note explaining each one. The [backend guide](backend/README.md#counter-teams)
 
 ## Assumptions
 
-- The Pokédex grid needs each Pokémon's name, types, base stats and sprite, so moves aren't synced.
-- Alternate forms, such as Mega Charizard X, are treated as separate Pokémon with their own stats.
-- A team holds at most one Pokémon from each evolution family, so Charmander and Charizard can't be
-  on the same team. This is stricter than the games, which only stop you having the same species
-  twice.
-- If a Pokémon is missing from PokéAPI's list, it counts as removed. The exception is when more
-  than 5% of Pokémon (or more than 10, if that's higher) vanish at once. That looks like a broken
-  response, so the sync stops instead.
-- A Pokémon that's new to PokéAPI doesn't count as a change, because no team can have it yet.
-- "Changed in the last week" counts from when the sync noticed the change, because PokéAPI doesn't
-  say when it changed something.
-- Anyone can view any team, so anyone can see how to beat it. Only a team's owner can edit it.
+- **Moves aren't synced.** The app only needs each Pokémon's name, types, base stats and picture.
+- **Alternate forms count as their own Pokémon.** For example, Mega Charizard X has its own stats
+  and its own card.
+- **A team can have one Pokémon per evolution family.** So Charmander and Charizard can't be on the
+  same team. This is stricter than the games, which only stop you using the same Pokémon twice.
+- **A missing Pokémon counts as removed.** If a Pokémon disappears from PokéAPI's list, the app marks
+  it as removed. But if a lot disappear at once (more than 5%, or more than 10 if that's higher),
+  the sync assumes PokéAPI sent a broken response and stops.
+- **New Pokémon aren't changes.** A Pokémon that's new to PokéAPI can't be on anyone's team yet, so
+  there's nothing to alert anyone about.
+- **"This week" starts when the app noticed.** PokéAPI doesn't say when it changed something, so the
+  week counts from when the sync spotted the change.
+- **Teams are public.** Anyone can look at any team and see how to beat it. Only the owner can
+  change it.
 
 ## Running it locally
 
