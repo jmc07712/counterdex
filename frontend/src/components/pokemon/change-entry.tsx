@@ -1,6 +1,6 @@
 import { ChangeKind, type Pokemon, type PokemonChange } from '@/api'
 import { formatDate } from '@/lib/dates'
-import { formatList } from '@/lib/lists'
+import { formatTypes } from '@/lib/lists'
 import type { Message } from '@/lib/messages'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
@@ -23,10 +23,7 @@ type Field = {
 // What a sync can change about a Pokémon, in the order shown.
 const FIELDS: Field[] = [
   { label: m.changes_field_name, value: (pokemon) => displayName(pokemon.name) },
-  {
-    label: m.pokemon_types,
-    value: (pokemon) => formatList(pokemon.types.map((type) => m.pokemon_type({ type }))),
-  },
+  { label: m.pokemon_types, value: (pokemon) => formatTypes(pokemon.types) },
   ...STATS.map((stat) => ({
     label: () => m.pokemon_stat({ stat }),
     value: (pokemon: Pokemon) => String(pokemon.stats[stat]),
