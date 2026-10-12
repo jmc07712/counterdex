@@ -1,13 +1,14 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
+import { onTouchScreen } from '@/test/media'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { failOnce, holdRequests, server } from '@/test/server'
@@ -33,16 +34,6 @@ function twoPages(query: URLSearchParams) {
   return query.has('cursor')
     ? makePage(['ivysaur'], { after: 1 })
     : makePage(['bulbasaur'], { more: true })
-}
-
-// A touch screen, whose pointer is coarse, as a phone's is.
-function onTouchScreen() {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(pointer: coarse)',
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }))
 }
 
 describe('PokedexPage', () => {

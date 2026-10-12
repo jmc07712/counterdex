@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Pokemon, PokemonChange } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import { stubMatchMedia } from '@/test/media'
 import { CHARIZARD, makeDetails } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
@@ -46,12 +47,7 @@ describe('PokemonDetailsDialog', () => {
   })
 
   it('opens in the middle of wider screens, and closes', async () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(min-width: 48rem)',
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }))
+    stubMatchMedia('(min-width: 48rem)')
     servePokemonDetails()
 
     const { dialog, user, onClose } = await openDetails()

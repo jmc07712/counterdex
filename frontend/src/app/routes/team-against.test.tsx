@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { type Matchup, type Pokemon, PokemonType, Rating, RelativeSpeed, type Team } from '@/api'
 import { getTeamQueryKey } from '@/api/@tanstack/react-query.gen'
@@ -11,6 +11,7 @@ import { servePokemon } from '@/test/handlers/pokemon'
 import { serveSession } from '@/test/handlers/session'
 import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
+import { onWideScreen } from '@/test/media'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -70,16 +71,6 @@ function serveAsh(ours: Team = OURS) {
   serveSession({ signedIn: ASH })
   servePokemon({ items: [], next_cursor: null })
   return serveTeams({ teams: [ours, THEIRS], catalog: CATALOG, signedIn: ASH })
-}
-
-// A screen as wide as Tailwind's lg breakpoint, where the team is a column beside the Pokédex.
-function onWideScreen() {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(min-width: 64rem)',
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }))
 }
 
 function panel() {

@@ -12,6 +12,7 @@ import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handle
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { refuseTeamChange, serveTeams } from '@/test/handlers/teams'
+import { onWideScreen } from '@/test/media'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { holdRequests, server } from '@/test/server'
@@ -60,16 +61,6 @@ function serveAsh(teams: Team[] = []) {
 // The Pokédex lists these, on one page.
 function browse(pokemon: Pokemon[]) {
   return servePokemon({ items: pokemon, next_cursor: null })
-}
-
-// A screen as wide as Tailwind's lg breakpoint, where the Pokédex is beside the team.
-function onWideScreen() {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(min-width: 64rem)',
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }))
 }
 
 // The team's slots, in order. Each member's types are a list of their own, so they're left out.

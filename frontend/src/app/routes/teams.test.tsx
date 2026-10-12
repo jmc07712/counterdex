@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { routes } from '@/app/router'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
@@ -11,6 +11,7 @@ import { servePokemon } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncStatus } from '@/test/handlers/sync'
 import { serveTeams } from '@/test/handlers/teams'
+import { onTouchScreen } from '@/test/media'
 import { renderRoutes, renderWithProviders } from '@/test/render'
 import { holdRequests, refusal, server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'
@@ -42,16 +43,6 @@ const DRAFT = makeTeam({
   name: 'Draft',
   created_at: '2026-10-11T10:00:00Z',
 })
-
-// A touch screen, whose pointer is coarse, as a phone's is.
-function onTouchScreen() {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(pointer: coarse)',
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }))
-}
 
 // Renders the Teams page at `path`, and waits for its filters, which show once it knows who's
 // signed in.
