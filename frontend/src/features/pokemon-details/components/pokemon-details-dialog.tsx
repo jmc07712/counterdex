@@ -5,9 +5,9 @@ import { useMediaQuery } from 'usehooks-ts'
 import type { Pokemon } from '@/api'
 import { getPokemonOptions, listPokemonChangesOptions } from '@/api/@tanstack/react-query.gen'
 import { BaseStats } from '@/components/pokemon/base-stats'
-import { statTotal } from '@/components/pokemon/format'
 import { PokemonChip } from '@/components/pokemon/pokemon-chip'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
+import { StatTotal } from '@/components/pokemon/stat-total'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -151,12 +151,7 @@ function PokemonDetails({ pokemonId, onSelect, action }: PokemonDetailsProps) {
               stats={pokemon.stats}
               className="gap-2 text-sm [&_[data-slot=progress]]:h-2"
             />
-            <dl className="flex justify-end gap-1 text-sm text-muted-foreground">
-              <dt>{m.pokemon_stat_total()}</dt>
-              <dd className="font-semibold text-foreground tabular-nums">
-                {statTotal(pokemon.stats)}
-              </dd>
-            </dl>
+            <StatTotal stats={pokemon.stats} className="justify-end text-sm" />
           </div>
         </Section>
 

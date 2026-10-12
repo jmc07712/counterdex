@@ -17,9 +17,10 @@ import { m } from '@/paraglide/messages.js'
 
 import { BaseStats } from './base-stats'
 import { ChangedMark } from './changed-mark'
-import { dexNumber, displayName, formLabel, statTotal } from './format'
+import { dexNumber, displayName, formLabel } from './format'
 import { TYPE_STYLES } from './pokemon-types'
 import { SpriteWindow } from './sprite-window'
+import { StatTotal } from './stat-total'
 import { TypeBadges } from './type-badges'
 
 // Tilt and foil follow a mouse. On touch screens cards would tilt while scrolling, and some
@@ -99,12 +100,7 @@ export function PokemonCard({ pokemon, removed = false, onOpen, action }: Pokemo
           <CardFooter
             className={cn('justify-end text-xs', action && 'flex-col items-stretch gap-2')}
           >
-            <dl className="flex gap-1 self-end text-muted-foreground">
-              <dt>{m.pokemon_stat_total()}</dt>
-              <dd className="font-semibold text-foreground tabular-nums">
-                {statTotal(pokemon.stats)}
-              </dd>
-            </dl>
+            <StatTotal stats={pokemon.stats} className="self-end" />
             {/* Over the open button, so it can be pressed on its own. */}
             {action && <div className="relative z-10">{action}</div>}
           </CardFooter>
