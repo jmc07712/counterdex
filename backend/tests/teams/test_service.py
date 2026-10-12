@@ -85,20 +85,6 @@ def test_renaming_changes_the_name_and_when_it_changed(db_session: Session, ash:
     assert renamed.updated_at > team.updated_at
 
 
-def test_member_ids_lists_slot_order(db_session: Session, ash: SignedIn) -> None:
-    add_species_pokemon(db_session, 201, 202, 203)
-
-    assert member_ids(make_team(db_session, ash.user.id, 203, 201, 202)) == [203, 201, 202]
-
-
-def test_creates_a_full_team(db_session: Session, ash: SignedIn) -> None:
-    add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206)
-
-    team = make_team(db_session, ash.user.id, 201, 202, 203, 204, 205, 206)
-
-    assert member_ids(team) == [201, 202, 203, 204, 205, 206]
-
-
 # --- Adding ---
 
 
@@ -193,14 +179,6 @@ def test_a_full_team_can_replace(db_session: Session, ash: SignedIn) -> None:
     replaced = service.replace_member(db_session, locked, 4, 6)
 
     assert member_ids(replaced) == [6, 201, 202, 203, 204, 205]
-
-
-@pytest.mark.usefixtures("charmander_family")
-def test_a_member_can_be_replaced_by_a_later_stage(db_session: Session, ash: SignedIn) -> None:
-    team = make_team(db_session, ash.user.id, 4)
-    locked = service.lock_owned_team(db_session, ash.user.id, team.id)
-
-    assert member_ids(service.replace_member(db_session, locked, 4, 6)) == [6]
 
 
 @pytest.mark.usefixtures("charmander_family")

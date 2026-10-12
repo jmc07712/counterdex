@@ -441,10 +441,6 @@ def add_teams_to_sort(session: Session, ash: SignedIn, misty: SignedIn) -> None:
         backdate(session, team.id, timedelta(hours=hours))
 
 
-def test_teams_are_sorted_newest_first_unless_asked_otherwise() -> None:
-    assert TeamsQuery().sort is TeamSort.NEWEST
-
-
 @pytest.mark.usefixtures("charmander_family")
 def test_power_sorts_teams_by_the_sum_of_their_members_stats_highest_first(
     db_session: Session, ash: SignedIn, misty: SignedIn

@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Any
+from unittest.mock import ANY
 
 import pytest
 from fastapi.testclient import TestClient
@@ -153,22 +154,29 @@ def test_a_failed_create_leaves_no_team(ash_client: TestClient) -> None:
     assert ash_client.get("/api/users/ash/teams").json() == []
 
 
+# Pydantic words its own errors, so only the message of our own rule is pinned.
 @pytest.mark.parametrize(
-    ("body", "field"),
+    ("body", "field", "message"),
     [
-        pytest.param({"name": "   "}, "name", id="blank-name"),
-        pytest.param({"name": "x" * 41}, "name", id="long-name"),
-        pytest.param({"name": "Fire\x00"}, "name", id="name-with-a-nul-character"),
+        pytest.param({"name": "   "}, "name", ANY, id="blank-name"),
+        pytest.param({"name": "x" * 41}, "name", ANY, id="long-name"),
+        pytest.param({"name": "Fire\x00"}, "name", ANY, id="name-with-a-nul-character"),
         pytest.param(
             {"name": "Fire", "pokemon_ids": [201, 202, 203, 204, 205, 206, 207]},
             "pokemon_ids",
+            ANY,
             id="seven",
         ),
-        pytest.param({"name": "Fire", "pokemon_ids": [201, 201]}, "pokemon_ids", id="twice"),
+        pytest.param(
+            {"name": "Fire", "pokemon_ids": [201, 201]},
+            "pokemon_ids",
+            "Value error, Each Pokémon can be on a team only once.",
+            id="twice",
+        ),
     ],
 )
 def test_rejects_invalid_teams(
-    ash_client: TestClient, db_session: Session, body: dict[str, Any], field: str
+    ash_client: TestClient, db_session: Session, body: dict[str, Any], field: str, message: str
 ) -> None:
     # Stored, so these Pokémon are valid and only the team's shape can be what's wrong.
     add_species_pokemon(db_session, 201, 202, 203, 204, 205, 206, 207)
@@ -176,7 +184,8 @@ def test_rejects_invalid_teams(
     response = ash_client.put(TEAM, json=body)
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", field]
+    error = response.json()["detail"][0]
+    assert (error["loc"], error["msg"]) == (["body", field], message)
 
 
 def test_an_unknown_pokemon_is_invalid(ash_client: TestClient) -> None:
@@ -185,19 +194,6 @@ def test_an_unknown_pokemon_is_invalid(ash_client: TestClient) -> None:
     assert (response.status_code, response.json()) == (
         422,
         {"detail": "No Pokémon has this id, or a sync hasn't stored its species yet."},
-    )
-
-
-def test_a_pokemon_given_twice_says_each_can_be_on_a_team_only_once(
-    ash_client: TestClient, db_session: Session
-) -> None:
-    add_species_pokemon(db_session, 201)
-
-    response = ash_client.put(TEAM, json={"name": "Fire", "pokemon_ids": [201, 201]})
-
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["msg"] == (
-        "Value error, Each Pokémon can be on a team only once."
     )
 
 
