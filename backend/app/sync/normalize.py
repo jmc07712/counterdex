@@ -21,7 +21,7 @@ from app.sync.pokeapi import (
 from app.sync.types import SpeciesRecord, TypeMatchupRecord
 
 
-def normalize(raw: PokeApiPokemon) -> Pokemon:
+def normalize_pokemon(raw: PokeApiPokemon) -> Pokemon:
     """Raises ValueError, with a one-line reason, for data our table would refuse."""
     base_stats = {entry.stat.name: entry.base_stat for entry in raw.stats}
     try:

@@ -12,7 +12,12 @@ from app.pokemon.enums import (
     TimeOfDay,
 )
 from app.pokemon.schemas import EvolutionMethod, Pokemon, Stats
-from app.sync.normalize import content_hash, normalize, normalize_species, normalize_type_chart
+from app.sync.normalize import (
+    content_hash,
+    normalize_pokemon,
+    normalize_species,
+    normalize_type_chart,
+)
 from app.sync.pokeapi import (
     ChainLink,
     DamageRelations,
@@ -36,7 +41,7 @@ from tests.support.pokemon import LEVEL_16, LEVEL_36, PIKACHU, with_columns
 
 def normalized(raw: dict[str, Any]) -> Pokemon:
     """A PokéAPI response for one Pokémon, read and normalized as the sync does."""
-    return normalize(PokeApiPokemon.model_validate(raw))
+    return normalize_pokemon(PokeApiPokemon.model_validate(raw))
 
 
 def test_normalizes_a_pokeapi_response() -> None:

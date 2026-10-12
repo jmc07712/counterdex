@@ -13,7 +13,7 @@ from app.sync.constants import SYNC_LOCK_KEY
 from app.sync.enums import SyncStatus
 from app.sync.exceptions import SyncAlreadyRunningError
 from app.sync.models import PokemonChange, SyncRun
-from app.sync.normalize import normalize, normalize_species, normalize_type_chart
+from app.sync.normalize import normalize_pokemon, normalize_species, normalize_type_chart
 from app.sync.pokeapi import PokeApiPokemon
 from app.sync.store import store_pokemon, store_species, store_type_chart
 from app.sync.types import Clock, SyncReport
@@ -107,7 +107,7 @@ def _normalize_all(fetched: Iterable[PokeApiPokemon]) -> tuple[list[Pokemon], li
     unusable: list[str] = []
     for raw in fetched:
         try:
-            normalized[raw.id] = normalize(raw)
+            normalized[raw.id] = normalize_pokemon(raw)
         except ValueError as error:
             logger.warning("Skipping %s: %s", raw.name, error)
             unusable.append(raw.name)
