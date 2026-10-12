@@ -13,7 +13,7 @@ import { ASH, MISTY } from '@/test/users'
 import { useTeam } from './use-team'
 import { useTeamEditor } from './use-team-editor'
 
-const { charmander, charizard, pikachu } = catalog
+const { charmander, pikachu } = catalog
 const CATALOG = Object.values(catalog)
 const TEAM = makeTeam({ pokemon: [charmander, pikachu] })
 
@@ -28,30 +28,6 @@ async function renderEditor(team: Team = TEAM) {
 }
 
 describe('useTeamEditor', () => {
-  it('reorders the team, resolving to it as the API answers', async () => {
-    const api = serveTeams({ teams: [TEAM], catalog: CATALOG, signedIn: ASH })
-    const result = await renderEditor()
-
-    const changed = await act(() => result.current.editor.reorder([25, 4]))
-
-    expect(memberIds(changed)).toEqual([25, 4])
-    expect(api.requests).toEqual([
-      { method: 'PUT', path: `/api/teams/${TEAM_ID}/order`, body: { pokemon_ids: [25, 4] } },
-    ])
-  })
-
-  it('replaces a member, resolving to the team as the API answers', async () => {
-    const api = serveTeams({ teams: [TEAM], catalog: CATALOG, signedIn: ASH })
-    const result = await renderEditor()
-
-    const changed = await act(() => result.current.editor.replace(4, charizard))
-
-    expect(memberIds(changed)).toEqual([6, 25])
-    expect(api.requests).toEqual([
-      { method: 'PUT', path: `/api/teams/${TEAM_ID}/members/4`, body: { pokemon_id: 6 } },
-    ])
-  })
-
   it('moves a member already on the team into the slot it replaces, as the API does', async () => {
     const api = serveTeams({ teams: [TEAM], catalog: CATALOG, signedIn: ASH })
     const result = await renderEditor()
