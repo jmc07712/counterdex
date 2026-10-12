@@ -5,12 +5,22 @@ import { TeamPage } from '@/app/routes/team'
 import { TeamEditPage } from '@/app/routes/team-edit'
 import { Toaster } from '@/components/layout/toaster'
 
+import { serveCounterTeam, serveTeamThreats } from './handlers/counter'
 import { renderWithProviders } from './render'
 import { TEAM_ID } from './teams'
 
 // The test team's page, and its Edit page.
 export const VIEW = `/teams/${TEAM_ID}`
 export const EDIT = `/teams/${TEAM_ID}/edit`
+
+/**
+ * Answers the sections below a team, for tests that leave them to team-matchups.test.tsx: how to
+ * beat someone else's team, and what threatens your own.
+ */
+export function serveTeamSections() {
+  serveCounterTeam()
+  serveTeamThreats()
+}
 
 /** Renders a team's page and its Edit page at `path`, with the Teams page as a stand-in. */
 export function renderTeam(path = VIEW) {
