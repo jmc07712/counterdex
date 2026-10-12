@@ -56,6 +56,23 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
         .outerjoin(powers, powers.c.team_id == models.Team.id)
         .order_by(*(key.desc() for key in _sort_keys(query.sort, models.Team, powers)))
     )
+    statement = _filtered(statement, query)
+    if query.cursor is not None:
+        statement = statement.where(_after(query.sort, query.cursor, powers))
+    # One extra row shows whether another page follows, without counting the rest.
+    teams = session.execute(statement.limit(query.limit + 1)).all()
+
+    items = _shown(session, teams[: query.limit])
+    next_cursor = items[-1].id if len(teams) > query.limit else None
+    return schemas.TeamPage(items=items, next_cursor=next_cursor)
+
+
+def _filtered(
+    statement: Select[models.Team, str], query: schemas.TeamsQuery
+) -> Select[models.Team, str]:
+    """The teams, each with its owner, that the query's owner, search, types and `changed` let
+    through, as list_teams describes.
+    """
     if query.owner is None:
         statement = statement.where(exists().where(models.TeamMember.team_id == models.Team.id))
     else:
@@ -80,26 +97,26 @@ def list_teams(session: Session, query: schemas.TeamsQuery) -> schemas.TeamPage:
         )
     if query.changed:
         statement = statement.where(_has_a_pokemon(changed_recently()))
-    if query.cursor is not None:
-        # A row subquery of the cursor team's sort columns. Newest first, Postgres can start
-        # scanning the (created_at, id) index at the cursor's team. A cursor that no team has
-        # makes it null, which no row is less than.
-        cursor_team = aliased(models.Team)
-        cursor_powers = _team_powers()
-        cursor = (
-            select(*_sort_keys(query.sort, cursor_team, cursor_powers))
-            .select_from(cursor_team)
-            .outerjoin(cursor_powers, cursor_powers.c.team_id == cursor_team.id)
-            .where(cursor_team.id == query.cursor)
-            .scalar_subquery()
-        )
-        statement = statement.where(tuple_(*_sort_keys(query.sort, models.Team, powers)) < cursor)
-    # One extra row shows whether another page follows, without counting the rest.
-    teams = session.execute(statement.limit(query.limit + 1)).all()
+    return statement
 
-    items = _shown(session, teams[: query.limit])
-    next_cursor = items[-1].id if len(teams) > query.limit else None
-    return schemas.TeamPage(items=items, next_cursor=next_cursor)
+
+def _after(sort: TeamSort, cursor: uuid.UUID, powers: Subquery) -> ColumnElement[bool]:
+    """Whether a team comes after the cursor's team in the sort. `powers` is _team_powers joined
+    to the team.
+    """
+    # A row subquery of the cursor team's sort columns. Newest first, Postgres can start scanning
+    # the (created_at, id) index at the cursor's team. A cursor that no team has makes it null,
+    # which no row is less than.
+    cursor_team = aliased(models.Team)
+    cursor_powers = _team_powers()
+    cursor_keys = (
+        select(*_sort_keys(sort, cursor_team, cursor_powers))
+        .select_from(cursor_team)
+        .outerjoin(cursor_powers, cursor_powers.c.team_id == cursor_team.id)
+        .where(cursor_team.id == cursor)
+        .scalar_subquery()
+    )
+    return tuple_(*_sort_keys(sort, models.Team, powers)) < cursor_keys
 
 
 def list_user_teams(session: Session, username: str) -> list[schemas.Team]:
