@@ -9,8 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.counter.scoring import profile_from_columns
 from app.counter.types import Candidate, Profile, TypeChart
-from app.pokemon import models, schemas
-from app.pokemon.queries import pokemon_from_columns
+from app.pokemon import models
 
 # What scoring needs of a Pokémon: its types and base stats.
 PROFILE_COLUMNS = (
@@ -69,18 +68,3 @@ def candidates(session: Session, *, forms: bool, legendaries: bool) -> list[Cand
         Candidate(profile_from_columns(row), family_id=row["evolution_chain_id"])
         for row in session.execute(statement).mappings()
     ]
-
-
-def pokemon(session: Session, pokemon_ids: Sequence[int]) -> dict[int, schemas.Pokemon]:
-    """These Pokémon as the API serves them, with their species and family, by id."""
-    rows = session.execute(
-        select(
-            models.Pokemon.__table__,
-            models.SpeciesVariety.species_id,
-            models.Species.evolution_chain_id.label("family_id"),
-        )
-        .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
-        .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
-        .where(models.Pokemon.id.in_(pokemon_ids))
-    ).mappings()
-    return {row["id"]: pokemon_from_columns(row) for row in rows}

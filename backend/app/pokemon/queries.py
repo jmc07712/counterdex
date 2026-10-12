@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, exists, func, select
+from sqlalchemy import ColumnElement, Select, exists, func, select
 from sqlalchemy.orm import Session
 
 from app.pokemon import models, schemas
@@ -13,17 +13,7 @@ from app.pokemon.enums import FormFilter, ListingStatus
 
 def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.PokemonPage:
     """One page of the matching Pokémon, by Pokédex number, after the cursor."""
-    statement = (
-        select(
-            models.Pokemon.__table__,
-            models.SpeciesVariety.species_id,
-            models.Species.evolution_chain_id.label("family_id"),
-        )
-        # Outer, as a Pokémon is listed before a sync has stored its species.
-        .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
-        .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
-        .order_by(models.Pokemon.id)
-    )
+    statement = _with_species().order_by(models.Pokemon.id)
     if query.status is ListingStatus.LISTED:
         statement = statement.where(models.Pokemon.removed_at.is_(None))
     else:
@@ -50,6 +40,12 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
 
 
+def pokemon_by_ids(session: Session, pokemon_ids: Sequence[int]) -> dict[int, schemas.Pokemon]:
+    """These Pokémon as the API serves them, with their species and family, by id."""
+    rows = session.execute(_with_species().where(models.Pokemon.id.in_(pokemon_ids))).mappings()
+    return {row["id"]: pokemon_from_columns(row) for row in rows}
+
+
 def changed_recently() -> ColumnElement[bool]:
     """Whether a sync changed the Pokémon in the last week: updated it, removed it or listed it
     again.
@@ -67,16 +63,7 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     Pokémon has the id.
     """
     row = (
-        session.execute(
-            select(
-                models.Pokemon.__table__,
-                models.SpeciesVariety.species_id,
-                models.Species.evolution_chain_id.label("family_id"),
-            )
-            .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
-            .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
-            .where(models.Pokemon.id == pokemon_id)
-        )
+        session.execute(_with_species().where(models.Pokemon.id == pokemon_id))
         .mappings()
         .one_or_none()
     )
@@ -145,13 +132,7 @@ def _listed_forms(
     number.
     """
     rows = session.execute(
-        select(
-            models.Pokemon.__table__,
-            models.SpeciesVariety.species_id,
-            models.Species.evolution_chain_id.label("family_id"),
-        )
-        .join(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
-        .join(models.Species, models.Species.id == models.SpeciesVariety.species_id)
+        _with_species()
         .where(
             models.SpeciesVariety.species_id.in_(species_ids),
             models.Pokemon.removed_at.is_(None),
@@ -159,6 +140,22 @@ def _listed_forms(
         .order_by(models.Pokemon.id)
     ).mappings()
     return [(row["species_id"], pokemon_from_columns(row)) for row in rows]
+
+
+def _with_species() -> Select[*tuple[Any, ...]]:
+    """The pokemon table's columns, with each Pokémon's species' and family's ids: null until a
+    sync has stored its species.
+    """
+    return (
+        select(
+            models.Pokemon.__table__,
+            models.SpeciesVariety.species_id,
+            models.Species.evolution_chain_id.label("family_id"),
+        )
+        # Outer, as a Pokémon is listed before a sync has stored its species.
+        .outerjoin(models.SpeciesVariety, models.SpeciesVariety.pokemon_id == models.Pokemon.id)
+        .outerjoin(models.Species, models.Species.id == models.SpeciesVariety.species_id)
+    )
 
 
 def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:

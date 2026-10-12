@@ -17,6 +17,7 @@ from app.counter.exceptions import (
 )
 from app.counter.scoring import matchup, weak_to
 from app.counter.types import Attack, Contender, Matchup, Profile, TypeChart
+from app.pokemon.queries import pokemon_by_ids
 from app.pokemon.schemas import Pokemon
 
 
@@ -47,7 +48,7 @@ def list_team_threats(
     Raises UnknownPokemonError and TypeChartMissingError as find_counter_team does.
     """
     contenders = _contenders(session, query)
-    families = {each.family_id for each in queries.pokemon(session, query.pokemon_ids).values()}
+    families = {each.family_id for each in pokemon_by_ids(session, query.pokemon_ids).values()}
     others = [each for each in contenders if each.candidate.family_id not in families]
     threats = search.threats(others, MAX_THREATS)
     return _challengers(session, threats, query.pokemon_ids)
@@ -64,7 +65,7 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     theirs = _profiles(session, query.opponent_ids)
     chart = _type_chart(session)
     team = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
-    pokemon = queries.pokemon(session, query.pokemon_ids)
+    pokemon = pokemon_by_ids(session, query.pokemon_ids)
     return schemas.TeamMatchups(
         members=[
             _challenger(pokemon[pokemon_id], query.opponent_ids, row)
@@ -114,7 +115,7 @@ def _challengers(
     session: Session, contenders: Sequence[Contender], team_ids: Sequence[int]
 ) -> list[schemas.Challenger]:
     """The contenders as the API shows them, in the order given."""
-    pokemon = queries.pokemon(session, [each.candidate.profile.id for each in contenders])
+    pokemon = pokemon_by_ids(session, [each.candidate.profile.id for each in contenders])
     return [
         _challenger(pokemon[contender.candidate.profile.id], team_ids, contender.matchups)
         for contender in contenders
