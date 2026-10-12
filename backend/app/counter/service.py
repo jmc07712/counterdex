@@ -64,12 +64,12 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     ours = _profiles(session, query.pokemon_ids)
     theirs = _profiles(session, query.opponent_ids)
     chart = _type_chart(session)
-    team = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
+    matchups = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
     pokemon = pokemon_by_ids(session, query.pokemon_ids)
     return schemas.TeamMatchups(
         members=[
             _challenger(pokemon[pokemon_id], query.opponent_ids, row)
-            for pokemon_id, row in zip(query.pokemon_ids, team, strict=True)
+            for pokemon_id, row in zip(query.pokemon_ids, matchups, strict=True)
         ],
     )
 
