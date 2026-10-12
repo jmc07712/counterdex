@@ -1,6 +1,4 @@
 import type { Team } from '@/api'
-import { ResultsStatus } from '@/components/lists/results-status'
-import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { m } from '@/paraglide/messages.js'
 
 import { useMatchupPool } from '../hooks/use-matchup-pool'
@@ -8,6 +6,7 @@ import { useTeamThreats } from '../hooks/use-team-threats'
 import type { MatchupPool } from '../types'
 import { threatsSummary, weakSpotsLine } from '../utils/matchup-summary'
 import { weakSpots } from '../utils/weak-spots'
+import { MatchupAnswer } from './matchup-answer'
 import {
   MatchupNeedsSync,
   MatchupResults,
@@ -51,67 +50,41 @@ export function TeamThreats({ team, onOpenPokemon }: TeamThreatsProps) {
 }
 
 function Threats({ team, pool, onOpenPokemon }: TeamThreatsProps & { pool: MatchupPool }) {
-  const threats = useTeamThreats(team.members, pool)
+  const query = useTeamThreats(team.members, pool)
   const members = team.members.map((member) => member.pokemon)
-  // The first thing returned, from the first load on, so it stays the same element as the threats
-  // change. It reads out how many there are, and the biggest, once they've loaded.
-  const status = (
-    <ResultsStatus settled={!threats.isPlaceholderData}>
-      {threats.data && threatsSummary(threats.data, members)}
-    </ResultsStatus>
-  )
-
-  if (threats.isPending) {
-    return (
-      <>
-        {status}
-        <MatchupSkeleton label={m.team_threats_loading()} />
-      </>
-    )
-  }
-  if (threats.isError) {
-    return (
-      <>
-        {status}
-        <LoadFailedAlert
-          title={m.team_threats_load_failed()}
-          onRetry={() => void threats.refetch()}
-        />
-      </>
-    )
-  }
-  if (threats.data === null) {
-    return (
-      <>
-        {status}
-        <MatchupResults busy={threats.isPlaceholderData}>
+  return (
+    <MatchupAnswer
+      query={query}
+      // How many there are, and the biggest.
+      summary={(threats) => threatsSummary(threats, members)}
+      loading={<MatchupSkeleton label={m.team_threats_loading()} />}
+      loadFailed={m.team_threats_load_failed()}
+      needsSync={
+        <MatchupResults busy={query.isPlaceholderData}>
           <MatchupNeedsSync>{m.team_threats_needs_sync()}</MatchupNeedsSync>
         </MatchupResults>
-      </>
-    )
-  }
-
-  return (
-    <>
-      {status}
-      <MatchupResults busy={threats.isPlaceholderData} className="flex flex-col gap-4">
-        <p className="rounded-xl border bg-card px-4 py-3 font-medium">
-          {weakSpotsLine(weakSpots(threats.data, members))}
-        </p>
-        {/* The grid where it fits, and on narrower screens the list. */}
-        <ThreatsGrid
-          threats={threats.data}
-          members={team.members}
-          onOpenPokemon={onOpenPokemon}
-          className="hidden @2xl:table"
-        />
-        <ThreatsList
-          threats={threats.data}
-          members={team.members}
-          onOpenPokemon={onOpenPokemon}
-          className="@2xl:hidden"
-        />
-      </MatchupResults>
-    </>
+      }
+    >
+      {(threats) => (
+        <MatchupResults busy={query.isPlaceholderData} className="flex flex-col gap-4">
+          <p className="rounded-xl border bg-card px-4 py-3 font-medium">
+            {weakSpotsLine(weakSpots(threats, members))}
+          </p>
+          {/* The grid where it fits, and on narrower screens the list. */}
+          <ThreatsGrid
+            threats={threats}
+            members={team.members}
+            onOpenPokemon={onOpenPokemon}
+            className="hidden @2xl:table"
+          />
+          <ThreatsList
+            threats={threats}
+            members={team.members}
+            onOpenPokemon={onOpenPokemon}
+            className="@2xl:hidden"
+          />
+        </MatchupResults>
+      )}
+    </MatchupAnswer>
   )
 }
