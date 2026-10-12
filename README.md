@@ -102,72 +102,62 @@ sync puts PokéAPI's real data back. It records that as changes too, including P
 
 ## Counter teams
 
-PokéAPI's data has each Pokémon's types and base stats, but not its moves. That means Counterdex
-can't simulate a real battle. Instead, it gives each pairing of two Pokémon a score.
-
-A pairing is scored on four things. The first is how well this Pokémon's best type hits the other
-one. The second is how well the other Pokémon's best type hits back. The last two are which one has
-the higher base stat total, and which one is faster. Types usually decide the result, but a big
-enough gap in stats can change it.
-
-The counter team is built one Pokémon at a time. Each time, the app adds the Pokémon that helps
-most against the team you're looking at. It also avoids picking too many Pokémon that share the
-same weakness. The picks are always a valid team, with at most one Pokémon from each evolution
-family. Legendary Pokémon and alternate forms are left out unless you ask for them. The finished
-team comes back in battle order.
-
-Every pick comes with its score broken down, and the app turns that into a plain-English reason.
+Counterdex can't simulate real battles, because PokéAPI's data doesn't include moves. Instead, it
+gives every pairing of two Pokémon a score. It then uses those scores to build counter teams and to
+find the biggest threats to your own teams.
 
 ### How the scoring works, and why
 
-I chose the numbers by hand, following a few simple rules. There's no battle data to fit them to.
-After choosing them, I checked each one against the real Pokédex of 1,024 Pokémon (counting only
-each Pokémon's default form).
+The easiest way to see how a pairing is scored is to follow one. Here's Pikachu against Gyarados.
 
-Types count the most. A Pokémon's best type adds one point if it's twice as effective against the
-other Pokémon, and two points if it's four times as effective. It takes away one point at half as
-effective, two points at a quarter, and three points if it has no effect at all. The other
-Pokémon's best type is scored the same way and counts against it.
+| Step | What happens | Points |
+| --- | --- | --- |
+| Pikachu's best attack | Pikachu is an Electric type. Electric attacks are twice as strong against Water types and twice as strong against Flying types. Gyarados is both, so Pikachu's attacks are four times as strong. | +2 |
+| Gyarados's best attack | Gyarados is a Water and Flying type. Water attacks do normal damage to Pikachu, and Flying attacks do half. Its best attack is Water, at normal damage. | 0 |
+| Base stats | Pikachu's base stats add up to 320, and Gyarados's add up to 540. Pikachu is 220 points behind. | −0.55 |
+| Speed | Pikachu's Speed is 90 and Gyarados's is 81, so Pikachu is faster. | +0.25 |
+| **Total** | | **+1.70** |
 
-I counted types in steps like this because type effects multiply. A Pokémon that's weak twice over
-takes four times the damage, so in steps that's simply two points. A resistance also cancels out a
-weakness. "No effect" is one step worse than a quarter, so it hurts, but it doesn't outweigh
-everything else.
+A total of 0.75 or more is rated Good, so Pikachu against Gyarados is Good. Pikachu wins on type,
+even though its stats are much lower. From Gyarados's side, the score is exactly the opposite. It's
+−1.70, which is rated Bad.
 
-Both Pokémon's attacks count because a good pick has to take a hit as well as land one. This also
-means that turning a pairing around gives exactly the opposite score. The same scoring can then find
-both the counters to a team and the threats to it.
+Here's what each step counts, and why.
 
-Base stats add a quarter of a point for every 100 points of difference in base stat total. That's
-small on purpose, so that types decide most pairings. Half of all pairs of Pokémon differ by less
-than 110 points, which is worth about a quarter of a point. A stat gap only outweighs a whole type
-step when it's 400 points or more, and that happens in less than 1% of pairs. Stats still decide
-between Pokémon that have the same type edge. I used the total because, without moves, there's no
-way to know which attack stat a Pokémon would actually use.
+- Each Pokémon's best attack is worth one point for every time its damage doubles. Twice as strong
+  is +1, and four times as strong is +2. Half as strong is −1, a quarter is −2, and no effect at all
+  is −3. The other Pokémon's best attack counts against it in the same way. Types count the most
+  because they usually decide real battles.
+- Every 100 points of difference in base stats is worth a quarter of a point. In the example,
+  Pikachu is 220 points behind, so it loses 0.55. Stats are worth a lot less than types on purpose.
+  A stat gap only outweighs a full type advantage when it's 400 points or more, which is very rare.
+- The faster Pokémon gets a quarter of a point, and the slower one loses a quarter. Going first
+  matters, but the data only says which Pokémon is faster, not by how much.
+- A total of 0.75 or more is Good, −0.75 or less is Bad, and anything in between is Even.
 
-Speed adds a quarter of a point to the faster Pokémon and takes a quarter away from the slower one.
-Going first matters, but the data only says which Pokémon is faster, not by how much. So Speed
-counts the same as 100 points of base stats. Ties are rare, at 2.5% of pairs.
+I chose these numbers by hand, because there's no battle data to fit them to. Then I checked them
+against the real Pokédex to make sure types decide most pairings and stats mostly break close calls.
 
-A score of 0.75 or more is rated Good, a score of −0.75 or less is rated Bad, and anything in
-between is Even. A clear type advantage therefore still counts as Good when the other Pokémon has
-up to 100 more base stat points and the same Speed. Without a type advantage, a Pokémon needs at
-least 200 more base stat points and to be faster before it counts as Good. Because the two cut-offs
-are the same distance from zero, a pairing that's Good from one side is Bad from the other. That's
-how the threats grid can rate each threat from your Pokémon's point of view.
+### Building a counter team
 
-Finding the very best team of six would mean checking every possible set of six Pokémon, which is
-about 1.6 quadrillion sets. Adding one Pokémon at a time instead is instant, always gives the same
-team, and lets every pick come with a reason. If three or more picks are weak to the same type, the
-team loses a point, because one opposing Pokémon of that type could beat half of it. The downside
-of this approach is that it can miss a team of six that's only better as a whole.
+To build a counter team, Counterdex adds one Pokémon at a time. Each time, it picks the Pokémon that
+helps most against the team you're looking at. If three or more picks would be weak to the same
+type, the counter team loses a point, so it avoids stacking up one weakness. No two picks come from
+the same evolution family, legendary Pokémon and alternate forms are left out unless you turn them
+on, and the finished team comes back in battle order. Every pick in the app shows its score and a
+plain-English reason.
 
-The top 12 threats to your team are the 12 Pokémon with the highest total score against it, with at
-most one from each evolution family and none from your own team's families. Twelve is two teams'
-worth. That's enough to show a pattern in your team's weak spots while keeping the grid easy to
-read.
+Adding one Pokémon at a time is fast and always gives the same team. Checking every possible team of
+six instead would mean looking at about 1.6 quadrillion teams. The downside is that it can
+occasionally miss a team of six that's only better as a whole.
 
-All of these numbers live in [`backend/app/counter/constants.py`](backend/app/counter/constants.py),
+### Threats to your own team
+
+On your own teams, Counterdex shows the 12 Pokémon that score best against your team instead.
+There's at most one from each evolution family, and none from your own team's families. Any of your
+Pokémon that at least half of those threats beat is called out as a weak spot.
+
+All of these numbers are in [`backend/app/counter/constants.py`](backend/app/counter/constants.py),
 with the reason for each one written next to it. The
 [backend guide](backend/README.md#counter-teams) has more detail.
 
@@ -239,8 +229,8 @@ cd ../frontend && npm ci && cd ..
 vercel dev                                              # app and API on localhost:3000
 ```
 
-`vercel dev` needs you to run `vercel link` once first. If you'd rather not use Vercel, you can start
-the API with uvicorn on port 3000 and the app with `npm run dev`. The
+`vercel dev` needs you to run `vercel link` once first. If you'd rather not use Vercel, you can
+start the API with uvicorn on port 3000 and the app with `npm run dev`. The
 [backend](backend/README.md#running-it) and [frontend](frontend/README.md#running-it) guides explain
 both ways, and how to run the tests (`uv run pytest`, which needs Docker, and `npm test`).
 
