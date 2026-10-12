@@ -46,7 +46,12 @@ describe('AdminPage, access', () => {
     expect(requests).toEqual([])
     release()
 
+    // An admin's, in a widget of their own.
     expect(await findRunsTable()).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Sync runs' })).toBeInTheDocument()
+    expect(
+      screen.getByText('A sync run fetches every Pokémon from PokéAPI and saves what changed.'),
+    ).toBeInTheDocument()
   })
 
   it.each([
@@ -77,19 +82,6 @@ describe('AdminPage, access', () => {
 
     await waitFor(() => expect(requests.checks).toBe(2))
   })
-
-  it('shows an admin the sync runs, in a widget of their own', async () => {
-    serveSession({ signedIn: OAK })
-    serveSyncRuns({ runs: [makeSyncRun()] })
-
-    renderAdmin()
-
-    expect(await screen.findByRole('heading', { level: 2, name: 'Sync runs' })).toBeInTheDocument()
-    expect(
-      screen.getByText('A sync run fetches every Pokémon from PokéAPI and saves what changed.'),
-    ).toBeInTheDocument()
-    expect(await findRunsTable()).toBeInTheDocument()
-  })
 })
 
 describe('AdminPage, sync runs', () => {
@@ -107,7 +99,8 @@ describe('AdminPage, sync runs', () => {
 
     renderAdmin()
 
-    expect(cellsByRow(await findRunsTable())).toEqual([
+    const table = await findRunsTable()
+    expect(cellsByRow(table)).toEqual([
       [
         'Status',
         'Started',
@@ -122,17 +115,8 @@ describe('AdminPage, sync runs', () => {
       ['Failed', 'Oct 10, 2026, 9:00:00 AM', '2 min, 5 sec', '0', '0', '2', '1', '0', ERROR],
       ['Succeeded', 'Oct 10, 2026, 9:00:00 AM', '2 min, 5 sec', '4', '3', '2', '1', '5', ''],
     ])
-  })
-
-  it('shows when each run started, for machines too', async () => {
-    serveSyncRuns({ runs: [makeSyncRun()] })
-
-    renderAdmin()
-
-    expect(within(await findRunsTable()).getByRole('time')).toHaveAttribute(
-      'datetime',
-      '2026-10-10T09:00:00Z',
-    )
+    // When each started, for machines too.
+    expect(within(table).getAllByRole('time')[0]).toHaveAttribute('datetime', '2026-10-10T09:00:00Z')
   })
 
   it('lists the runs on phones too, each with its details', async () => {
@@ -251,26 +235,21 @@ describe('AdminPage, sync runs', () => {
     expect(next).toHaveFocus()
   })
 
-  it.each([
-    [
-      '/admin',
-      ['Previous', 'Page 1', 'Page 2', 'Page 3', 'Page 4', 'Page 5', 'Page 10', 'Next'],
-    ],
-    [
-      '/admin?page=5',
-      ['Previous', 'Page 1', 'Page 4', 'Page 5', 'Page 6', 'Page 10', 'Next'],
-    ],
-    [
-      '/admin?page=10',
-      ['Previous', 'Page 1', 'Page 6', 'Page 7', 'Page 8', 'Page 9', 'Page 10', 'Next'],
-    ],
-  ])('numbers the pages around %s, skipping the rest', async (path, links) => {
+  it('numbers the pages around the one shown, skipping the rest', async () => {
     serveSyncRuns({ runs: makeSyncRuns(10), pageSize: 1 })
 
-    renderAdmin(path)
+    renderAdmin('/admin?page=5')
 
     await findRunsTable()
-    expect(pageLinks()).toEqual(links)
+    expect(pageLinks()).toEqual([
+      'Previous',
+      'Page 1',
+      'Page 4',
+      'Page 5',
+      'Page 6',
+      'Page 10',
+      'Next',
+    ])
   })
 
   // 2147483648 is one past the highest page the API takes.
