@@ -36,7 +36,8 @@ export function weakSpots(threats: Challenger[], members: Pokemon[]): WeakSpots 
   }
 }
 
-function beats(threat: Challenger, member: Pokemon) {
+/** Whether `threat` beats `member`: its matchup against the member, from its own side, is good. */
+export function beats(threat: Challenger, member: Pokemon) {
   return threat.matchups.some(
     (matchup) => matchup.opponent_id === member.id && matchup.rating === Rating.GOOD,
   )

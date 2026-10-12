@@ -1,6 +1,6 @@
 import { useId } from 'react'
 
-import { type Challenger, Rating, type TeamMember } from '@/api'
+import type { Challenger, TeamMember } from '@/api'
 import { displayName } from '@/components/pokemon/format'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { asMember } from '../utils/as-member'
 import { threatReason, threatWithoutWins } from '../utils/matchup-summary'
+import { beats } from '../utils/weak-spots'
 import { MemberThumb } from './member-thumb'
 
 type ThreatsListProps = {
@@ -59,11 +60,7 @@ function ThreatCard({ threat, position, members, onOpen }: ThreatCardProps) {
   const nameId = useId()
   const lineId = useId()
   const opponents = members.map((member) => member.pokemon)
-  const beaten = members.filter((member) =>
-    threat.matchups.some(
-      (matchup) => matchup.opponent_id === member.pokemon.id && matchup.rating === Rating.GOOD,
-    ),
-  )
+  const beaten = members.filter((member) => beats(threat, member.pokemon))
   return (
     <li className="relative flex flex-col gap-3 rounded-2xl border bg-card p-3 transition-colors hover:border-foreground/30">
       <div className="flex items-center gap-3">
