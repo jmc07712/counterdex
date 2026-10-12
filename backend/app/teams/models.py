@@ -20,6 +20,10 @@ from app.core.db import Base
 from app.pokemon.constants import MAX_TEAM_SIZE
 from app.teams.constants import MAX_TEAM_NAME_LENGTH
 
+# The names of TeamMember's unique constraints, which the service refers to.
+SLOT = "uq_team_members_team_id_position"
+FAMILY_ON_TEAM = "uq_team_members_team_id_family_id"
+
 
 class Team(Base):
     """A user's team of up to six Pokémon, in order."""
@@ -53,18 +57,12 @@ class TeamMember(Base):
         CheckConstraint(f"position between 0 and {MAX_TEAM_SIZE - 1}", name="position_in_team"),
         # Checked when the transaction commits, so members can pass through each other's slots
         # while they're reordered.
-        UniqueConstraint(
-            "team_id",
-            "position",
-            name="uq_team_members_team_id_position",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
+        UniqueConstraint("team_id", "position", name=SLOT, deferrable=True, initially="DEFERRED"),
         # One Pokémon from each evolution family: Charmander, Charizard and Mega Charizard X
         # can't share a team. This also keeps a team to one of each species. A sync that would
         # put two Pokémon from one family on a team fails here, and the whole sync is rolled
         # back.
-        UniqueConstraint("team_id", "family_id", name="uq_team_members_team_id_family_id"),
+        UniqueConstraint("team_id", "family_id", name=FAMILY_ON_TEAM),
         # The species is this Pokémon's. When a sync moves a Pokémon to another species, its
         # members' species_id changes with it.
         ForeignKeyConstraint(

@@ -50,10 +50,9 @@ from app.teams.exceptions import (
     UnknownPokemonError,
     UserNotFoundError,
 )
+from app.teams.models import FAMILY_ON_TEAM, SLOT
 
-FAMILY_ON_TEAM = "uq_team_members_team_id_family_id"
 TEAM_ID = "pk_teams"
-SLOT = "uq_team_members_team_id_position"
 
 # A member's row: id, position, pokemon_id and family_id.
 Member = Row[int, int, int, int]
