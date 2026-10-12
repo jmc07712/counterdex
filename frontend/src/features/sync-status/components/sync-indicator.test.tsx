@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SyncOverview, SyncRunSummary } from '@/api'
 import { serveSyncStatus } from '@/test/handlers'
@@ -8,7 +8,19 @@ import { renderWithProviders } from '@/test/render'
 
 import { SyncIndicator } from './sync-indicator'
 
-const THREE_HOURS_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+// Midday UTC, the tests' time zone, so three hours earlier is the same day.
+const NOW = new Date('2026-10-11T12:00:00Z')
+const THREE_HOURS_AGO = new Date(NOW.getTime() - 3 * 60 * 60 * 1000).toISOString()
+
+// Only Date is faked, so Testing Library's waits and user-event keep their real timers.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 // The Pokédex as synced three hours ago, by a run like `run`.
 function syncedThreeHoursAgo(run: Partial<SyncRunSummary> = {}): SyncOverview {
