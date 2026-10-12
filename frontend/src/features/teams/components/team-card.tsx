@@ -25,7 +25,7 @@ type TeamCardProps = {
   to: string
   name: string
   members: TeamMember[]
-  // Shown under the name, such as "Not saved".
+  // Shown under the name, such as who the team belongs to.
   note?: string
   // Beside its power, over the link, such as a button to build a counter to it.
   action?: ReactNode
