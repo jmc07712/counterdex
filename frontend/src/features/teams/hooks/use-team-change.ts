@@ -2,15 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import type { Team } from '@/api'
-import {
-  listTeamsInfiniteQueryKey,
-  listUserTeamsOptions,
-} from '@/api/@tanstack/react-query.gen'
+import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
 import { currentUserOptions } from '@/lib/auth'
 import { m } from '@/paraglide/messages.js'
 
 import { teamProblem } from '../utils/team-change-error'
 import { teamQueryOptions } from './use-team'
+import { invalidateTeamLists } from './use-user-teams'
 
 /** Changes to one team share this scope, so they're sent one at a time, in order. */
 export function teamChangeScope(teamId: string) {
@@ -84,9 +82,7 @@ export function useTeamChange<Variables>(team: Team, { send, apply }: TeamChange
     onSettled: () => {
       if (!isLastChange()) return
       void queryClient.invalidateQueries({ queryKey: teamKey })
-      // The lists that show the team: its owner's, and everyone's.
-      void queryClient.invalidateQueries({ queryKey: listKey })
-      void queryClient.invalidateQueries({ queryKey: listTeamsInfiniteQueryKey() })
+      void invalidateTeamLists(queryClient, team.owner.username)
     },
   })
 
