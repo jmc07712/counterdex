@@ -73,20 +73,13 @@ def store_pokemon(
         for pokemon_id in removed_ids
     )
 
-    if to_write:
-        _upsert(session, models.Pokemon, to_write)
-    if unchanged_ids:
-        session.execute(
-            update(models.Pokemon)
-            .where(models.Pokemon.id.in_(unchanged_ids))
-            .values(last_synced_at=synced_at)
-        )
-    if removed_ids:
-        session.execute(
-            update(models.Pokemon)
-            .where(models.Pokemon.id.in_(removed_ids))
-            .values(removed_at=synced_at, last_changed_at=synced_at)
-        )
+    _write_pokemon(
+        session,
+        synced_at,
+        to_write=to_write,
+        unchanged_ids=unchanged_ids,
+        removed_ids=removed_ids,
+    )
 
     return StoreResult(
         inserted=inserted,
@@ -147,6 +140,33 @@ def store_type_chart(session: Session, chart: Sequence[TypeMatchupRecord]) -> No
     if not chart:
         return
     _upsert(session, models.TypeMatchup, [asdict(matchup) for matchup in chart])
+
+
+def _write_pokemon(
+    session: Session,
+    synced_at: datetime,
+    *,
+    to_write: list[dict[str, Any]],
+    unchanged_ids: list[int],
+    removed_ids: list[int],
+) -> None:
+    """Write the new and changed Pokémon's rows, and mark the unchanged ones synced and the
+    removed ones removed.
+    """
+    if to_write:
+        _upsert(session, models.Pokemon, to_write)
+    if unchanged_ids:
+        session.execute(
+            update(models.Pokemon)
+            .where(models.Pokemon.id.in_(unchanged_ids))
+            .values(last_synced_at=synced_at)
+        )
+    if removed_ids:
+        session.execute(
+            update(models.Pokemon)
+            .where(models.Pokemon.id.in_(removed_ids))
+            .values(removed_at=synced_at, last_changed_at=synced_at)
+        )
 
 
 def _upsert(session: Session, model: type[Base], rows: list[dict[str, Any]]) -> None:
