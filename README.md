@@ -157,42 +157,30 @@ a note explaining each one. The [backend guide](backend/README.md#counter-teams)
 
 ## Design decisions
 
-I store a copy of PokéAPI rather than calling it live. PokéAPI's list of Pokémon only gives their
-names, so showing a grid with types and stats would mean one request per Pokémon, with no way to
-search or filter. Spotting changes also needs a stored copy to compare against. The downside is that
-the data is only as fresh as the last sync, so the app always shows when that was.
-
-I only count changes that users can see. One fingerprint per Pokémon makes comparing them exact and
-cheap, and the before-and-after snapshots let the app say precisely what changed. The downside is
-that changes to species, evolution families and the type chart are picked up quietly, without an
-alert.
-
-Alerts are worked out whenever a team is loaded, rather than sent through a notification queue.
-Each Pokémon remembers when it last changed, and loading a team checks that date. There are no
-copies for each user to send out or clean up. The downside is that you can't dismiss a team's alert
-early, and there are no emails or push notifications.
-
-Every edit to a team is saved straight away, one at a time. There's no Save button to forget. The
-browser sends a team's edits in order, and the API locks the team while it applies each one. That
-way, double clicks, retries and two open tabs can't scramble a team. The downside is more requests,
-and some ordering logic on both the frontend and the backend.
-
-The database enforces the team rules itself. A team can have at most six members, one Pokémon in
-each slot and one Pokémon from each evolution family, and these are all database constraints. They
-hold even when two requests race each other, or when a sync moves a species to another evolution
-family. The API checks the rules first so that it can explain why it refused a change. The downside
-is that the rules live in two places, the API and the database.
-
-I built my own sign-in on the same domain as the app. Passwords are hashed with argon2id, and the
-database only stores a hash of each session token, never the token itself. The session cookie
-can't be read by JavaScript and isn't sent from other sites, and the API refuses changes that come
-from another site. The downside is that there's no email address, so there's no password reset.
-
-The frontend's API client is generated from the backend. FastAPI describes every route in an
-OpenAPI schema, and that schema generates the frontend's types, fetch functions and query hooks.
-If a field gets renamed, the frontend then fails to compile instead of breaking at runtime. A test
-fails if the committed schema falls behind the backend. The downside is an extra step to
-regenerate the client after every API change.
+- **I keep a copy of PokéAPI instead of calling it live.** PokéAPI's list only gives names, so a
+  grid with types and stats would need a separate request for every Pokémon. Having a copy also
+  makes search, filters and change tracking possible. The downside is that the data is only as
+  fresh as the last sync, so the app shows when that was.
+- **Only changes you can see count.** Each Pokémon gets one fingerprint of what you can see about
+  it, which makes comparing fast and exact. The downside is that changes to species, evolution
+  families and the type chart don't trigger alerts.
+- **Alerts are worked out when a team loads.** Each Pokémon remembers when it last changed, and
+  loading a team checks that date. There's no notification queue and nothing stored for each user.
+  The downside is that you can't dismiss an alert early, and there are no emails or push
+  notifications.
+- **Every team edit saves right away, one at a time.** There's no Save button to forget. The
+  browser sends edits in order, and the API locks the team while it applies each one. That way,
+  double clicks and two open tabs can't mess up a team. The downside is more requests.
+- **The database enforces the team rules.** A team can have at most six members, one Pokémon in
+  each slot, and one Pokémon from each evolution family. These are database rules, so they hold
+  even when two requests arrive at the same time. The API checks them first so it can explain why
+  it said no. The downside is that the rules live in two places.
+- **I built my own simple sign-in.** Passwords are hashed with argon2id, and the database only
+  stores a hash of each session token. The sign-in cookie can't be read by JavaScript or sent from
+  other sites. The downside is that there's no email, so there's no password reset.
+- **The frontend's API code is generated from the backend.** If the backend renames a field, the
+  frontend fails to compile instead of breaking for users. A test fails if the generated code falls
+  behind. The downside is one extra command after each API change.
 
 ## Assumptions
 
