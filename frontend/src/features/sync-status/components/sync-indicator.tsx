@@ -1,10 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
 import { Info } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { SyncStatus } from '@/api'
-import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
 import { ChangedIcon } from '@/components/pokemon/changed-mark'
 import { LiveStatusLight, StatusLight } from '@/components/sync/status-light'
 import { Button } from '@/components/ui/button'
@@ -19,11 +17,12 @@ import {
 import { formatAge, formatDateTime, formatShortAge } from '@/lib/dates'
 import { m } from '@/paraglide/messages.js'
 
+import { useSyncStatus } from '../hooks/use-sync-status'
 import { recentChanges } from '../utils/recent-changes'
 import { CHANGED_POKEMON_HREF } from './sync-changes-banner'
 
 export function SyncIndicator() {
-  const { data } = useQuery(syncStatusOptions())
+  const { data } = useSyncStatus()
   const [open, setOpen] = useState(false)
 
   if (!data?.last_synced_at) return null

@@ -1,14 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { Link } from 'react-router'
 import { useLocalStorage } from 'usehooks-ts'
 
-import { syncStatusOptions } from '@/api/@tanstack/react-query.gen'
 import { ChangedIcon } from '@/components/pokemon/changed-mark'
 import { Button } from '@/components/ui/button'
 import { paths } from '@/config/paths'
 import { m } from '@/paraglide/messages.js'
 
+import { useSyncStatus } from '../hooks/use-sync-status'
 import { changesSentence, recentChanges } from '../utils/recent-changes'
 
 // The end of the latest sync whose banner was dismissed, kept in this browser only.
@@ -22,7 +21,7 @@ export const CHANGED_POKEMON_HREF = `${paths.pokedex.getHref()}?status=changed`
  * week, with a link to the changed Pokémon. Dismissing it hides it until a sync changes more.
  */
 export function SyncChangesBanner() {
-  const { data } = useQuery(syncStatusOptions())
+  const { data } = useSyncStatus()
   const [dismissed, setDismissed] = useLocalStorage<string | null>(DISMISSED_KEY, null)
   const run = recentChanges(data)
   if (!run || dismissed === run.finished_at) return null
