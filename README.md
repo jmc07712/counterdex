@@ -125,8 +125,8 @@ The rules are simple.
 - **Attacks count the most.** Every time an attack's damage doubles, it's worth 1 point. So 2× is
   +1 and 4× is +2. Weak attacks lose points the same way. ½× is −1, ¼× is −2, and no effect is −3.
   The other Pokémon's best attack is scored the same way and taken away.
-- **Base stats count a little.** Every 100 points of difference is worth 0.25. A stat gap only beats
-  a type advantage when it's 400 points or more, and that's rare.
+- **Base stats count a little.** Every 100 points of difference is worth 0.25. A 400-point gap
+  cancels out a type advantage, and a bigger gap beats it, but gaps that big are rare.
 - **Speed counts a little too.** Being faster is worth +0.25, and being slower is −0.25.
 - **The total sets the rating.** 0.75 or more is Good, −0.75 or less is Bad, and anything in between
   is Even.
