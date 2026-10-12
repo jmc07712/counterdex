@@ -1,7 +1,9 @@
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 
 import type { TeamMember } from '@/api'
+
+import { useRemoveParam } from './use-remove-param'
 
 const PARAM = 'replace'
 
@@ -11,21 +13,11 @@ const PARAM = 'replace'
  * takes it out. An id that isn't a member's is taken out too.
  */
 export function useReplacing(members: TeamMember[]) {
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const id = params.get(PARAM)
   const member = members.find((each) => String(each.pokemon.id) === id)
   const stale = id !== null && member === undefined
-
-  const cancel = useCallback(() => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        next.delete(PARAM)
-        return next
-      },
-      { replace: true },
-    )
-  }, [setParams])
+  const cancel = useRemoveParam(PARAM)
 
   useEffect(() => {
     if (stale) cancel()

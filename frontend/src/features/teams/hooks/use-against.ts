@@ -1,5 +1,6 @@
-import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
+
+import { useRemoveParam } from './use-remove-param'
 
 const PARAM = 'against'
 
@@ -8,19 +9,7 @@ const PARAM = 'against'
  * counter sets it; `stop` takes it out.
  */
 export function useAgainst() {
-  const [params, setParams] = useSearchParams()
-  const teamId = params.get(PARAM)
-
-  const stop = useCallback(() => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        next.delete(PARAM)
-        return next
-      },
-      { replace: true },
-    )
-  }, [setParams])
-
-  return { teamId, stop }
+  const [params] = useSearchParams()
+  const stop = useRemoveParam(PARAM)
+  return { teamId: params.get(PARAM), stop }
 }
