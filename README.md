@@ -189,9 +189,9 @@ a note explaining each one. The [backend guide](backend/README.md#counter-teams)
   and its own card.
 - **A team can have one Pokémon per evolution family.** So Charmander and Charizard can't be on the
   same team. This is stricter than the games, which only stop you using the same Pokémon twice.
-- **A missing Pokémon counts as removed.** If a Pokémon disappears from PokéAPI's list, the app marks
-  it as removed. But if a lot disappear at once (more than 5%, or more than 10 if that's higher),
-  the sync assumes PokéAPI sent a broken response and stops.
+- **A missing Pokémon counts as removed.** If a Pokémon disappears from PokéAPI's list, the app
+  marks it as removed. But if a lot disappear at once (more than 5%, or more than 10 if that's
+  higher), the sync assumes PokéAPI sent a broken response and stops.
 - **New Pokémon aren't changes.** A Pokémon that's new to PokéAPI can't be on anyone's team yet, so
   there's nothing to alert anyone about.
 - **"This week" starts when the app noticed.** PokéAPI doesn't say when it changed something, so the
