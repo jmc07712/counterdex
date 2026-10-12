@@ -207,8 +207,7 @@ def test_scores_one_team_against_another(client: TestClient) -> None:
         "rating": "good",
     }
     assert member["matchups"] == [golem_on_charizard]
-    assert body["answers"] == [{"pokemon_id": GOLEM, "matchup": golem_on_charizard}]
-    assert body["every_opponent_answered"] is True
+    assert body.keys() == {"members"}
 
 
 @pytest.mark.parametrize(

@@ -131,17 +131,6 @@ class Challenger(BaseModel):
     """Against each of the team's Pokémon, in the order the team was given."""
 
 
-class Answer(BaseModel):
-    """Our best answer to one of their Pokémon."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
-
-    pokemon_id: int
-    """The `id` of our Pokémon with the best score against it; the first in our order, on a tie."""
-    matchup: Matchup
-    """That Pokémon's matchup against it."""
-
-
 class TeamMatchups(BaseModel):
     """Our team scored against theirs."""
 
@@ -149,7 +138,3 @@ class TeamMatchups(BaseModel):
 
     members: list[Challenger]
     """Our Pokémon, in the order given, each with its matchup against each of theirs."""
-    answers: list[Answer]
-    """Our best answer to each of their Pokémon, in their order."""
-    every_opponent_answered: bool
-    """Whether every one of their Pokémon has an answer rated `good`."""

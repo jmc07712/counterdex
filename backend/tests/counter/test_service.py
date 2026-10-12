@@ -195,49 +195,12 @@ def test_scores_each_of_ours_against_each_of_theirs_in_the_orders_given(
 
 
 @pytest.mark.usefixtures("pokedex")
-def test_finds_our_best_answer_to_each_of_theirs(db_session: Session) -> None:
-    # Golem's Rock is 4x against Charizard; against Venusaur, whose Grass is 4x against Golem,
-    # Snorlax does better, though only evenly.
-    scored = score_teams(db_session, versus([SNORLAX, GOLEM], [CHARIZARD, VENUSAUR]))
-
-    assert [
-        (
-            answer.matchup.opponent_id,
-            answer.pokemon_id,
-            answer.matchup.score,
-            answer.matchup.rating,
-        )
-        for answer in scored.answers
-    ] == [
-        (CHARIZARD, GOLEM, 2.6525, Rating.GOOD),
-        (VENUSAUR, SNORLAX, -0.2125, Rating.EVEN),
-    ]
-    snorlax, golem = scored.members
-    assert [answer.matchup for answer in scored.answers] == [
-        golem.matchups[0],
-        snorlax.matchups[1],
-    ]
-    assert scored.every_opponent_answered is False
-
-
-@pytest.mark.usefixtures("pokedex")
-def test_says_when_every_one_of_theirs_has_a_good_answer(db_session: Session) -> None:
-    scored = score_teams(db_session, versus([GOLEM], [CHARIZARD]))
-
-    assert scored.every_opponent_answered is True
-
-
-@pytest.mark.usefixtures("pokedex")
 def test_scores_a_pokemon_against_itself_as_even(db_session: Session) -> None:
     scored = score_teams(db_session, versus([CHARIZARD], [CHARIZARD]))
 
-    (answer,) = scored.answers
-    assert (answer.pokemon_id, answer.matchup.score, answer.matchup.rating) == (
-        CHARIZARD,
-        0,
-        Rating.EVEN,
-    )
-    assert scored.every_opponent_answered is False
+    (member,) = scored.members
+    (matchup,) = member.matchups
+    assert (matchup.opponent_id, matchup.score, matchup.rating) == (CHARIZARD, 0, Rating.EVEN)
 
 
 @pytest.mark.usefixtures("pokedex")
@@ -247,7 +210,9 @@ def test_scores_pokemon_pokeapi_no_longer_lists_on_either_team(db_session: Sessi
 
     scored = score_teams(db_session, versus([GOLEM], [CHARIZARD]))
 
-    assert scored.answers[0].pokemon_id == GOLEM
+    (member,) = scored.members
+    assert member.pokemon.id == GOLEM
+    assert [matchup.rating for matchup in member.matchups] == [Rating.GOOD]
 
 
 @pytest.mark.usefixtures("pokedex")

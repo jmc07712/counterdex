@@ -1497,7 +1497,7 @@
           "Counter team"
         ],
         "summary": "Score a team against another",
-        "description": "Our team scored against theirs, the way Find a counter team scores its picks: each of our\nPokémon against each of theirs, in the orders given, and our best answer to each of theirs,\nwith whether every one of theirs has a `good` answer. For a team being edited against the\nteam it's meant to counter.\n\nEither team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,\nor with no Pokémon, is a 422. The same Pokémon may be on both teams.",
+        "description": "Our team scored against theirs, the way Find a counter team scores its picks: each of our\nPokémon against each of theirs, in the orders given. For a team being edited against the team\nit's meant to counter.\n\nEither team may have Pokémon that PokéAPI no longer lists. An `id` given twice on one team,\nor with no Pokémon, is a 422. The same Pokémon may be on both teams.",
         "operationId": "score_teams",
         "parameters": [
           {
@@ -1567,26 +1567,6 @@
   },
   "components": {
     "schemas": {
-      "Answer": {
-        "properties": {
-          "pokemon_id": {
-            "type": "integer",
-            "title": "Pokemon Id",
-            "description": "The `id` of our Pokémon with the best score against it; the first in our order, on a tie."
-          },
-          "matchup": {
-            "$ref": "#/components/schemas/Matchup",
-            "description": "That Pokémon's matchup against it."
-          }
-        },
-        "type": "object",
-        "required": [
-          "pokemon_id",
-          "matchup"
-        ],
-        "title": "Answer",
-        "description": "Our best answer to one of their Pokémon."
-      },
       "Attack": {
         "properties": {
           "type": {
@@ -2843,26 +2823,11 @@
             "type": "array",
             "title": "Members",
             "description": "Our Pokémon, in the order given, each with its matchup against each of theirs."
-          },
-          "answers": {
-            "items": {
-              "$ref": "#/components/schemas/Answer"
-            },
-            "type": "array",
-            "title": "Answers",
-            "description": "Our best answer to each of their Pokémon, in their order."
-          },
-          "every_opponent_answered": {
-            "type": "boolean",
-            "title": "Every Opponent Answered",
-            "description": "Whether every one of their Pokémon has an answer rated `good`."
           }
         },
         "type": "object",
         "required": [
-          "members",
-          "answers",
-          "every_opponent_answered"
+          "members"
         ],
         "title": "TeamMatchups",
         "description": "Our team scored against theirs."

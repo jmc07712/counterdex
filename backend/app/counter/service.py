@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from app.counter import queries, schemas, search
 from app.counter.constants import MAX_THREATS
-from app.counter.enums import Rating
 from app.counter.exceptions import (
     TooFewCandidatesError,
     TypeChartMissingError,
@@ -55,9 +54,8 @@ def list_team_threats(
 
 
 def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamMatchups:
-    """Our team scored against theirs: each of ours against each of theirs, in the orders given,
-    and our best answer to each of theirs (see search.best_answers). Pokémon that PokéAPI no
-    longer lists are scored as stored.
+    """Our team scored against theirs: each of ours against each of theirs, in the orders given.
+    Pokémon that PokéAPI no longer lists are scored as stored.
 
     Raises UnknownPokemonError if no Pokémon has one of the ids, and TypeChartMissingError if no
     sync has stored the type chart.
@@ -67,22 +65,11 @@ def score_teams(session: Session, query: schemas.MatchupsQuery) -> schemas.TeamM
     chart = _type_chart(session)
     team = [[matchup(member, opponent, chart) for opponent in theirs] for member in ours]
     pokemon = queries.pokemon(session, query.pokemon_ids)
-    answers = [
-        schemas.Answer(
-            pokemon_id=query.pokemon_ids[position],
-            matchup=_matchup(opponent_id, team[position][index]),
-        )
-        for index, (opponent_id, position) in enumerate(
-            zip(query.opponent_ids, search.best_answers(team), strict=True)
-        )
-    ]
     return schemas.TeamMatchups(
         members=[
             _challenger(pokemon[pokemon_id], query.opponent_ids, row)
             for pokemon_id, row in zip(query.pokemon_ids, team, strict=True)
         ],
-        answers=answers,
-        every_opponent_answered=all(answer.matchup.rating is Rating.GOOD for answer in answers),
     )
 
 

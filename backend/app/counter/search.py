@@ -1,5 +1,5 @@
-"""Choosing a counter team, ordering it for battle, ranking the threats to a team, and finding
-a team's best answers, from scored matchups.
+"""Choosing a counter team, ordering it for battle, and ranking the threats to a team, from
+scored matchups.
 """
 
 import math
@@ -100,13 +100,6 @@ def battle_order(team: Sequence[Contender]) -> list[Contender]:
 def _best_answered(member: Contender) -> int:
     """The position, in their team, of the opponent the Pokémon scores best against."""
     return _first_best(member.matchups)
-
-
-def best_answers(team: Sequence[Sequence[Matchup]]) -> list[int]:
-    """For each of their Pokémon, the position in our team of the Pokémon that scores best
-    against it, the first on a tie, from our Pokémon's matchups against theirs.
-    """
-    return [_first_best(matchups) for matchups in zip(*team, strict=True)]
 
 
 def _first_best(matchups: Sequence[Matchup]) -> int:
