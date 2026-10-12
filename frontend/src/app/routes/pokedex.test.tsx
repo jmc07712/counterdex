@@ -5,17 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
-import {
-  holdNewTeams,
-  holdNextCurrentUser,
-  holdTeamChanges,
-  holdUserTeams,
-  servePokemon,
-  servePokemonChanges,
-  servePokemonDetails,
-  serveSession,
-  serveTeams,
-} from '@/test/handlers'
+import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
+import { holdNewTeams, holdTeamChanges, holdUserTeams, serveTeams } from '@/test/handlers/teams'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'

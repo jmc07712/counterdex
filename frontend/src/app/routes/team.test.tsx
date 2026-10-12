@@ -8,19 +8,10 @@ import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { displayName } from '@/components/pokemon/format'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
-import {
-  holdNextCurrentUser,
-  holdTeamChanges,
-  holdTeamFetches,
-  serveCounterTeam,
-  serveMatchups,
-  servePokemon,
-  servePokemonChanges,
-  servePokemonDetails,
-  serveSession,
-  serveTeams,
-  serveTeamThreats,
-} from '@/test/handlers'
+import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
+import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
+import { holdTeamChanges, holdTeamFetches, serveTeams } from '@/test/handlers/teams'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'

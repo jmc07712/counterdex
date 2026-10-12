@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { Pokemon, PokemonChange } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { servePokemonChanges, servePokemonDetails } from '@/test/handlers'
+import { servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { CHARIZARD, makeDetails } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ListingStatus, type Pokemon } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { servePokemon } from '@/test/handlers'
+import { servePokemon } from '@/test/handlers/pokemon'
 import { makePage } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 

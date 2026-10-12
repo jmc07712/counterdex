@@ -6,14 +6,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { routes } from '@/app/router'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { paths } from '@/config/paths'
-import {
-  holdNextCurrentUser,
-  serveCounterTeam,
-  servePokemon,
-  serveSession,
-  serveSyncStatus,
-  serveTeams,
-} from '@/test/handlers'
+import { serveCounterTeam } from '@/test/handlers/counter'
+import { servePokemon } from '@/test/handlers/pokemon'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
+import { serveSyncStatus } from '@/test/handlers/sync'
+import { serveTeams } from '@/test/handlers/teams'
 import { renderRoutes, renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { asMember, catalog, makeTeam } from '@/test/teams'

@@ -1,7 +1,9 @@
 import { screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { serveSession, serveSyncStatus, serveTeams } from '@/test/handlers'
+import { serveSession } from '@/test/handlers/session'
+import { serveSyncStatus } from '@/test/handlers/sync'
+import { serveTeams } from '@/test/handlers/teams'
 import { renderRoutes } from '@/test/render'
 
 import { routes } from './router'

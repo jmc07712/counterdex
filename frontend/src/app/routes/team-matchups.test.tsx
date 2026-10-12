@@ -20,13 +20,11 @@ import {
   type MatchupOf,
   serveCounterTeam,
   serveMatchups,
-  servePokemon,
-  servePokemonChanges,
-  servePokemonDetails,
-  serveSession,
-  serveTeams,
   serveTeamThreats,
-} from '@/test/handlers'
+} from '@/test/handlers/counter'
+import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
+import { serveSession } from '@/test/handlers/session'
+import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { makeDetails } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'

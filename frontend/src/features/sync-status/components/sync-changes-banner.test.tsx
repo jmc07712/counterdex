@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SyncOverview, SyncRunSummary } from '@/api'
-import { serveSyncStatus } from '@/test/handlers'
+import { serveSyncStatus } from '@/test/handlers/sync'
 import { renderWithProviders } from '@/test/render'
 
 import { SyncChangesBanner } from './sync-changes-banner'

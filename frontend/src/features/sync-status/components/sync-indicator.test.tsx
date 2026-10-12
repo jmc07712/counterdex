@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SyncOverview, SyncRunSummary } from '@/api'
-import { serveSyncStatus } from '@/test/handlers'
+import { serveSyncStatus } from '@/test/handlers/sync'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 

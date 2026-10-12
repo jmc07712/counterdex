@@ -6,13 +6,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { type Matchup, type Pokemon, PokemonType, Rating, RelativeSpeed, type Team } from '@/api'
 import { getTeamQueryKey } from '@/api/@tanstack/react-query.gen'
 import { Toaster } from '@/components/layout/toaster'
-import {
-  type MatchupOf,
-  serveMatchups,
-  servePokemon,
-  serveSession,
-  serveTeams,
-} from '@/test/handlers'
+import { type MatchupOf, serveMatchups } from '@/test/handlers/counter'
+import { servePokemon } from '@/test/handlers/pokemon'
+import { serveSession } from '@/test/handlers/session'
+import { serveTeams } from '@/test/handlers/teams'
 import { makeMatchup } from '@/test/matchups'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'

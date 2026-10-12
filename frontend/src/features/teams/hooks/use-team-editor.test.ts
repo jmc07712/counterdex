@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Team } from '@/api'
-import { holdTeamFetches, serveTeams } from '@/test/handlers'
+import { holdTeamFetches, serveTeams } from '@/test/handlers/teams'
 import { makePokemon } from '@/test/pokemon'
 import { renderHookWithProviders } from '@/test/render'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'

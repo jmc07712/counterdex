@@ -1,7 +1,7 @@
 import { waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { servePokemon } from '@/test/handlers'
+import { servePokemon } from '@/test/handlers/pokemon'
 import { renderHookWithProviders } from '@/test/render'
 
 import { usePokemonSuggestions } from './use-pokemon-suggestions'

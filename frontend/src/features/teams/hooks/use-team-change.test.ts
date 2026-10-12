@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
 import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
-import { holdUserTeams, serveTeams } from '@/test/handlers'
+import { holdUserTeams, serveTeams } from '@/test/handlers/teams'
 import { renderHookWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'

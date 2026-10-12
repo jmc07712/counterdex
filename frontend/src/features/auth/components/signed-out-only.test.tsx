@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
-import { holdNextCurrentUser, serveSession } from '@/test/handlers'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { renderWithProviders } from '@/test/render'
 import { ASH } from '@/test/users'
 

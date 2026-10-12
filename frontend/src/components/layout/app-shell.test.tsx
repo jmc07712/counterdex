@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { holdNextCurrentUser, serveSession } from '@/test/handlers'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { renderWithProviders } from '@/test/render'
 import { ASH, OAK } from '@/test/users'
 

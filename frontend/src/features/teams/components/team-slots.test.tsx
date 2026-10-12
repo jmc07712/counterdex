@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Pokemon, PokemonChange, TeamMember } from '@/api'
-import { servePokemonChanges } from '@/test/handlers'
+import { servePokemonChanges } from '@/test/handlers/pokemon'
 import { makePokemon } from '@/test/pokemon'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'

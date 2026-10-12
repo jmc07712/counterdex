@@ -1,7 +1,7 @@
 import { act, fireEvent, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { holdNextCurrentUser, serveSession } from '@/test/handlers'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { renderHookWithProviders } from '@/test/render'
 import { ASH } from '@/test/users'
 

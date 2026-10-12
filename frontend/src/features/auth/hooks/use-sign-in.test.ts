@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { useCurrentUser } from '@/lib/auth'
-import { holdNextCurrentUser, serveSession } from '@/test/handlers'
+import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { renderHookWithProviders } from '@/test/render'
 import { ASH, ASH_CREDENTIALS } from '@/test/users'
 

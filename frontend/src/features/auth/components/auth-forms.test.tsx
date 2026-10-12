@@ -4,7 +4,7 @@ import { delay, http } from 'msw'
 import { Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
-import { serveSession } from '@/test/handlers'
+import { serveSession } from '@/test/handlers/session'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { ASH_CREDENTIALS } from '@/test/users'
