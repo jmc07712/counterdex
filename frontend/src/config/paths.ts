@@ -18,7 +18,12 @@ export const paths = {
       return search ? `/teams/${teamId}/edit?${search}` : `/teams/${teamId}/edit`
     },
   },
-  pokedex: { path: '/pokedex', getHref: () => '/pokedex' },
+  pokedex: {
+    path: '/pokedex',
+    // `status: 'changed'` shows the Pokémon syncs changed in the last week.
+    getHref: ({ status }: { status?: 'changed' } = {}) =>
+      status === undefined ? '/pokedex' : `/pokedex?${new URLSearchParams({ status })}`,
+  },
   admin: {
     path: '/admin',
     // `page` is the page of sync runs, counting from 1; page 1 is left out.

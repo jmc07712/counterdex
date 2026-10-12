@@ -14,12 +14,12 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { paths } from '@/config/paths'
 import { formatAge, formatDateTime, formatShortAge } from '@/lib/dates'
 import { m } from '@/paraglide/messages.js'
 
 import { useSyncStatus } from '../hooks/use-sync-status'
 import { recentChanges } from '../utils/recent-changes'
-import { CHANGED_POKEMON_HREF } from './sync-changes-banner'
 
 export function SyncIndicator() {
   const { data } = useSyncStatus()
@@ -73,7 +73,7 @@ export function SyncIndicator() {
         )}
         {changed && (
           <Link
-            to={CHANGED_POKEMON_HREF}
+            to={paths.pokedex.getHref({ status: 'changed' })}
             onClick={() => setOpen(false)}
             className="flex items-center gap-1.5 rounded-sm text-sm font-semibold underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
           >

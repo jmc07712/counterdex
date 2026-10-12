@@ -13,9 +13,6 @@ import { changesSentence, recentChanges } from '../utils/recent-changes'
 // The end of the latest sync whose banner was dismissed, kept in this browser only.
 const DISMISSED_KEY = 'counterdex:sync-changes-dismissed'
 
-/** The Pokédex's Changed view, of the Pokémon a sync changed in the last week. */
-export const CHANGED_POKEMON_HREF = `${paths.pokedex.getHref()}?status=changed`
-
 /**
  * Under the header, a strip saying what the latest sync changed, if it changed anything in the last
  * week, with a link to the changed Pokémon. Dismissing it hides it until a sync changes more.
@@ -33,7 +30,7 @@ export function SyncChangesBanner() {
         <p className="min-w-0 flex-1">
           {changesSentence(run)}{' '}
           <Link
-            to={CHANGED_POKEMON_HREF}
+            to={paths.pokedex.getHref({ status: 'changed' })}
             className="rounded-sm font-semibold whitespace-nowrap underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {m.sync_changes_link()}
