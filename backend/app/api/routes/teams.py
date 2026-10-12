@@ -82,12 +82,8 @@ def require_team_owner(session: SessionDep, user: CurrentUser, team_id: TeamId) 
     Its row stays locked until the request's transaction ends, so other changes to the team wait
     for the route's.
     """
-    try:
+    with team_errors():
         return service.lock_owned_team(session, user.id, team_id)
-    except TeamNotFoundError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, TEAM_NOT_FOUND) from None
-    except NotTeamOwnerError:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_TEAM_OWNER) from None
 
 
 @contextmanager
@@ -97,6 +93,8 @@ def team_errors() -> Iterator[None]:
         yield
     except TeamNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, TEAM_NOT_FOUND) from None
+    except NotTeamOwnerError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, NOT_TEAM_OWNER) from None
     except UserNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, USER_NOT_FOUND) from None
     except MemberNotFoundError:
