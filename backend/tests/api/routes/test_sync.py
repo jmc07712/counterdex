@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.accounts.models import User
 from app.accounts.types import SignedIn
-from app.api.constants import SYNC_STATUS_CACHE_CONTROL
 from app.sync.enums import SyncStatus
 from tests.support.sync import add_sync_run
 
@@ -36,12 +35,6 @@ def test_reports_when_the_pokedex_was_last_synced(client: TestClient, db_session
             "failed": 1,
         },
     }
-
-
-def test_is_briefly_cacheable(client: TestClient) -> None:
-    cache_control = client.get("/api/sync/status").headers["cache-control"]
-
-    assert cache_control == SYNC_STATUS_CACHE_CONTROL
 
 
 # --- GET /api/sync/runs ---
@@ -249,10 +242,6 @@ def test_taking_admin_away_works_at_once(
     db_session.execute(update(User).where(User.id == oak.user.id).values(is_admin=False))
 
     assert oak_client.get("/api/sync/runs").status_code == 403
-
-
-def test_the_runs_are_never_cached(oak_client: TestClient) -> None:
-    assert oak_client.get("/api/sync/runs").headers["cache-control"] == "no-store"
 
 
 def test_documents_the_route_as_one_for_admins(openapi: dict[str, Any]) -> None:

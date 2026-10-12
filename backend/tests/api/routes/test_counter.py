@@ -119,15 +119,6 @@ ANSWERED = [
     pytest.param("/api/team-threats", {"pokemon_id": CHARIZARD}, id="team-threats"),
     pytest.param("/api/matchups", {"pokemon_id": GOLEM, "opponent_id": CHARIZARD}, id="matchups"),
 ]
-# Requests each route refuses: one with an id given twice, one with an id no Pokémon has.
-REFUSED = [
-    pytest.param("/api/counter-team", {"pokemon_id": [6, 6]}, id="counter-team-twice"),
-    pytest.param("/api/counter-team", {"pokemon_id": 99999}, id="counter-team-unknown"),
-    pytest.param("/api/team-threats", {"pokemon_id": [6, 6]}, id="team-threats-twice"),
-    pytest.param("/api/team-threats", {"pokemon_id": 99999}, id="team-threats-unknown"),
-    pytest.param("/api/matchups", {"pokemon_id": [76, 76], "opponent_id": 6}, id="matchups-twice"),
-    pytest.param("/api/matchups", {"pokemon_id": 76, "opponent_id": 99999}, id="matchups-unknown"),
-]
 
 
 @pytest.mark.parametrize(("path", "params"), ANSWERED)
@@ -141,24 +132,6 @@ def test_lets_browsers_and_the_cdn_cache_the_answer(
         200,
         COUNTER_TEAM_CACHE_CONTROL,
     )
-
-
-@pytest.mark.parametrize(("path", "params"), ANSWERED)
-@pytest.mark.usefixtures("pokedex", "running_locally")
-def test_tells_browsers_not_to_keep_the_answer_when_caching_is_off(
-    client: TestClient, path: str, params: dict[str, Any]
-) -> None:
-    response = client.get(path, params=params)
-
-    assert (response.status_code, response.headers["cache-control"]) == (200, "no-store")
-
-
-@pytest.mark.parametrize(("path", "params"), REFUSED)
-@pytest.mark.usefixtures("pokedex")
-def test_errors_are_not_cached(client: TestClient, path: str, params: dict[str, Any]) -> None:
-    response = client.get(path, params=params)
-
-    assert (response.status_code, response.headers["cache-control"]) == (422, "no-store")
 
 
 # --- Docs ---

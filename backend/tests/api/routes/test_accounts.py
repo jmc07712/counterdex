@@ -148,24 +148,6 @@ def test_a_renewal_is_saved(ash_client: TestClient, db_session: Session, ash: Si
     assert stored.expires_at >= before + SESSION_LIFETIME
 
 
-@pytest.mark.parametrize(
-    ("method", "path", "body"),
-    [
-        ("POST", "/api/users", {**ASH_JSON, "username": "misty"}),
-        ("POST", "/api/session", ASH_JSON),
-        ("GET", "/api/session", None),
-        ("DELETE", "/api/session", None),
-    ],
-)
-def test_responses_are_never_cached(
-    ash_client: TestClient, method: str, path: str, body: dict[str, str] | None
-) -> None:
-    response = ash_client.request(method, path, json=body)
-
-    assert response.is_success
-    assert response.headers["cache-control"] == "no-store"
-
-
 # --- Who's signed in ---
 
 

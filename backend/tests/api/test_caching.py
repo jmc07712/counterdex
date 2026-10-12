@@ -4,9 +4,10 @@ from fastapi.testclient import TestClient
 from app.api.constants import SYNC_STATUS_CACHE_CONTROL
 
 
-@pytest.mark.parametrize("path", ["/api/health", "/api/docs", "/api/openapi.json"])
-def test_a_response_that_sets_no_policy_is_never_cached(client: TestClient, path: str) -> None:
-    response = client.get(path)
+@pytest.mark.parametrize("path", ["/api/health", "/api/docs", "/api/openapi.json", "/api/session"])
+def test_a_response_that_sets_no_policy_is_never_cached(ash_client: TestClient, path: str) -> None:
+    # Signed in, so the session route answers with who that is.
+    response = ash_client.get(path)
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"

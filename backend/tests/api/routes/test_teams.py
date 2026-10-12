@@ -220,10 +220,6 @@ def test_rejects_a_new_name_with_a_nul_character(ash_client: TestClient) -> None
     assert response.json()["detail"][0]["loc"] == ["body", "name"]
 
 
-def test_team_responses_are_never_cached(ash_client: TestClient) -> None:
-    assert ash_client.get("/api/teams").headers["cache-control"] == "no-store"
-
-
 @pytest.mark.usefixtures("charmander_family")
 def test_adds_replaces_removes_and_reorders(ash_client: TestClient, db_session: Session) -> None:
     add_species_pokemon(db_session, 201)
