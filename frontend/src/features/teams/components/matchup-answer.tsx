@@ -15,6 +15,8 @@ type MatchupAnswerProps<T> = {
   loadFailed: string
   // In place of an answer, while there's no sync to answer from.
   needsSync: ReactNode
+  // In place of all of the above while there's nothing to ask, such as for a team with no Pokémon.
+  empty?: ReactNode
   children: (answer: T) => ReactNode
 }
 
@@ -28,6 +30,7 @@ export function MatchupAnswer<T>({
   loading,
   loadFailed,
   needsSync,
+  empty,
   children,
 }: MatchupAnswerProps<T>) {
   function answer() {
@@ -44,9 +47,9 @@ export function MatchupAnswer<T>({
       {/* Always the first thing returned, from the first load on, so it stays the same element as
           the answer changes. */}
       <ResultsStatus settled={!query.isPlaceholderData}>
-        {query.data && summary(query.data)}
+        {!empty && query.data && summary(query.data)}
       </ResultsStatus>
-      {answer()}
+      {empty || answer()}
     </>
   )
 }

@@ -2,7 +2,6 @@ import { ChevronDown, X } from 'lucide-react'
 import { useId } from 'react'
 
 import type { Challenger, Pokemon, TeamMember } from '@/api'
-import { ResultsStatus } from '@/components/lists/results-status'
 import { LoadFailedAlert } from '@/components/load-failed-alert'
 import { displayName } from '@/components/pokemon/format'
 import { Button } from '@/components/ui/button'
@@ -13,6 +12,7 @@ import { useTeam } from '../hooks/use-team'
 import { useTeamMatchups } from '../hooks/use-team-matchups'
 import { asMember } from '../utils/as-member'
 import { bestAnswer, coverage, pickReason } from '../utils/matchup-summary'
+import { MatchupAnswer } from './matchup-answer'
 import { MatchupButton } from './matchup-rating'
 import { MatchupNeedsSync, MatchupResults } from './matchup-section'
 import { MemberThumb } from './member-thumb'
@@ -88,75 +88,45 @@ function TheirTiles({ members }: { members: TeamMember[] }) {
 type MatchupsProps = { ours: TeamMember[]; theirs: TeamMember[]; defaultOpen: boolean }
 
 function Matchups({ ours, theirs, defaultOpen }: MatchupsProps) {
-  const matchups = useTeamMatchups(ours, theirs)
+  const query = useTeamMatchups(ours, theirs)
   const opponents = theirs.map((member) => member.pokemon)
-  // The first thing returned, from the first load on, so it stays the same element as the team
-  // changes. It reads out what the team covers each time its matchups load.
-  const status = (
-    <ResultsStatus settled={!matchups.isPlaceholderData}>
-      {ours.length > 0 && matchups.data && coverage(matchups.data.members, opponents)}
-    </ResultsStatus>
-  )
-
-  if (ours.length === 0) {
-    return (
-      <>
-        {status}
-        <p className="text-sm text-muted-foreground">{m.team_against_empty()}</p>
-      </>
-    )
-  }
-  if (matchups.isPending) {
-    return (
-      <>
-        {status}
-        <Skeleton role="group" aria-label={m.team_against_loading()} className="h-14 rounded-xl" />
-      </>
-    )
-  }
-  if (matchups.isError) {
-    return (
-      <>
-        {status}
-        <LoadFailedAlert
-          title={m.team_against_load_failed()}
-          onRetry={() => void matchups.refetch()}
-        />
-      </>
-    )
-  }
-  if (matchups.data === null) {
-    return (
-      <>
-        {status}
-        <MatchupNeedsSync>{m.team_against_needs_sync()}</MatchupNeedsSync>
-      </>
-    )
-  }
-
-  const picks = matchups.data.members
   return (
-    <>
-      {status}
-      <MatchupResults busy={matchups.isPlaceholderData} className="flex flex-col gap-3">
-        <p className="font-medium">{coverage(picks, opponents)}</p>
-        <details open={defaultOpen} className="group/details">
-          <summary
-            className="-mx-1 flex cursor-pointer list-none items-center gap-1 rounded-md px-1 text-sm font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden"
-          >
-            {m.team_against_details()}
-            <ChevronDown
-              aria-hidden="true"
-              className="size-4 transition-transform group-open/details:rotate-180"
-            />
-          </summary>
-          <div className="mt-3 flex flex-col gap-4">
-            <OurPicks picks={picks} ours={ours} opponents={opponents} />
-            <BestAnswers picks={picks} theirs={theirs} />
-          </div>
-        </details>
-      </MatchupResults>
-    </>
+    <MatchupAnswer
+      query={query}
+      // What the team covers, each time its matchups load.
+      summary={(matchups) => coverage(matchups.members, opponents)}
+      loading={
+        <Skeleton role="group" aria-label={m.team_against_loading()} className="h-14 rounded-xl" />
+      }
+      loadFailed={m.team_against_load_failed()}
+      needsSync={<MatchupNeedsSync>{m.team_against_needs_sync()}</MatchupNeedsSync>}
+      empty={
+        ours.length === 0 && (
+          <p className="text-sm text-muted-foreground">{m.team_against_empty()}</p>
+        )
+      }
+    >
+      {({ members: picks }) => (
+        <MatchupResults busy={query.isPlaceholderData} className="flex flex-col gap-3">
+          <p className="font-medium">{coverage(picks, opponents)}</p>
+          <details open={defaultOpen} className="group/details">
+            <summary
+              className="-mx-1 flex cursor-pointer list-none items-center gap-1 rounded-md px-1 text-sm font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden"
+            >
+              {m.team_against_details()}
+              <ChevronDown
+                aria-hidden="true"
+                className="size-4 transition-transform group-open/details:rotate-180"
+              />
+            </summary>
+            <div className="mt-3 flex flex-col gap-4">
+              <OurPicks picks={picks} ours={ours} opponents={opponents} />
+              <BestAnswers picks={picks} theirs={theirs} />
+            </div>
+          </details>
+        </MatchupResults>
+      )}
+    </MatchupAnswer>
   )
 }
 
