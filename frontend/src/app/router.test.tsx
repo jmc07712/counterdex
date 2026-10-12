@@ -15,23 +15,13 @@ describe('routes', () => {
     serveTeams()
   })
 
-  it('shows the Teams page at /', async () => {
-    renderRoutes(routes, { path: '/' })
+  it.each([
+    ['the Teams page', '/', 'Teams'],
+    ['the Admin page', '/admin', 'Admin'],
+    ['Page not found', '/explore', 'Page not found'],
+  ])('shows %s at %s', async (_, path, heading) => {
+    renderRoutes(routes, { path })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Teams' })).toBeInTheDocument()
-  })
-
-  it('shows the Admin page at /admin', async () => {
-    renderRoutes(routes, { path: '/admin' })
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Admin' })).toBeInTheDocument()
-  })
-
-  it('shows Page not found at /explore', async () => {
-    renderRoutes(routes, { path: '/explore' })
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Page not found' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
   })
 })

@@ -113,27 +113,23 @@ describe('AppShell account', () => {
     }
   })
 
-  it('links an admin to the admin page from the account menu', async () => {
-    serveSession({ signedIn: OAK })
+  it.each([
+    ['links an admin to the admin page', OAK, [['Admin', '/admin'], ['Sign out', null]]],
+    ['offers no admin page to anyone else', ASH, [['Sign out', null]]],
+  ])('%s from the account menu', async (_, signedIn, items) => {
+    serveSession({ signedIn })
     const { user } = renderWithProviders(<AppShell />)
 
-    const [account] = await screen.findAllByRole('button', { name: 'Account: oak, admin' })
+    const [account] = await screen.findAllByRole('button', { name: /^Account/ })
     await user.click(account)
 
     const menu = await screen.findByRole('menu')
-    expect(within(menu).getByRole('menuitem', { name: 'Admin' })).toHaveAttribute('href', '/admin')
-  })
-
-  it('offers no admin page to anyone else', async () => {
-    serveSession({ signedIn: ASH })
-    const { user } = renderWithProviders(<AppShell />)
-
-    const [account] = await screen.findAllByRole('button', { name: 'Account: ash' })
-    await user.click(account)
-
-    const menu = await screen.findByRole('menu')
-    expect(within(menu).getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument()
-    expect(within(menu).queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
+    // Each item's name, and where it links to, if anywhere.
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => [item.textContent, item.getAttribute('href')]),
+    ).toEqual(items)
   })
 
   it('signs out from the account menu, and keeps keyboard focus on the page', async () => {

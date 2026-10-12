@@ -496,25 +496,17 @@ describe('TeamsPage, signed in', () => {
     expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
 
-  it('offers New team when your teams couldn’t load, though you have none', async () => {
+  it.each([
+    ['your teams couldn’t load', '/?scope=mine', true, 'Couldn’t load teams'],
+    ['a filter finds none of your teams', '/?scope=mine&q=zzz', false, 'No teams match these filters'],
+  ])('offers New team when %s, though you have none', async (_, path, failing, message) => {
     serveTeams()
     // Added last, so it answers first: listing teams fails; counting yours finds none.
-    server.use(
-      http.get('/api/teams', () => HttpResponse.json({ detail: 'Refused.' }, { status: 500 })),
-    )
+    if (failing) server.use(http.get('/api/teams', () => refusal(500)))
 
-    await renderTeams('/?scope=mine')
+    await renderTeams(path)
 
-    expect(await screen.findByText('Couldn’t load teams')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
-  })
-
-  it('offers New team when a filter finds none of your teams, though you have none', async () => {
-    serveTeams()
-
-    await renderTeams('/?scope=mine&q=zzz')
-
-    expect(await screen.findByText('No teams match these filters', ON_SCREEN)).toBeInTheDocument()
+    expect(await screen.findByText(message, ON_SCREEN)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
 
@@ -634,10 +626,14 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(router.state.location.search).toBe('?view=changed')
   })
 
-  it('opens on the newest teams, and asks for no sort', async () => {
+  it.each([
+    ['with no sort in the URL', '/'],
+    ['when the URL names the newest, which is the default', '/?sort=newest'],
+    ['for a sort it doesn’t know', '/?sort=weakest'],
+  ])('lists the newest teams, asking for no sort, %s', async (_, path) => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
 
-    await renderTeams()
+    await renderTeams(path)
 
     expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Most powerful' })).not.toBeChecked()
@@ -695,24 +691,6 @@ describe('TeamsPage, everyone’s teams', () => {
     expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
     expect(screen.getByRole('radio', { name: 'Changed this week' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
-  })
-
-  it('asks for no sort when the URL names the newest, which is the default', async () => {
-    const { listQueries } = serveTeams({ teams: [RAIN] })
-
-    await renderTeams('/?sort=newest')
-
-    await waitFor(() => expect(listQueries).toEqual(['']))
-    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
-  })
-
-  it('lists the newest teams for a sort it doesn’t know', async () => {
-    const { listQueries } = serveTeams({ teams: [RAIN] })
-
-    await renderTeams('/?sort=weakest')
-
-    await waitFor(() => expect(listQueries).toEqual(['']))
-    expect(screen.getByRole('radio', { name: 'Newest' })).toBeChecked()
   })
 
   it('keeps a search within the 50 characters the API takes', async () => {
