@@ -7,7 +7,8 @@ import { TypeFilter } from '@/components/filters/type-filter'
 import { MAX_TYPES } from '@/components/pokemon/pokemon-types'
 import { m } from '@/paraglide/messages.js'
 
-import { type PokedexFilters as Filters, POKEDEX_VIEWS } from '../hooks/use-pokedex-filters'
+import { POKEDEX_VIEWS } from '../hooks/use-pokedex-filters'
+import type { PokedexFilters as Filters } from '../types'
 import { PokemonSearch } from './pokemon-search'
 
 type PokedexFiltersProps = {

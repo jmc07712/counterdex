@@ -4,7 +4,7 @@ import { FormFilter, type ListPokemonData, ListingStatus } from '@/api'
 import { listPokemonInfiniteOptions } from '@/api/@tanstack/react-query.gen'
 import { MAX_SEARCH_LENGTH } from '@/lib/search-params'
 
-import type { PokedexFilters, PokedexView } from './use-pokedex-filters'
+import type { PokedexFilters, PokedexView } from '../types'
 
 type PokemonQuery = NonNullable<ListPokemonData['query']>
 

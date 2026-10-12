@@ -20,8 +20,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useDebouncedSearch } from '@/hooks/use-debounced-search'
 import { m } from '@/paraglide/messages.js'
 
-import type { PokedexFilters } from '../hooks/use-pokedex-filters'
 import { usePokemonList } from '../hooks/use-pokemon-list'
+import type { PokedexFilters } from '../types'
 
 // Columns follow the width of the grid's container rather than the screen's, so the grid also fits
 // beside something else, such as a team.

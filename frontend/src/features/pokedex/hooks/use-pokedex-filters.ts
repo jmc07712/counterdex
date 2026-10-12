@@ -1,22 +1,13 @@
 import { useSearchParams } from 'react-router'
 
-import { FormFilter, ListingStatus, type PokemonType } from '@/api'
+import { FormFilter, ListingStatus } from '@/api'
 import { MAX_TYPES, toPokemonTypes } from '@/components/pokemon/pokemon-types'
 import { parseOption } from '@/lib/search-params'
 
-/**
- * Which Pokémon the Pokédex shows: those PokéAPI lists, those syncs changed recently, or those
- * PokéAPI removed.
- */
-export type PokedexView = ListingStatus | 'changed'
-export const POKEDEX_VIEWS: PokedexView[] = [ListingStatus.LISTED, 'changed', ListingStatus.REMOVED]
+import type { PokedexFilters, PokedexView } from '../types'
 
-export type PokedexFilters = {
-  search: string
-  types: PokemonType[]
-  forms: FormFilter
-  view: PokedexView
-}
+// The views, in the order the filter offers them.
+export const POKEDEX_VIEWS: PokedexView[] = [ListingStatus.LISTED, 'changed', ListingStatus.REMOVED]
 
 // The params the filters are kept in.
 const FILTER_PARAMS = ['q', 'type', 'forms', 'status']
