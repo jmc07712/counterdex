@@ -1,6 +1,6 @@
 import { type Challenger, type Matchup, type Pokemon, Rating } from '@/api'
 import { displayName } from '@/components/pokemon/format'
-import { formatList } from '@/lib/lists'
+import { andList, formatList } from '@/lib/lists'
 import { m } from '@/paraglide/messages.js'
 
 import type { WeakSpots } from './weak-spots'
@@ -112,11 +112,4 @@ function opponentsRated(rating: Rating, matchups: Matchup[]) {
 
 function names(pokemon: Pokemon[]) {
   return pokemon.map((each) => displayName(each.name))
-}
-
-// "Charizard", "Charizard and Pidgeot", "Charizard, Pidgeot and Venusaur"
-function andList(items: string[]) {
-  if (items.length === 1) return items[0]
-  const last = items[items.length - 1]
-  return m.common_list_and({ items: formatList(items.slice(0, -1)), last })
 }
