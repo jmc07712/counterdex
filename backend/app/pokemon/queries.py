@@ -37,7 +37,7 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
     # One extra row shows whether another page follows, without counting the rest.
     rows = session.execute(statement.limit(query.limit + 1)).mappings().all()
 
-    items = [pokemon_from_columns(row) for row in rows[: query.limit]]
+    items = [served_pokemon(row) for row in rows[: query.limit]]
     next_cursor = items[-1].id if len(rows) > query.limit else None
     return schemas.PokemonPage(items=items, next_cursor=next_cursor)
 
@@ -45,7 +45,7 @@ def list_pokemon(session: Session, query: schemas.PokemonQuery) -> schemas.Pokem
 def pokemon_by_ids(session: Session, pokemon_ids: Sequence[int]) -> dict[int, schemas.Pokemon]:
     """These Pokémon as the API serves them, with their species and family, by id."""
     rows = session.execute(_with_species().where(models.Pokemon.id.in_(pokemon_ids))).mappings()
-    return {row["id"]: pokemon_from_columns(row) for row in rows}
+    return {row["id"]: served_pokemon(row) for row in rows}
 
 
 def changed_recently() -> ColumnElement[bool]:
@@ -81,14 +81,14 @@ def get_pokemon_details(session: Session, pokemon_id: int) -> schemas.PokemonDet
     if species is None:
         # A sync stores a Pokémon before its species, so this lasts until a sync stores both.
         return schemas.PokemonDetails(
-            pokemon=pokemon_from_columns(row),
+            pokemon=served_pokemon(row),
             removed_at=row["removed_at"],
             species=None,
             forms=[],
             evolution=None,
         )
     return schemas.PokemonDetails(
-        pokemon=pokemon_from_columns(row),
+        pokemon=served_pokemon(row),
         removed_at=row["removed_at"],
         species=_species(species),
         forms=[form for _, form in _listed_forms(session, [species.id])],
@@ -143,7 +143,7 @@ def _listed_forms(
         )
         .order_by(models.Pokemon.id)
     ).mappings()
-    return [(row["species_id"], pokemon_from_columns(row)) for row in rows]
+    return [(row["species_id"], served_pokemon(row)) for row in rows]
 
 
 def _with_species() -> Select[*tuple[Any, ...]]:
@@ -162,7 +162,7 @@ def _with_species() -> Select[*tuple[Any, ...]]:
     )
 
 
-def pokemon_from_columns(columns: Mapping[Any, Any]) -> schemas.Pokemon:
+def served_pokemon(columns: Mapping[Any, Any]) -> schemas.Pokemon:
     """A Pokémon as the API serves it, from the pokemon table's columns and, where they include
     them, its species' and family's ids: its sprite from the CDN, and whether a sync changed it
     recently (a change's snapshots have no such column).

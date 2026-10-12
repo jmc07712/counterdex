@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, defer
 
 from app.pokemon import schemas as pokemon_schemas
-from app.pokemon.queries import pokemon_from_columns
+from app.pokemon.queries import served_pokemon
 from app.sync import models, schemas
 from app.sync.enums import SyncStatus
 
@@ -103,4 +103,4 @@ def _snapshot_pokemon(
     snapshot: dict[str, Any] | None, pokemon_id: int
 ) -> pokemon_schemas.Pokemon | None:
     """The Pokémon a change's snapshot recorded. Snapshots leave out the id they're filed under."""
-    return None if snapshot is None else pokemon_from_columns({**snapshot, "id": pokemon_id})
+    return None if snapshot is None else served_pokemon({**snapshot, "id": pokemon_id})

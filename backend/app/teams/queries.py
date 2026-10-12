@@ -25,7 +25,7 @@ from app.accounts import models as accounts_models
 from app.accounts.exceptions import UserNotFoundError
 from app.accounts.queries import find_user, has_username
 from app.pokemon import models as pokemon_models
-from app.pokemon.queries import changed_recently, pokemon_from_columns, stat_total
+from app.pokemon.queries import changed_recently, served_pokemon, stat_total
 from app.pokemon.schemas import as_stored_name
 from app.teams import models, schemas
 from app.teams.enums import TeamSort
@@ -228,7 +228,7 @@ def _members_shown(rows: Sequence[Mapping[Any, Any]]) -> list[schemas.TeamMember
     return [
         schemas.TeamMember(
             position=row["position"],
-            pokemon=pokemon_from_columns(row),
+            pokemon=served_pokemon(row),
             removed_at=row["removed_at"],
         )
         for row in rows
