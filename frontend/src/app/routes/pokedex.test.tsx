@@ -7,7 +7,13 @@ import { type Pokemon, type Team, TeamConflictReason } from '@/api'
 import { Toaster } from '@/components/layout/toaster'
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import { holdNewTeams, holdTeamChanges, holdUserTeams, serveTeams } from '@/test/handlers/teams'
+import {
+  holdNewTeams,
+  holdTeamChanges,
+  holdUserTeams,
+  refuseTeamChange,
+  serveTeams,
+} from '@/test/handlers/teams'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
@@ -512,15 +518,8 @@ describe('PokedexPage', () => {
 
     it('says why when the API refuses the add', async () => {
       serveAsh([makeTeam({ name: 'Rain Squad', pokemon: [lapras] })])
-      // Added last, so it answers first: the team filled up somewhere else.
-      server.use(
-        http.post('/api/teams/:teamId/members', () =>
-          HttpResponse.json(
-            { detail: 'Refused.', reason: TeamConflictReason.TEAM_FULL },
-            { status: 409 },
-          ),
-        ),
-      )
+      // The team filled up somewhere else.
+      refuseTeamChange(TeamConflictReason.TEAM_FULL)
       browse([pikachu])
       const { user } = renderPokedex()
 

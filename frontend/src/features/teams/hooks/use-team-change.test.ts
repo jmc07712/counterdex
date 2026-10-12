@@ -1,11 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { act, waitFor } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
 import { listUserTeamsOptions } from '@/api/@tanstack/react-query.gen'
-import { holdUserTeams, serveTeams } from '@/test/handlers/teams'
+import { holdUserTeams, refuseTeamChange, serveTeams } from '@/test/handlers/teams'
 import { renderHookWithProviders } from '@/test/render'
 import { server } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
@@ -70,13 +70,9 @@ function countTeamFetches() {
 describe('useTeamChange', () => {
   it('doesn’t undo a refused change while a later one is still on its way', async () => {
     serveTeams({ teams: [TEAM], catalog: Object.values(catalog), signedIn: ASH })
-    server.use(
-      http.delete(`/api/teams/:teamId/members/${charmander.id}`, () =>
-        HttpResponse.json(
-          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
-          { status: 409 },
-        ),
-      ),
+    refuseTeamChange(
+      TeamConflictReason.ORDER_OUT_OF_DATE,
+      `/api/teams/:teamId/members/${charmander.id}`,
     )
     const later = holdRemoving(pikachu.id)
     const result = await renderRemove()
@@ -127,6 +123,10 @@ describe('useTeamChange', () => {
 
   it('shows a change in its owner’s list of teams, and undoes it there too if refused', async () => {
     serveTeams({ teams: [TEAM], catalog: Object.values(catalog), signedIn: ASH })
+    refuseTeamChange(
+      TeamConflictReason.ORDER_OUT_OF_DATE,
+      `/api/teams/:teamId/members/${charmander.id}`,
+    )
     let refuse = () => {}
     const refusing = new Promise<void>((resolve) => {
       refuse = resolve
@@ -134,10 +134,6 @@ describe('useTeamChange', () => {
     server.use(
       http.delete(`/api/teams/:teamId/members/${charmander.id}`, async () => {
         await refusing
-        return HttpResponse.json(
-          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
-          { status: 409 },
-        )
       }),
     )
     const result = await renderRemove()
@@ -161,6 +157,10 @@ describe('useTeamChange', () => {
 
   it('undoes a refused change only to its own team in the list, keeping others’ changes', async () => {
     serveTeams({ teams: [TEAM, OTHER], catalog: Object.values(catalog), signedIn: ASH })
+    refuseTeamChange(
+      TeamConflictReason.ORDER_OUT_OF_DATE,
+      `/api/teams/${TEAM_ID}/members/${charmander.id}`,
+    )
     let refuse = () => {}
     const refusing = new Promise<void>((resolve) => {
       refuse = resolve
@@ -168,10 +168,6 @@ describe('useTeamChange', () => {
     server.use(
       http.delete(`/api/teams/${TEAM_ID}/members/${charmander.id}`, async () => {
         await refusing
-        return HttpResponse.json(
-          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
-          { status: 409 },
-        )
       }),
     )
     const { result } = renderHookWithProviders(() => ({

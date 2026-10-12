@@ -266,6 +266,14 @@ export function serveTeams({
 }
 
 /**
+ * Refuses every change to a team's members or order, or only those to `path`, as the API refuses
+ * one that conflicts: with a 409 for `reason`. Call it after serveTeams, so it comes first.
+ */
+export function refuseTeamChange(reason: TeamConflictReason, path = '/api/teams/:teamId/*') {
+  server.use(http.all(path, () => conflict(reason)))
+}
+
+/**
  * Holds every change to a team's members or order until `release` is called, then lets the
  * stand-in from serveTeams answer them. `arrived` counts the changes the app has sent so far.
  * Call it after serveTeams, so it comes first.

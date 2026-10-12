@@ -11,7 +11,12 @@ import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { serveCounterTeam, serveMatchups, serveTeamThreats } from '@/test/handlers/counter'
 import { servePokemon, servePokemonChanges, servePokemonDetails } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
-import { holdTeamChanges, holdTeamFetches, serveTeams } from '@/test/handlers/teams'
+import {
+  holdTeamChanges,
+  holdTeamFetches,
+  refuseTeamChange,
+  serveTeams,
+} from '@/test/handlers/teams'
 import { termsAndDefinitions } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
 import { server } from '@/test/server'
@@ -525,14 +530,7 @@ describe('TeamPage, for the team’s owner', () => {
   it('undoes a change the API refuses, and says why', async () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([])
-    server.use(
-      http.delete('/api/teams/:teamId/members/:pokemonId', () =>
-        HttpResponse.json(
-          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
-          { status: 409 },
-        ),
-      ),
-    )
+    refuseTeamChange(TeamConflictReason.ORDER_OUT_OF_DATE)
     const { user, queryClient } = renderTeam(EDIT)
     const remove = await screen.findByRole('button', { name: 'Remove Charmander' })
     // Held, so what shows is the change undone rather than the team fetched again.
@@ -928,14 +926,7 @@ describe('TeamPage, putting a team in a new order', () => {
     stackSlots()
     serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
-    server.use(
-      http.put('/api/teams/:teamId/order', () =>
-        HttpResponse.json(
-          { detail: 'Refused.', reason: TeamConflictReason.ORDER_OUT_OF_DATE },
-          { status: 409 },
-        ),
-      ),
-    )
+    refuseTeamChange(TeamConflictReason.ORDER_OUT_OF_DATE)
     const { user, queryClient } = renderTeam(EDIT)
     await screen.findByRole('button', { name: 'Move Pikachu' })
     // Held, so what shows is the order put back rather than the team fetched again.
