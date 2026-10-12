@@ -152,8 +152,7 @@ adds a Pokémon without the lock to show the constraint refuses it alone.
 Three routes answer from the Pokédex and the type chart alone, and write nothing:
 `GET /api/counter-team` picks a team to beat the one given, `GET /api/team-threats` lists the
 Pokémon that beat it most, and `GET /api/matchups` scores one team against another, such as a team
-being built against the team it's meant to counter. Teams are given as repeated Pokémon ids, so a
-team that isn't saved works too.
+being built against the team it's meant to counter. Teams are given as repeated Pokémon ids.
 
 **A matchup** is one Pokémon against another, scored from the first one's side from types and base
 stats, with no moves (`scoring.py`; the weights are in `constants.py`):
@@ -196,14 +195,13 @@ family once, by its best. Pokémon from the team's own evolution families are le
 member's too, so the team's Pokémon and their evolutions never come back as threats to it.
 **Matchups** scores each of ours against each of theirs.
 
-**Worked out on request.** A team is any one to six of about 1,350 Pokémon, teams that aren't saved
-need answers too, and a sync can change the stats and types they're scored from, so nothing is
-worked out in advance. A request reads the type chart and the Pokémon it can choose from, then
-scores each of them against at most six in memory. Responses are cached like the Pokédex's
-(`COUNTER_TEAM_CACHE_CONTROL`), since the same ids get the same answer until a sync changes the
-data. Until a sync has stored the type chart the routes answer 503 and say to run one, as the
-counter team does while there are fewer evolution families to choose from than the team has
-Pokémon. An unknown id, or one given twice on a team, is a 422.
+**Worked out on request.** A team is any one to six of about 1,350 Pokémon, and a sync can change
+the stats and types they're scored from, so nothing is worked out in advance. A request reads the
+type chart and the Pokémon it can choose from, then scores each of them against at most six in
+memory. Responses are cached like the Pokédex's (`COUNTER_TEAM_CACHE_CONTROL`), since the same ids
+get the same answer until a sync changes the data. Until a sync has stored the type chart the routes
+answer 503 and say to run one, as the counter team does while there are fewer evolution families to
+choose from than the team has Pokémon. An unknown id, or one given twice on a team, is a 422.
 
 ## The type chart and legendary flags
 

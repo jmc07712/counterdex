@@ -48,8 +48,8 @@ def counter_errors() -> Iterator[None]:
 def find_counter_team(
     session: SessionDep, response: Response, query: Annotated[TeamMatchupQuery, Query()]
 ) -> list[Challenger]:
-    """A team as big as the given one that matches up well against it, for a saved team or a
-    guest's draft.
+    """A team as big as the given one that matches up well against it. The team is given by its
+    Pokémon's ids, so it doesn't need to be saved.
 
     Each of our Pokémon is scored against each of theirs from types and base stats alone: how
     effective its best type is against theirs, how effective their best type is against it,
