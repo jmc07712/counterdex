@@ -1,5 +1,4 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
-import { delay, http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TeamConflictReason } from '@/api'
@@ -16,7 +15,7 @@ import { onTouchScreen } from '@/test/media'
 import { CHARIZARD_MEGA_X, makeDetails, makePage, makePokemon } from '@/test/pokemon'
 import { ON_SCREEN } from '@/test/queries'
 import { renderWithProviders } from '@/test/render'
-import { failOnce, holdRequests, server } from '@/test/server'
+import { failOnce, holdRequests } from '@/test/server'
 import { catalog, makeTeam, TEAM_ID } from '@/test/teams'
 import { ASH } from '@/test/users'
 
@@ -354,19 +353,16 @@ describe('PokedexPage', () => {
       servePokemonDetails((id) =>
         makeDetails(id === CHARIZARD_MEGA_X.id ? { pokemon: CHARIZARD_MEGA_X } : {}),
       )
-      // Mega Charizard X answers slowly, so the switch can be seen mid-way.
-      server.use(
-        http.get(`/api/pokemon/${CHARIZARD_MEGA_X.id}`, async () => {
-          await delay(100)
-          return HttpResponse.json(makeDetails({ pokemon: CHARIZARD_MEGA_X }))
-        }),
-      )
+      // Mega Charizard X waits, so the switch can be seen mid-way.
+      const megaX = holdRequests('get', `/api/pokemon/${CHARIZARD_MEGA_X.id}`)
       const { user } = renderWithProviders(<PokedexPage />, { path: '/?pokemon=6' })
       const dialog = await screen.findByRole('dialog', { name: 'Charizard' })
 
       await user.click(within(dialog).getByRole('button', { name: /Charizard Mega X/ }))
+      await waitFor(() => expect(megaX.arrived()).toBe(1))
 
       expect(screen.getByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
+      megaX.release()
       expect(await screen.findByRole('dialog', { name: 'Charizard Mega X' })).toBeInTheDocument()
     })
 

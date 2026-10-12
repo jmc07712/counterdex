@@ -331,7 +331,7 @@ describe('TeamPage, how to beat someone else’s team', () => {
   it('holds off building while a toggle’s counter loads, so it builds the one shown', async () => {
     const api = serveTheirs()
     serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    const { user, router } = renderTeam()
+    const { user, router, queryClient } = renderTeam()
     const section = await findSection()
     await within(section).findByRole('table')
     const build = within(section).getByRole('button', { name: 'Build this counter' })
@@ -348,8 +348,8 @@ describe('TeamPage, how to beat someone else’s team', () => {
     await user.click(build)
     held.release()
     await waitFor(() => expect(build).toHaveAttribute('aria-disabled', 'false'))
-    // Given time, the click while it loaded built nothing.
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once nothing's being built, the click while it loaded built nothing.
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0))
     expect(api.requests.filter((request) => request.method === 'PUT')).toEqual([])
     expect(router.state.location.pathname).toBe(VIEW)
 

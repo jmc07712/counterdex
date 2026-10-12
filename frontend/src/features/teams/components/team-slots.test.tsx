@@ -54,28 +54,28 @@ function listItems(row: HTMLElement) {
 }
 
 function renderLead(member: TeamMember) {
-  renderWithProviders(
+  const rendered = renderWithProviders(
     <PartySlots>
       <LeadSlot member={member} onOpen={vi.fn()} />
     </PartySlots>,
   )
-  return slot()
+  return { ...rendered, lead: slot() }
 }
 
 function renderRow(member: TeamMember) {
-  renderWithProviders(
+  const rendered = renderWithProviders(
     <TeamSlots>
       <TeamSlot member={member} onOpen={vi.fn()} />
     </TeamSlots>,
   )
-  return slot()
+  return { ...rendered, row: slot() }
 }
 
 describe('LeadSlot', () => {
   it('shows a changed lead’s newest change in full', async () => {
     servePokemonChanges([UPDATED, REMOVED])
 
-    const lead = renderLead(asMember(charizard, 0))
+    const { lead } = renderLead(asMember(charizard, 0))
 
     expect(await within(lead).findByText('Updated')).toBeInTheDocument()
     expect(within(lead).getByText('Oct 9, 2026')).toBeInTheDocument()
@@ -91,7 +91,7 @@ describe('LeadSlot', () => {
   it('shows a lead PokéAPI lists again as back, and when', async () => {
     servePokemonChanges([RESTORED, REMOVED])
 
-    const lead = renderLead(asMember(charizard, 0))
+    const { lead } = renderLead(asMember(charizard, 0))
 
     expect(await within(lead).findByText('Back in PokéAPI')).toBeInTheDocument()
     expect(within(lead).getByText('Oct 9, 2026')).toBeInTheDocument()
@@ -100,20 +100,22 @@ describe('LeadSlot', () => {
   it('shows a removed lead’s removal once, as the change, without asking for it', async () => {
     const asked = servePokemonChanges([REMOVED])
 
-    const lead = renderLead(REMOVED_CHARIZARD)
+    const { lead, queryClient } = renderLead(REMOVED_CHARIZARD)
 
     expect(within(lead).getAllByText(/Removed from PokéAPI/)).toHaveLength(1)
     expect(lead).toHaveTextContent('Removed from PokéAPI on Oct 9, 2026')
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once nothing's being fetched, nothing was asked for.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
     expect(asked).toEqual([])
   })
 
   it('shows nothing of a lead no sync changed recently, without asking for its changes', async () => {
     const asked = servePokemonChanges([UPDATED])
 
-    const lead = renderLead(asMember(catalog.charizard, 0))
+    const { lead, queryClient } = renderLead(asMember(catalog.charizard, 0))
 
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once nothing's being fetched, nothing was asked for.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
     expect(asked).toEqual([])
     expect(lead).not.toHaveTextContent('Updated')
   })
@@ -123,7 +125,7 @@ describe('TeamSlot', () => {
   it('sums up a changed member’s newest change on one line: what it changed', async () => {
     servePokemonChanges([UPDATED, REMOVED])
 
-    const row = renderRow(asMember(charizard, 1))
+    const { row } = renderRow(asMember(charizard, 1))
 
     await waitFor(() =>
       expect(listItems(row)).toEqual(expect.arrayContaining(['Attack 120 → 125', 'Speed 76 → 81'])),
@@ -134,7 +136,7 @@ describe('TeamSlot', () => {
   it('sums up a member PokéAPI lists again as back, and when', async () => {
     servePokemonChanges([RESTORED, REMOVED])
 
-    const row = renderRow(asMember(charizard, 1))
+    const { row } = renderRow(asMember(charizard, 1))
 
     await waitFor(() =>
       expect(listItems(row)).toEqual(expect.arrayContaining(['Back in PokéAPI', 'Oct 9, 2026'])),
@@ -144,22 +146,26 @@ describe('TeamSlot', () => {
   it('shows a removed member’s removal once, as the change, without asking for it', async () => {
     const asked = servePokemonChanges([REMOVED])
 
-    const row = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
+    const { row, queryClient } = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
 
     expect(within(row).getAllByText(/Removed from PokéAPI/)).toHaveLength(1)
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once nothing's being fetched, nothing was asked for.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
     expect(asked).toEqual([])
   })
 
   it('marks a removal from this week with the dot the Pokédex marks a removal with', () => {
-    const row = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
+    const { row } = renderRow({ ...REMOVED_CHARIZARD, position: 1 })
 
     const line = within(row).getByText('Removed from PokéAPI on Oct 9, 2026')
     expect(line.querySelector('[aria-hidden="true"]')).toHaveClass('bg-destructive')
   })
 
   it('leaves a removal from before this week unmarked', () => {
-    const row = renderRow({ ...asMember(catalog.charizard, 1), removed_at: '2026-09-01T09:00:00Z' })
+    const { row } = renderRow({
+      ...asMember(catalog.charizard, 1),
+      removed_at: '2026-09-01T09:00:00Z',
+    })
 
     const line = within(row).getByText('Removed from PokéAPI on Sep 1, 2026')
     expect(line.querySelector('[aria-hidden="true"]')).not.toBeInTheDocument()
@@ -169,7 +175,7 @@ describe('TeamSlot', () => {
     servePokemonChanges([UPDATED])
     const changes = holdRequests('get', '/api/pokemon/:pokemonId/changes')
 
-    const row = renderRow(asMember(charizard, 1))
+    const { row } = renderRow(asMember(charizard, 1))
 
     await waitFor(() => expect(row.querySelector('[data-slot=skeleton]')).toBeInTheDocument())
     changes.release()
@@ -186,7 +192,7 @@ describe('TeamSlot', () => {
       }),
     )
 
-    const row = renderRow(asMember(charizard, 1))
+    const { row } = renderRow(asMember(charizard, 1))
 
     await waitFor(() => expect(failed).toBe(true))
     await waitFor(() => expect(row.querySelector('[data-slot=skeleton]')).not.toBeInTheDocument())

@@ -402,18 +402,24 @@ describe('TeamPage, for the team’s owner', () => {
     const api = serveAsh([makeTeam({ pokemon: [charmander, pikachu] })])
     browse([])
     const hold = holdRequests('delete', '/api/teams/:teamId/members/:pokemonId')
+    // How many changes the API had answered as each change arrived.
+    const answered: number[] = []
+    server.use(
+      http.delete('/api/teams/:teamId/members/:pokemonId', () => {
+        answered.push(api.requests.length)
+      }),
+    )
     const { user } = renderTeam(EDIT)
 
     await user.click(await screen.findByRole('button', { name: 'Remove Charmander' }))
     await user.click(screen.getByRole('button', { name: 'Remove Pikachu' }))
     await waitFor(() => expect(hold.arrived()).toBe(1))
-    // Given time, the second still hasn't been sent: it waits for the first, which is held.
-    await new Promise((resolve) => setTimeout(resolve, 50))
-    expect(hold.arrived()).toBe(1)
 
     hold.release()
 
     await waitFor(() => expect(api.teams()[0].members).toEqual([]))
+    // The second waited for the first, which was held, to be answered.
+    expect(answered).toEqual([0, 1])
     expect(api.requests.map((request) => request.path)).toEqual([
       `/api/teams/${TEAM_ID}/members/4`,
       `/api/teams/${TEAM_ID}/members/25`,
@@ -1100,10 +1106,10 @@ describe('TeamPage, while it’s not yet known who’s signed in', () => {
     serveAsh([makeTeam({ pokemon: [charmander] })])
     browse([])
     const release = holdNextCurrentUser(ASH)
-    renderTeam(EDIT)
+    const { queryClient } = renderTeam(EDIT)
 
-    // Given time, the team has loaded, but who's signed in is held.
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once the team has loaded: who's signed in, which is held, is all that's still being fetched.
+    await waitFor(() => expect(queryClient.isFetching()).toBe(1))
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Build your own team' })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()

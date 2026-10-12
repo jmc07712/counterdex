@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { act, waitFor } from '@testing-library/react'
 import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -24,12 +24,15 @@ const OTHER = makeTeam({
   pokemon: [gengar, lapras],
 })
 
-// The team as fetched, its owner's teams as listed, and a way to remove its members.
+// The team as fetched, its owner's teams as listed, and a way to remove its members; with the
+// query client, and how many changes are on their way as of the last render.
 async function renderRemove() {
   const { result } = renderHookWithProviders(() => ({
     shown: useTeam(TEAM_ID),
     listed: useUserTeams(ASH.username),
     remove: useRemoveTeamMember(TEAM),
+    client: useQueryClient(),
+    mutating: useIsMutating(),
   }))
   await waitFor(() => expect(result.current.shown.data).toBeTruthy())
   await waitFor(() => expect(result.current.listed.data).toBeTruthy())
@@ -70,8 +73,9 @@ describe('useTeamChange', () => {
     expect(await refused).toBeUndefined()
     await waitFor(() => expect(later.arrived()).toBe(1))
 
-    // Given time, both changes still show: the refused one isn't undone under the later one.
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once only the later change is on its way, both still show: the refused one isn't undone
+    // under the later one.
+    await waitFor(() => expect(result.current.mutating).toBe(1))
     expect(memberIds(result.current.shown.data)).toEqual([])
     expect(memberIds(result.current.listed.data?.[0])).toEqual([])
 
@@ -93,15 +97,15 @@ describe('useTeamChange', () => {
     })
     await first
     await waitFor(() => expect(later.arrived()).toBe(1))
-    // Given time, the first has settled, but the team isn't fetched while the second waits.
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // The first has settled, but once nothing's being fetched, the team wasn't: the second waits.
+    await waitFor(() => expect(result.current.client.isFetching()).toBe(0))
     expect(fetches()).toBe(0)
 
     later.release()
 
     await waitFor(() => expect(fetches()).toBe(1))
-    await waitFor(() => expect(result.current.shown.isFetching).toBe(false))
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Once nothing's being fetched, it was fetched just the once.
+    await waitFor(() => expect(result.current.client.isFetching()).toBe(0))
     expect(fetches()).toBe(1)
     expect(memberIds(result.current.shown.data)).toEqual([])
   })
