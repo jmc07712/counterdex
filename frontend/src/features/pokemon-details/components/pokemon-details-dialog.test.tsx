@@ -38,12 +38,14 @@ async function openDetails({ changes = [], action }: OpenDetails = {}) {
 }
 
 describe('PokemonDetailsDialog', () => {
-  it('slides up from the bottom on phones', async () => {
+  it('slides up from the bottom on phones, and closes on Escape', async () => {
     servePokemonDetails()
 
-    const { dialog } = await openDetails()
-
+    const { dialog, user, onClose } = await openDetails()
     expect(dialog).toHaveAttribute('data-slot', 'sheet-content')
+    await user.keyboard('{Escape}')
+
+    expect(onClose).toHaveBeenCalled()
   })
 
   it('opens in the middle of wider screens, and closes', async () => {
@@ -174,14 +176,5 @@ describe('PokemonDetailsDialog', () => {
     await user.click(await screen.findByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByRole('dialog', { name: 'Charizard' })).toBeInTheDocument()
-  })
-
-  it('closes when asked', async () => {
-    servePokemonDetails()
-    const { user, onClose } = await openDetails()
-
-    await user.keyboard('{Escape}')
-
-    expect(onClose).toHaveBeenCalled()
   })
 })

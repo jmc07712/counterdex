@@ -92,8 +92,13 @@ describe('AppShell account', () => {
 
     renderWithProviders(<AppShell />)
 
-    expect(await screen.findAllByRole('button', { name: 'Account: ash' })).toHaveLength(2)
+    const accounts = await screen.findAllByRole('button', { name: 'Account: ash' })
+    expect(accounts).toHaveLength(2)
     expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
+    // Not an admin, so not marked as one.
+    for (const account of accounts) {
+      expect(within(account).queryByText('Admin')).not.toBeInTheDocument()
+    }
   })
 
   it('marks an admin with a badge by their name, in the header and the tab bar', async () => {
@@ -105,16 +110,6 @@ describe('AppShell account', () => {
     expect(accounts).toHaveLength(2)
     for (const account of accounts) {
       expect(within(account).getByText('Admin')).toBeInTheDocument()
-    }
-  })
-
-  it('marks no one else as an admin', async () => {
-    serveSession({ signedIn: ASH })
-
-    renderWithProviders(<AppShell />)
-
-    for (const account of await screen.findAllByRole('button', { name: 'Account: ash' })) {
-      expect(within(account).queryByText('Admin')).not.toBeInTheDocument()
     }
   })
 

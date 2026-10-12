@@ -75,6 +75,11 @@ describe('SyncIndicator', () => {
       ['Restored', '1'],
       ['Couldn’t sync', '0'],
     ])
+    // It changed some, so it links to them.
+    expect(within(details).getByRole('link', { name: 'See what changed' })).toHaveAttribute(
+      'href',
+      '/pokedex?status=changed',
+    )
   })
 
   it('flags a failed sync, and says how old the data is', async () => {
@@ -97,18 +102,6 @@ describe('SyncIndicator', () => {
 
     await waitFor(() => expect(requests).toHaveLength(1))
     expect(container).toBeEmptyDOMElement()
-  })
-
-  it('links to the Pokémon the latest sync changed, if it changed any', async () => {
-    serveSyncStatus(syncedThreeHoursAgo())
-    const { user } = renderWithProviders(<SyncIndicator />)
-
-    await user.click(await screen.findByRole('button', { name: 'Synced about 3 hours ago' }))
-
-    expect(await screen.findByRole('link', { name: 'See what changed' })).toHaveAttribute(
-      'href',
-      '/pokedex?status=changed',
-    )
   })
 
   it('has no link to changes when the latest sync changed nothing', async () => {
