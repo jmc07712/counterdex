@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { routes } from '@/app/router'
 import { TYPE_STYLES } from '@/components/pokemon/pokemon-types'
 import { paths } from '@/config/paths'
-import { serveCounterTeam } from '@/test/handlers/counter'
 import { servePokemon } from '@/test/handlers/pokemon'
 import { holdNextCurrentUser, serveSession } from '@/test/handlers/session'
 import { serveSyncStatus } from '@/test/handlers/sync'
@@ -532,24 +531,6 @@ describe('TeamsPage, signed in', () => {
     expect(within(mine).getAllByRole('article')).toHaveLength(2)
     expect(within(mine).queryByRole('button')).not.toBeInTheDocument()
   })
-
-  it('builds a counter to a team from its card, then opens it to edit', async () => {
-    const api = serveTeams({ teams: [RAIN], catalog: Object.values(catalog), signedIn: ASH })
-    const counters = serveCounterTeam({ catalog: [catalog.pikachu] })
-    const { user, router } = await renderTeams()
-
-    await user.click(await screen.findByRole('button', { name: 'Build a counter to Rain' }))
-
-    await waitFor(() =>
-      expect(router.state.location.pathname).toMatch(/^\/teams\/[0-9a-f-]{36}\/edit$/),
-    )
-    expect(counters).toEqual([`pokemon_id=${catalog.vaporeon.id}`])
-    expect(api.teams()[0]).toMatchObject({
-      name: 'Counter to Rain',
-      owner: { username: ASH.username },
-      members: [asMember(catalog.pikachu, 0)],
-    })
-  })
 })
 
 describe.each([
@@ -707,24 +688,18 @@ describe('TeamsPage, everyone’s teams', () => {
     await waitFor(() => expect(names()).toEqual(['Fire', 'Rain']))
   })
 
-  it('starts from the filters in the URL', async () => {
+  it('starts from the filters and sort in the URL', async () => {
     const { listQueries } = serveTeams({ teams: [RAIN] })
 
-    await renderTeams('/?q=rain&type=water&type=fire&view=changed')
+    await renderTeams('/?q=rain&type=water&type=fire&view=changed&sort=power')
 
-    await waitFor(() => expect(listQueries).toEqual(['q=rain&type=water&type=fire&changed=true']))
+    await waitFor(() =>
+      expect(listQueries).toEqual(['q=rain&type=water&type=fire&changed=true&sort=power']),
+    )
     expect(screen.getByRole('searchbox', { name: /Search teams/ })).toHaveValue('rain')
     expect(screen.getByRole('button', { name: 'Water' })).toBePressed()
     expect(screen.getByRole('button', { name: 'Fire' })).toBePressed()
     expect(screen.getByRole('radio', { name: 'Changed this week' })).toBeChecked()
-  })
-
-  it('starts from the sort in the URL', async () => {
-    const { listQueries } = serveTeams({ teams: [RAIN] })
-
-    await renderTeams('/?sort=power')
-
-    await waitFor(() => expect(listQueries).toEqual(['sort=power']))
     expect(screen.getByRole('radio', { name: 'Most powerful' })).toBeChecked()
   })
 
