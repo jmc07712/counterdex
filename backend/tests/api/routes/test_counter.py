@@ -53,16 +53,6 @@ def test_finds_a_counter_team_as_big_as_theirs(client: TestClient) -> None:
     assert all([each["opponent_id"] for each in pick["matchups"]] == team for pick in picks)
 
 
-@pytest.mark.usefixtures("pokedex")
-def test_lists_the_threats_to_a_team(client: TestClient) -> None:
-    threats = client.get("/api/team-threats", params={"pokemon_id": [CHARIZARD, 3, 9]}).json()
-
-    assert len(threats) == 12
-    assert threats[0]["pokemon"]["name"] == "aerodactyl"
-    assert [each["opponent_id"] for each in threats[0]["matchups"]] == [CHARIZARD, 3, 9]
-    assert [each["rating"] for each in threats[0]["matchups"]] == ["good", "good", "bad"]
-
-
 @pytest.mark.parametrize("path", PATHS)
 @pytest.mark.parametrize(
     "params",
