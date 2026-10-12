@@ -8,11 +8,12 @@ import { m } from '@/paraglide/messages.js'
 import { useDroppedOrder } from '../hooks/use-dropped-order'
 import type { TeamEditor } from '../types'
 import { ChangedThisWeekAlert } from './changed-this-week'
+import { EmptySlots } from './empty-slots'
 import { ReplaceBanner } from './replace-banner'
 import { ReplaceLink, SlotButton } from './slot-controls'
 import { SortableMembers } from './sortable-members'
 import { TeamNameField } from './team-name-field'
-import { EmptySlots, SortableTeamSlot, TeamSlots } from './team-slots'
+import { SortableTeamSlot, TeamSlots } from './team-slots'
 
 type TeamBuilderProps = {
   editor: TeamEditor

@@ -1,15 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { type ComponentProps, type ReactNode, type Ref, useId } from 'react'
-import { Link } from 'react-router'
 
 import { ChangeKind, type Stats, type TeamMember } from '@/api'
 import { BaseStats } from '@/components/pokemon/base-stats'
 import { ChangeDot } from '@/components/pokemon/change-entry'
 import { ChangedMark } from '@/components/pokemon/changed-mark'
 import { dexNumber, displayName, MAX_STAT_TOTAL, statTotal } from '@/components/pokemon/format'
-import { PokeBall } from '@/components/pokemon/poke-ball'
 import { TypeBadges } from '@/components/pokemon/type-badges'
 import { Progress } from '@/components/ui/progress'
 import { useFirstRender } from '@/hooks/use-first-render'
@@ -18,7 +16,6 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { ENTER, Entering, useEnterDelay } from '../hooks/use-enter-delay'
-import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { memberColors, MUTED } from '../utils/member-colors'
 import { MemberBall } from './member-ball'
 import { MemberSprite } from './member-sprite'
@@ -27,7 +24,8 @@ import { OpenButton } from './slot-controls'
 
 // A sprite pops out of its Poké Ball this long after its slot starts to enter.
 const POP_OUT_AFTER_MS = 150
-const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4 @max-[34rem]/slots:min-h-16'
+/** A slot laid out as a row, as a member's TeamSlot and an empty slot are. */
+export const ROW = 'flex min-h-18 items-center gap-3 py-2 pr-3 pl-4 @max-[34rem]/slots:min-h-16'
 
 type TeamSlotsProps = {
   // The list, which focus can be moved to.
@@ -219,54 +217,6 @@ function SlotRow({ member, onOpen, children }: TeamSlotProps) {
   )
 }
 
-type EmptySlotsProps = {
-  filled: number
-  // Where each empty slot links to be filled, such as the team's Edit page. Without it, the slots
-  // don't link.
-  to?: string
-}
-
-/** The slots after the team's `filled` members, each dashed: "Empty slot", or a link to fill it. */
-export function EmptySlots({ filled, to }: EmptySlotsProps) {
-  return Array.from({ length: MAX_TEAM_SIZE - filled }, (_, index) => (
-    <EmptySlot key={filled + index} slot={filled + index} to={to} />
-  ))
-}
-
-function EmptySlot({ slot, to }: { slot: number; to?: string }) {
-  const delay = useEnterDelay(slot)
-  return (
-    <li
-      style={{ animationDelay: `${delay}ms` }}
-      className={cn(ENTER, 'rounded-2xl border-2 border-dashed text-sm text-muted-foreground')}
-    >
-      {to ? (
-        <Link
-          to={to}
-          aria-label={m.team_add_to_slot({ slot: slot + 1 })}
-          className={cn(
-            ROW,
-            'h-full rounded-[inherit] transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
-          )}
-        >
-          <SlotNumber slot={slot} />
-          <EmptyBall />
-          <span className="flex items-center gap-1.5 font-medium">
-            <Plus className="size-4" aria-hidden="true" />
-            {m.team_add_pokemon()}
-          </span>
-        </Link>
-      ) : (
-        <div className={cn(ROW, 'h-full')}>
-          <SlotNumber slot={slot} />
-          <EmptyBall />
-          {m.team_empty_slot()}
-        </div>
-      )}
-    </li>
-  )
-}
-
 type MemberPanelProps = { member: TeamMember } & ComponentProps<'li'>
 
 // A member's slot, painted in its main type, or neutral once it's no longer in the Pokédex.
@@ -294,16 +244,8 @@ function MemberPanel({ member, style, className, children, ...props }: MemberPan
   )
 }
 
-// As large as a member's sprite in a row as wide.
-function EmptyBall() {
-  return (
-    <span className="grid size-16 shrink-0 place-items-center @max-[34rem]/slots:size-12">
-      <PokeBall className="size-9 opacity-50 @max-[34rem]/slots:size-7" />
-    </span>
-  )
-}
-
-function SlotNumber({ slot }: { slot: number }) {
+/** A slot's number in battle order, counting from 1. */
+export function SlotNumber({ slot }: { slot: number }) {
   return <span className="w-4 shrink-0 text-sm font-medium tabular-nums">{slot + 1}</span>
 }
 

@@ -5,9 +5,10 @@ import { m } from '@/paraglide/messages.js'
 
 import { MAX_TEAM_SIZE } from '../utils/can-add'
 import { ChangedThisWeekAlert } from './changed-this-week'
+import { EmptySlots } from './empty-slots'
 import { ReplaceLink } from './slot-controls'
 import { TeamPower } from './team-power'
-import { EmptySlots, LeadSlot, PartySlots, TeamSlot } from './team-slots'
+import { LeadSlot, PartySlots, TeamSlot } from './team-slots'
 
 type TeamPartyProps = {
   team: Team

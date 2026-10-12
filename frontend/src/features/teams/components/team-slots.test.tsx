@@ -11,8 +11,9 @@ import { renderWithProviders } from '@/test/render'
 import { holdRequests, server } from '@/test/server'
 import { asMember, catalog } from '@/test/teams'
 
+import { EmptySlots } from './empty-slots'
 import { ReplaceLink } from './slot-controls'
-import { EmptySlots, LeadSlot, PartySlots, TeamSlot, TeamSlots } from './team-slots'
+import { LeadSlot, PartySlots, TeamSlot, TeamSlots } from './team-slots'
 
 const CHANGED_ON = '2026-10-09T09:00:00Z'
 const charizard = { ...catalog.charizard, changed_recently: true }
