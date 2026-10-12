@@ -72,9 +72,9 @@ then `app/`. The text the app shows is in `messages/en.json`.
 | --- | --- |
 | `app/` | The route table, the layout around every page, and the pages in `routes/`, which compose features. |
 | `features/` | `admin`, `auth`, `pokedex`, `pokemon-details`, `sync-status` and `teams`, each with the `components/`, `hooks/` and `utils/` it needs. |
-| `components/` | Shared UI: `ui/` (shadcn), `layout/` (the app shell), `pokemon/` (cards, badges), `filters/` (the search, type and view filters the Pokédex and the Teams page share), `lists/` (Load more, the grids' card entrance, and their results region and status) and `sync/` (the sync status light). |
+| `components/` | Shared UI: `ui/` (shadcn), `layout/` (the app shell), `pokemon/` (cards, badges), `filters/` (the search, type and view filters the Pokédex and the Teams page share), `lists/` (Load more, the grids' card entrance, and their results region and status), `sync/` (the sync status light), and the load-failed alert and disclosure the features share. |
 | `hooks/` | Shared hooks, such as a debounced search. |
-| `lib/` | App-wide helpers: who's signed in, the query client, the theme, dates. |
+| `lib/` | App-wide helpers: who's signed in, the query client and `dataOrNull` for its queries, the theme, dates and lists. |
 | `config/` | Page paths. |
 | `api/` | The generated API client. |
 | `paraglide/` | The generated messages (not committed). |
