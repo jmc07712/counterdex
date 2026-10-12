@@ -3,6 +3,8 @@ import { displayName } from '@/components/pokemon/format'
 import { formatList } from '@/lib/dates'
 import { m } from '@/paraglide/messages.js'
 
+import type { WeakSpots } from './weak-spots'
+
 // Ratings from best to worst.
 const BEST_FIRST: Rating[] = [Rating.GOOD, Rating.EVEN, Rating.BAD]
 
@@ -24,6 +26,35 @@ export function pickReason(matchups: Matchup[], opponents: Pokemon[]) {
 export function threatReason(matchups: Matchup[], members: Pokemon[]) {
   const best = bestRated(matchups, members)
   return best && m.team_threat_reason({ rating: best.rating, names: andList(best.names) })
+}
+
+/**
+ * What a threat that beats none of a team does instead, from its `matchups` against the team:
+ * "Even with all of yours", "Even with 2 of yours, beaten by the rest", or "Beaten by all of
+ * yours".
+ */
+export function threatWithoutWins(matchups: Matchup[]) {
+  const even = matchups.filter((matchup) => matchup.rating === Rating.EVEN).length
+  if (even === matchups.length) return m.team_threat_even_with_all()
+  if (even > 0) return m.team_threat_even_with_some({ count: even })
+  return m.team_threat_beaten_by_all()
+}
+
+/**
+ * A team's weak spots in a sentence or two: "Weak spots: Charizard and Pikachu. Most of them hit
+ * with Water.", or "No Pokémon of yours is beaten by half of them." if no member is exposed. The
+ * type's sentence is left out without a common type.
+ */
+export function weakSpotsLine({ exposed, unnamed, commonType }: WeakSpots) {
+  const spots =
+    exposed.length === 0
+      ? m.team_threats_no_weak_spots()
+      : unnamed > 0
+        ? m.team_threats_weak_spots_more({ names: formatList(names(exposed)), count: unnamed })
+        : m.team_threats_weak_spots({ names: andList(names(exposed)) })
+  if (!commonType) return spots
+  const type = m.pokemon_type({ type: commonType })
+  return `${spots} ${m.team_threats_common_type({ type })}`
 }
 
 /**

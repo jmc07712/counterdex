@@ -393,9 +393,64 @@
       }
     }
   ],
-  "team_threats_title": "Threats to this team",
+  "team_threat_beats": "Beats",
+  "team_threat_even_with_all": "Even with all of yours",
+  "team_threat_even_with_some": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Even with one of yours, beaten by the rest",
+        "countPlural=other": "Even with {shown} of yours, beaten by the rest"
+      }
+    }
+  ],
+  "team_threat_beaten_by_all": "Beaten by all of yours",
+  "team_threats_title": "Top threats to this team",
   "team_threats_description": "The Pokémon that match up best against it, scored on types, base stats and Speed.",
-  "team_threats_list": "Threats, the biggest first",
+  "team_threats_top": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "The top threat",
+        "countPlural=other": "The top {shown}, the biggest first"
+      }
+    }
+  ],
+  "team_threats_grid_caption": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local shown = count: number"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "The top threat. Each cell rates your Pokémon against it. Choose one to see why.",
+        "countPlural=other": "The top {shown}, the biggest first. Each cell rates your Pokémon against the threat in its row. Choose one to see why."
+      }
+    }
+  ],
+  "team_threats_threat": "Threat",
+  "team_threats_weak_spots": "Weak spots: {names}.",
+  "team_threats_weak_spots_more": "Weak spots: {names} and {count} more.",
+  "team_threats_no_weak_spots": "No Pokémon of yours is beaten by half of them.",
+  "team_threats_common_type": "Most of them hit with {type}.",
   "team_threats_summary": [
     {
       "declarations": [

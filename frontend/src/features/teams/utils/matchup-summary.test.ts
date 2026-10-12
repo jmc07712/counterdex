@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { Rating } from '@/api'
+import { PokemonType, Rating } from '@/api'
 import { makeChallenger, makeMatchup } from '@/test/matchups'
 import { catalog } from '@/test/teams'
 
-import { bestAnswer, coverage, pickReason, threatReason, threatsSummary } from './matchup-summary'
+import {
+  bestAnswer,
+  coverage,
+  pickReason,
+  threatReason,
+  threatsSummary,
+  threatWithoutWins,
+  weakSpotsLine,
+} from './matchup-summary'
 
 const { charizard, pikachu, gengar, lapras, snorlax, dragonite, vaporeon } = catalog
 const { GOOD, EVEN, BAD } = Rating
@@ -59,6 +67,45 @@ describe('threatReason', () => {
 
   it('is null without matchups', () => {
     expect(threatReason([], THEIRS)).toBeNull()
+  })
+})
+
+describe('threatWithoutWins', () => {
+  it.each<[string, Rating[], string]>([
+    ['even with all', [EVEN, EVEN, EVEN], 'Even with all of yours'],
+    ['even with one', [BAD, EVEN, BAD], 'Even with one of yours, beaten by the rest'],
+    ['even with two', [EVEN, BAD, EVEN], 'Even with 2 of yours, beaten by the rest'],
+    ['beaten by all', [BAD, BAD, BAD], 'Beaten by all of yours'],
+  ])('says when a threat is %s of the team', (_, ratings, line) => {
+    const threat = makeChallenger(dragonite, THEIRS, ratings)
+
+    expect(threatWithoutWins(threat.matchups)).toBe(line)
+  })
+})
+
+describe('weakSpotsLine', () => {
+  it('names the weak spots, in the order given', () => {
+    expect(weakSpotsLine({ exposed: [gengar, charizard], unnamed: 0, commonType: null })).toBe(
+      'Weak spots: Gengar and Charizard.',
+    )
+  })
+
+  it('says which type most threats hit with, if one does', () => {
+    expect(weakSpotsLine({ exposed: [pikachu], unnamed: 0, commonType: PokemonType.GROUND })).toBe(
+      'Weak spots: Pikachu. Most of them hit with Ground.',
+    )
+  })
+
+  it('says how many more weak spots there are than it names', () => {
+    expect(
+      weakSpotsLine({ exposed: [pikachu, gengar, charizard], unnamed: 2, commonType: null }),
+    ).toBe('Weak spots: Pikachu, Gengar, Charizard and 2 more.')
+  })
+
+  it('says plainly when no member is beaten by half of the threats', () => {
+    expect(weakSpotsLine({ exposed: [], unnamed: 0, commonType: null })).toBe(
+      'No Pokémon of yours is beaten by half of them.',
+    )
   })
 })
 

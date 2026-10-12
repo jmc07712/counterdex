@@ -15,7 +15,7 @@ type PickTileProps = {
 }
 
 /**
- * A Pokémon picked against a team, such as a counter's pick or a threat, as a tile in its main
+ * A Pokémon picked against a team, such as a counter's pick, as a tile in its main
  * type's color: its number in the list, then its sprite in front of its ghosted Poké Ball.
  */
 export function PickTile({ member, children }: PickTileProps) {
@@ -38,24 +38,24 @@ export function PickTile({ member, children }: PickTileProps) {
   )
 }
 
-type PickNameProps = { id?: string; children: string }
+type PickNameProps = { children: string }
 
 /** A pick's name, on its tile. */
-export function PickName({ id, children }: PickNameProps) {
+export function PickName({ children }: PickNameProps) {
   return (
-    <h3 id={id} className="max-w-full truncate text-lg font-extrabold">
+    <h3 className="max-w-full truncate text-lg font-extrabold">
       {children}
     </h3>
   )
 }
 
-type PickLineProps = { id?: string; children: string | null }
+type PickLineProps = { children: string | null }
 
 /** A line about a pick, on its tile, such as why it's there. */
-export function PickLine({ id, children }: PickLineProps) {
+export function PickLine({ children }: PickLineProps) {
   if (!children) return null
   return (
-    <p id={id} className="text-sm leading-snug">
+    <p className="text-sm leading-snug">
       {children}
     </p>
   )

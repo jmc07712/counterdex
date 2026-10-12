@@ -1,15 +1,12 @@
-import { useId } from 'react'
-
-import type { Challenger, Pokemon, Team } from '@/api'
+import type { Team } from '@/api'
 import { ResultsStatus } from '@/components/lists/results-status'
-import { displayName } from '@/components/pokemon/format'
 import { m } from '@/paraglide/messages.js'
 
 import { useMatchupPool } from '../hooks/use-matchup-pool'
 import { useTeamThreats } from '../hooks/use-team-threats'
 import type { MatchupPool } from '../types'
-import { asMember } from '../utils/as-member'
-import { threatReason, threatsSummary } from '../utils/matchup-summary'
+import { threatsSummary, weakSpotsLine } from '../utils/matchup-summary'
+import { weakSpots } from '../utils/weak-spots'
 import {
   MatchupLoadFailed,
   MatchupNeedsSync,
@@ -17,7 +14,8 @@ import {
   MatchupSection,
   MatchupSkeleton,
 } from './matchup-section'
-import { PickLine, PickName, PickTile } from './pick-tile'
+import { ThreatsGrid } from './threats-grid'
+import { ThreatsList } from './threats-list'
 
 type TeamThreatsProps = {
   team: Team
@@ -26,8 +24,8 @@ type TeamThreatsProps = {
 }
 
 /**
- * The Pokémon that threaten your own team the most, each saying which of its members it beats.
- * Each opens its details.
+ * The Pokémon that threaten your own team the most: where the team is weak to them, then each
+ * threat against each member. Each threat opens its details.
  */
 export function TeamThreats({ team, onOpenPokemon }: TeamThreatsProps) {
   const [pool, setPool] = useMatchupPool()
@@ -87,49 +85,24 @@ function Threats({ team, pool, onOpenPokemon }: TeamThreatsProps & { pool: Match
   return (
     <>
       {status}
-      <MatchupResults busy={threats.isPlaceholderData}>
-        <ol
-          aria-label={m.team_threats_list()}
-          className="grid grid-cols-1 gap-2 @xl:grid-cols-2 @4xl:grid-cols-3"
-        >
-          {threats.data.map((threat, position) => (
-            <ThreatTile
-              key={threat.pokemon.id}
-              threat={threat}
-              position={position}
-              members={members}
-              onOpen={() => onOpenPokemon(threat.pokemon.id)}
-            />
-          ))}
-        </ol>
+      <MatchupResults busy={threats.isPlaceholderData} className="flex flex-col gap-4">
+        <p className="rounded-xl border bg-card px-4 py-3 font-medium">
+          {weakSpotsLine(weakSpots(threats.data, members))}
+        </p>
+        {/* The grid where it fits, and on narrower screens the list. */}
+        <ThreatsGrid
+          threats={threats.data}
+          members={team.members}
+          onOpenPokemon={onOpenPokemon}
+          className="hidden @2xl:table"
+        />
+        <ThreatsList
+          threats={threats.data}
+          members={team.members}
+          onOpenPokemon={onOpenPokemon}
+          className="@2xl:hidden"
+        />
       </MatchupResults>
     </>
-  )
-}
-
-type ThreatTileProps = {
-  threat: Challenger
-  position: number
-  members: Pokemon[]
-  onOpen: () => void
-}
-
-// A threat's tile, which all opens its details: named by its name, and described by what it
-// beats.
-function ThreatTile({ threat, position, members, onOpen }: ThreatTileProps) {
-  const nameId = useId()
-  const lineId = useId()
-  return (
-    <PickTile member={asMember(threat.pokemon, position)}>
-      <PickName id={nameId}>{displayName(threat.pokemon.name)}</PickName>
-      <PickLine id={lineId}>{threatReason(threat.matchups, members)}</PickLine>
-      <button
-        type="button"
-        aria-labelledby={nameId}
-        aria-describedby={lineId}
-        onClick={onOpen}
-        className="absolute inset-0 rounded-[inherit] outline-none focus-visible:inset-ring-3 focus-visible:inset-ring-current"
-      />
-    </PickTile>
   )
 }
