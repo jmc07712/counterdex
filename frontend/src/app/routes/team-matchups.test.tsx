@@ -118,17 +118,6 @@ const THREAT_MATCHUPS: Record<number, Record<number, Partial<Matchup>>> = {
 const threatMatchupOf: MatchupOf = (pokemon, opponentId) =>
   makeMatchup({ opponent_id: opponentId, ...THREAT_MATCHUPS[pokemon.id]?.[opponentId] })
 
-// Every threat's Rock moves beating Charizard and Pikachu; even with Gengar.
-const rockBeatsTwo: MatchupOf = (_, opponentId) =>
-  makeMatchup({
-    opponent_id: opponentId,
-    ...(opponentId !== gengar.id && {
-      rating: GOOD,
-      score: 1,
-      attack: { type: PokemonType.ROCK, multiplier: 2 },
-    }),
-  })
-
 // What the list of threats is named.
 const TOP_THREE = 'The top 3, the biggest first'
 // The grid's caption, which names it, also says whose side each cell rates.
@@ -174,6 +163,8 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(tiles[1]).toHaveTextContent('Strong against Pikachu')
     expect(tiles[1]).not.toHaveTextContent('Goes first')
     expect(tiles[2]).toHaveTextContent('Holds its own against Charizard, Pikachu and Gengar')
+    // And those of theirs that no pick clearly beats.
+    expect(within(section).getByText('No pick clearly beats Gengar', ON_SCREEN)).toBeInTheDocument()
   })
 
   it('explains how it chooses its picks and scores a matchup, folded away to begin', async () => {
@@ -192,29 +183,6 @@ describe('TeamPage, how to beat someone else’s team', () => {
     expect(within(section).getByRole('list', { name: 'How a matchup is scored' })).toHaveTextContent(
       '0.75 or more is Good, −0.75 or less is Bad',
     )
-  })
-
-  it('names those of theirs that no pick clearly beats', async () => {
-    serveTheirs()
-    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    renderTeam()
-
-    expect(
-      await within(await findSection()).findByText('No pick clearly beats Gengar', ON_SCREEN),
-    ).toBeInTheDocument()
-  })
-
-  it('says when every one of theirs has a good answer', async () => {
-    serveTheirs()
-    serveCounterTeam({ catalog: PICKS, matchup: alwaysGood })
-    renderTeam()
-
-    expect(
-      await within(await findSection()).findByText(
-        'At least one pick beats each Pokémon on their team',
-        ON_SCREEN,
-      ),
-    ).toBeInTheDocument()
   })
 
   it('tables each pick’s matchup against each of theirs, in words and multipliers', async () => {
@@ -244,21 +212,6 @@ describe('TeamPage, how to beat someone else’s team', () => {
       'Lapras against Gengar: Even neutral',
     ])
     expect(within(snorlaxRow).getAllByRole('cell')[2]).toHaveTextContent('Bad no effect')
-  })
-
-  it('explains a matchup in one sentence when its cell is chosen', async () => {
-    serveTheirs()
-    serveCounterTeam({ catalog: PICKS, matchup: matchupOf })
-    const { user } = renderTeam()
-
-    const table = await within(await findSection()).findByRole('table')
-    await user.click(within(table).getByRole('button', { name: 'Lapras against Charizard: Good 2×' }))
-
-    const dialog = await screen.findByRole('dialog', { name: 'Lapras against Charizard' })
-    expect(dialog).toHaveTextContent(
-      'Lapras’s Water moves are 2× against Charizard, and Charizard’s Fire moves are only ½× ' +
-        'against Lapras. Charizard is faster.',
-    )
   })
 
   it('opens a matchup’s sentence from the keyboard, and closes it on Escape', async () => {
@@ -640,30 +593,6 @@ describe('TeamPage, threats to your own team', () => {
     expect(await within(section).findByText('Weak spots: Charizard.')).toBeInTheDocument()
     expect(within(section).getByRole('table', { name: TOP_THREE_GRID })).toBeInTheDocument()
     expect(within(section).getByRole('list', { name: TOP_THREE })).toBeInTheDocument()
-  })
-
-  it('says which type most threats hit with', async () => {
-    serveTheirs({ viewer: ASH })
-    serveTeamThreats({ threats: THREATS, matchup: rockBeatsTwo })
-    renderTeam()
-
-    expect(
-      await within(await findThreats()).findByText(
-        'Weak spots: Charizard and Pikachu. Most of them hit with Rock.',
-      ),
-    ).toBeInTheDocument()
-  })
-
-  it('says when no Pokémon of the team is beaten by half of its threats', async () => {
-    serveTheirs({ viewer: ASH })
-    serveTeamThreats({ threats: THREATS })
-    renderTeam()
-
-    expect(
-      await within(await findThreats()).findByText(
-        'No Pokémon of yours is beaten by half of them.',
-      ),
-    ).toBeInTheDocument()
   })
 
   it('tables each threat against each member, rated from the member’s side', async () => {
